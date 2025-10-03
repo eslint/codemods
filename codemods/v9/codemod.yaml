@@ -1,0 +1,19 @@
+schema_version: "1.0"
+
+name: "@eslint/v9"
+version: "0.1.0"
+description: "Migratie eslint v8 to v9"
+author: "Author <author@example.com>"
+license: "MIT"
+workflow: "workflow.yaml"
+category: "migration"
+repository: "https://github.com/codemod/eslint-codemods"
+
+targets:
+  languages: ["typescript"]
+
+keywords: ["transformation", "migration"]
+
+registry:
+  access: "public"
+  visibility: "public"

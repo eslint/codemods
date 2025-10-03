@@ -1,0 +1,24 @@
+version: "1"
+
+nodes:
+  - id: apply-transforms
+    name: Apply AST Transformations
+    type: automatic
+    steps:
+      - name: "Scan .eslintrc.js and .eslintrc.cjs"
+        js-ast-grep:
+          js_file: scripts/javascript.ts
+          include:
+            - "**/*.eslintrc.js"
+            - "**/*.eslintrc.cjs"
+      - name: "Scan .eslintrc.yaml and .eslintrc.yml"
+        js-ast-grep:
+          js_file: scripts/yaml.ts
+          include:
+            - "**/*.eslintrc.yaml"
+            - "**/*.eslintrc.yml"
+      - name: "Scan .eslintrc.json"
+        js-ast-grep:
+          js_file: scripts/json.ts
+          include:
+            - "**/*.eslintrc.json"
