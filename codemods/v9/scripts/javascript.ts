@@ -4,9 +4,7 @@ import { type SgNode } from "codemod:ast-grep";
 
 async function transform(root: SgRoot<JS>): Promise<string> {
   const rootNode = root.root();
-  let edits: Edit[] = [];
 
-  let rulesSectors = [];
   let rulesSectorsRule = rootNode.findAll({
     rule: {
       any: [
@@ -45,9 +43,16 @@ async function transform(root: SgRoot<JS>): Promise<string> {
     }
   });
 
+  let imports = ['import {defineConfig} from "eslint/config";'];
+
+  let sectors = [];
+
   for (let sector of rulesSectorsRule) {
     let sectorData = {
       rules: {} as Record<string, string>,
+      extends: [] as string[],
+      languageOptions: {} as Record<string, any>,
+      files: String() as string,
     };
     // remove sector overrides
     let overridesRule = sector.find({
@@ -132,6 +137,40 @@ async function transform(root: SgRoot<JS>): Promise<string> {
       sectorData.rules[identifer] = value;
     }
     // end detecting rules
+    // start detecting extends
+    let arrayExtendsRule = sector.find({
+      rule: {
+        kind: 'array',
+        inside: {
+          kind: "pair",
+          has: {
+            any: [
+              {
+                kind: "property_identifier",
+                regex: "extends"
+              },
+              {
+                kind: "string",
+                has: {
+                  kind: "string_fragment",
+                  regex: "extends"
+                }
+              }
+            ]
+          }
+        }
+      }
+    });
+    if(arrayExtendsRule) {
+      let arrayExtendsText = arrayExtendsRule.text();
+      let arrayExtends = arrayExtendsText.slice(1, arrayExtendsText.length - 1).trim().split(',');
+      for (let extend of arrayExtends) {
+        if (extend) {
+          sectorData.extends.push(extend.trim());
+        }
+      }
+    }
+    // end detecting extends
 
     // start jsDocs section
     let jsDocs = {
@@ -168,9 +207,8 @@ async function transform(root: SgRoot<JS>): Promise<string> {
     for(let jsdoc of requireJsdocRule) {
       let identifier = jsdoc.getMatch("IDENTIFIER")?.text();
       if(identifier == "rules") {
-        let pair = jsdoc.getMatch("PAIR")?.text().trim().replace("'require-jsdoc':", "").replace('"require-jsdoc":', "").trim();
-        if(!pair) continue;
-        if((pair[0] == '"' && pair[pair.length - 1] == '"') || (pair[0] == "'" && pair[pair.length - 1] == "'")) {
+        let pair = jsdoc?.getMatch("PAIR")?.text().trim().replace("'require-jsdoc':", "").replace('"require-jsdoc":', "").trim();
+        if((pair?.[0] == '"' && pair?.[pair.length - 1] == '"') || (pair?.[0] == "'" && pair?.[pair.length - 1] == "'")) {
           jsDocs.type = pair.substring(1, pair.length - 1);
           continue;
         }
@@ -234,6 +272,9 @@ async function transform(root: SgRoot<JS>): Promise<string> {
     }
     delete sectorData.rules['"require-jsdoc"'];
     delete sectorData.rules["'require-jsdoc'"];
+    delete sectorData.rules["'valid-jsdoc'"];
+    delete sectorData.rules['"valid-jsdoc"'];
+    // TODO
     // end jsDocs section
     // start no-constructor-return and no-sequences section
     let noConstructorReturn = "";
@@ -259,12 +300,6 @@ async function transform(root: SgRoot<JS>): Promise<string> {
               kind: "property_identifier",
               pattern: "$IDENTIFIER"
             },
-            inside: {
-              kind: "object",
-              inside: {
-                kind: "assignment_expression",
-              }
-            }
           }
         }
       }
@@ -300,6 +335,11 @@ async function transform(root: SgRoot<JS>): Promise<string> {
         }
       }
     }
+    if(noConstructorReturn) {
+      delete sectorData.rules['"no-constructor-return"'];
+      delete sectorData.rules["'no-constructor-return'"];
+      sectorData.rules['"no-constructor-return"'] = `["${noConstructorReturn}"]`;
+    }
 
     let noSequences = {
       type: "nothing",
@@ -328,12 +368,6 @@ async function transform(root: SgRoot<JS>): Promise<string> {
               kind: "property_identifier",
               pattern: "$IDENTIFIER"
             },
-            inside: {
-              kind: "object",
-              inside: {
-                kind: "assignment_expression",
-              }
-            }
           }
         }
       }
@@ -368,7 +402,7 @@ async function transform(root: SgRoot<JS>): Promise<string> {
           let allowInParenthesesOptionRule = array?.find({
             rule: {
               kind: "property_identifier",
-              regex: "allowInParentheses",
+              regex: "^allowInParentheses$",
               inside: {
                 kind: "pair",
                 pattern: "$PAIR",
@@ -401,6 +435,15 @@ async function transform(root: SgRoot<JS>): Promise<string> {
         }
       }
     }
+    if (noSequences.type != "nothing") {
+      delete sectorData.rules['"no-sequences"'];
+      delete sectorData.rules["'no-sequences'"];
+      if (typeof noSequences.allowInParentheses == 'boolean' && noSequences.allowInParenthesesExists == true) {
+        sectorData.rules['"no-sequences"'] = `["${noSequences.type}", {"allowInParentheses": ${noSequences.allowInParentheses}}]`;
+      } else {
+        sectorData.rules['"no-sequences"'] = `["${noSequences.type}"]`;
+      }
+    }
     // end no-constructor-return and no-sequences section
     // start "eslint:recommended" and "eslint:all"
     let eslintRecommended = false;
@@ -412,12 +455,6 @@ async function transform(root: SgRoot<JS>): Promise<string> {
           kind: 'property_identifier',
           regex: "extends"
         },
-        inside: {
-          kind: "object",
-          inside: {
-            kind: "assignment_expression",
-          }
-        }
       }
     });
     if(extendsRule) {
@@ -459,6 +496,16 @@ async function transform(root: SgRoot<JS>): Promise<string> {
         }
       }
     }
+    if (eslintRecommended || eslintAll) {
+      sectorData.extends = sectorData.extends.filter(extend => !["'eslint:recommended'", '"eslint:recommended"', "'eslint:all'", '"eslint:all"'].includes(extend));
+      imports.push('import js from "@eslint/js";');
+      if (eslintRecommended) {
+        sectorData.extends.push("js.configs.recommended");
+      } 
+      if (eslintAll) {
+        sectorData.extends.push("js.configs.all");
+      }
+    }
     // end "eslint:recommended" and "eslint:all"
     // start execute no-unused-vars
     let noUnusedVars = {
@@ -489,12 +536,6 @@ async function transform(root: SgRoot<JS>): Promise<string> {
               kind: "property_identifier",
               pattern: "$IDENTIFIER"
             },
-            inside: {
-              kind: "object",
-              inside: {
-                kind: "assignment_expression",
-              }
-            }
           }
         }
       }
@@ -531,8 +572,15 @@ async function transform(root: SgRoot<JS>): Promise<string> {
         });
         for(let option of optionsRule) {
           let identifier = option.getMatch("IDENTIFIER")?.text();
-          let value = option.text().trim().replace(`${identifier}:`, '').trim();
+          let value: any = option.text().trim().replace(`${identifier}:`, '').trim();
           if(!identifier) continue;
+          if ((value[0] == "'" && value[value.length - 1] == "'") || (value[0] == '"' && value[value.length - 1] == '"')) {
+            value = value.slice(1, value.length - 1);
+          } else if (value == 'true' || value == 'false') {
+            value = value == 'true' ? true : false;
+          } else if (!isNaN(value)) {
+            value = parseInt(value);
+          }
           noUnusedVars.options[identifier] = value;
         }
       } else {
@@ -551,13 +599,22 @@ async function transform(root: SgRoot<JS>): Promise<string> {
         }
       }
     }
+    if(noUnusedVars.type !== 'nothing') {
+      delete sectorData.rules["'no-unused-vars'"];
+      delete sectorData.rules['"no-unused-vars"'];
+      if (Object.keys(noUnusedVars.options).length) {
+        sectorData.rules['"no-unused-vars"'] = `["${noUnusedVars.type}", ${JSON.stringify(noUnusedVars.options)}]`;
+      } else {
+        sectorData.rules['"no-unused-vars"'] = `["${noUnusedVars.type}"]`;
+      }
+    }
     // end execute no-unused-vars
     // start no-useless-computed-key
     let noUselessComputedKeys = {
       type: "nothing",
       options: {
-        enforceForClassMembers: "false"
-      } as Record<string, string>,
+        enforceForClassMembers: false
+      } as Record<string, any>,
     }
     let noUselessComputedVarsRule = sector.find({
       rule: {
@@ -581,12 +638,6 @@ async function transform(root: SgRoot<JS>): Promise<string> {
               kind: "property_identifier",
               pattern: "$IDENTIFIER"
             },
-            inside: {
-              kind: "object",
-              inside: {
-                kind: "assignment_expression",
-              }
-            }
           }
         }
       }
@@ -643,6 +694,11 @@ async function transform(root: SgRoot<JS>): Promise<string> {
         }
       }
     }
+    if(noUselessComputedKeys.type != 'nothing') {
+      delete sectorData.rules["'no-useless-computed-key'"];
+      delete sectorData.rules['"no-useless-computed-key"'];
+      sectorData.rules['"no-useless-computed-key"'] = `["${noUselessComputedKeys.type}", {enforceForClassMembers: ${noUselessComputedKeys.options.enforceForClassMembers}}]`;
+    }
     // end no-useless-computed-key
     // start camelcase
     let camelcase = {
@@ -679,12 +735,6 @@ async function transform(root: SgRoot<JS>): Promise<string> {
               kind: "property_identifier",
               pattern: "$IDENTIFIER"
             },
-            inside: {
-              kind: "object",
-              inside: {
-                kind: "assignment_expression",
-              }
-            }
           }
         }
       }
@@ -722,7 +772,14 @@ async function transform(root: SgRoot<JS>): Promise<string> {
         for(let option of optionsRule) {
           let identifier = option.getMatch("IDENTIFIER")?.text();
           if (!identifier) continue;
-          let value = option.text().trim().replace(`${identifier}:`, '').trim();
+          let value: any = option.text().trim().replace(`${identifier}:`, '').trim();
+          if ((value[0] == "'" && value[value.length - 1] == "'") || (value[0] == '"' && value[value.length - 1] == '"')) {
+            value = value.slice(1, value.length - 1);
+          } else if (value == 'true' || value == 'false') {
+            value = value == 'true' ? true : false;
+          } else if (!isNaN(value)) {
+            value = parseInt(value);
+          }
           if(identifier == "allow") {
             let isUsingArray = option.find({
               rule: {
@@ -760,6 +817,11 @@ async function transform(root: SgRoot<JS>): Promise<string> {
         }
       }
     }
+    if (camelcase.type != 'nothing') {
+      delete sectorData.rules['"camelcase"'];
+      delete sectorData.rules["'camelcase'"];
+      sectorData.rules['"camelcase"'] = `["${camelcase.type}", ${JSON.stringify(camelcase.options)}]`;
+    }
     // end camelcase
 
     // detect globals start
@@ -796,7 +858,17 @@ async function transform(root: SgRoot<JS>): Promise<string> {
     for(let glob of detectGlobalsRule) {
       let identifier = glob.getMatch("IDENTIFIER")?.text();
       if(!identifier) continue;
-      let value = glob.text().trim().replace(`${identifier}:`, '').trim();
+      let value: any = glob.text().trim().replace(`${identifier}:`, '').trim();
+      if ((value[0] == "'" && value[value.length - 1] == "'") || (value[0] == '"' && value[value.length - 1] == '"')) {
+        value = value.slice(1, value.length - 1);
+      } else if (value == 'true' || value == 'false') {
+        value = value == 'true' ? true : false;
+      } else if (!isNaN(value)) {
+        value = parseInt(value);
+      } 
+      if ((identifier[0] == "'" && identifier[identifier.length - 1] == "'") || (identifier[0] == '"' && identifier[identifier.length - 1] == '"')) {
+        identifier = identifier.slice(1, identifier.length - 1);
+      }
       globals[identifier] = value;
     }
     // detect globals end
@@ -837,7 +909,14 @@ async function transform(root: SgRoot<JS>): Promise<string> {
     for(let option of detectParserOptions) {
       let identifier = option.getMatch("IDENTIFIER")?.text();
       if(!identifier) continue;
-      let value = option.text().trim().replace(`${identifier}:`, '').trim();
+      let value: any = option.text().trim().replace(`${identifier}:`, '').trim();
+      if ((value[0] == "'" && value[value.length - 1] == "'") || (value[0] == '"' && value[value.length - 1] == '"')) {
+        value = value.slice(1, value.length - 1);
+      } else if (value == 'true' || value == 'false') {
+        value = value == 'true' ? true : false;
+      } else if (!isNaN(value)) {
+        value = parseInt(value);
+      }
       languageOptions[identifier] = value;
     }
     // end language options detection
@@ -874,13 +953,24 @@ async function transform(root: SgRoot<JS>): Promise<string> {
     for (let env of detectingEnvRule) {
       let identifier = env.getMatch("IDENTIFIER")?.text();
       if(!identifier) continue;
-      let value = env.text().trim().replace(`${identifier}:`, '').trim();
-      if (value == "true") {
+      let value: any = env.text().trim().replace(`${identifier}:`, '').trim();
+      if ((value[0] == "'" && value[value.length - 1] == "'") || (value[0] == '"' && value[value.length - 1] == '"')) {
+        value = value.slice(1, value.length - 1);
+      } else if (value == 'true' || value == 'false') {
+        value = value == 'true' ? true : false;
+      } else if (!isNaN(value)) {
+        value = parseInt(value);
+      }
+      if (value === true) {
+        if (!imports.includes(`import globals from "globals";`)) {
+          imports.push(`import globals from "globals";`);
+        }
         languageOptions.globals[`...globals.${identifier}`] = "";
       } else {
         languageOptions.globals[identifier] = value;
       }
     }
+    sectorData.languageOptions = languageOptions;
     // end detecting env
 
     // start files detection
@@ -913,10 +1003,25 @@ async function transform(root: SgRoot<JS>): Promise<string> {
       let value = filesValueDetection.text().trim().replace(`${filesIdentifier}:`, '').trim();
       files = value;
     }
+    sectorData.files = files as string;
     // end files detection
+    sectors.push(sectorData);
   }
 
-  const newSource = rootNode.commitEdits(edits);
+  let newEslintConfig = `${imports.join("\n")}\nexport default defineConfig(${sectors.map(sector => {
+    const rulesStr = Object.entries(sector.rules)
+      .map(([key, value]) => `\n${key}:${value}`)
+      .join(', ');
+    const extendsStr = sector.extends.join(",");
+    let languageOptions = JSON.stringify(sector.languageOptions);
+    languageOptions = languageOptions.replace(
+      /"(\.\.\.[^"]+)":\s*(?:["']'?"?"|\{\})?,?/g,
+      "$1,"
+    );
+    return `\n{languageOptions: ${languageOptions}, ${sector.extends.length ? `extends: [${extendsStr}],\n` : ``} rules: {${rulesStr}}\n, ${sector.files ? `files: ${sector.files}\n` : ``}}`;
+  })})`;
+
+  const newSource = newEslintConfig;
   return newSource;
 }
 
