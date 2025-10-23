@@ -5,20 +5,32 @@ nodes:
     name: Apply AST Transformations
     type: automatic
     steps:
-      - name: "Scan .eslintrc.js and .eslintrc.cjs"
+      - id: scan-eslintrc-js-and-cjs
+        name: "Scan .eslintrc.js and .eslintrc.cjs"
         js-ast-grep:
           js_file: scripts/javascript.ts
           include:
             - "**/*.eslintrc.js"
             - "**/*.eslintrc.cjs"
-      - name: "Scan .eslintrc.yaml and .eslintrc.yml"
+      - id: scan-eslintrc-yaml-and-yml
+        name: "Scan .eslintrc.yaml and .eslintrc.yml"
         js-ast-grep:
           js_file: scripts/yaml.ts
           include:
             - "**/*.eslintrc.yaml"
             - "**/*.eslintrc.yml"
-      - name: "Scan .eslintrc.json"
+      - id: scan-eslintrc-json
+        name: "Scan .eslintrc.json"
         js-ast-grep:
           js_file: scripts/json.ts
           include:
             - "**/*.eslintrc.json"
+      - id: move-eslintrc-files
+        name: "move .eslintrc.js, .eslintrc.json, .eslintrc.yaml and .eslintrc.yml to eslint.config.cjs"
+        depends_on:
+          [
+            scan-eslintrc-js-and-cjs,
+            scan-eslintrc-yaml-and-yml,
+            scan-eslintrc-json,
+          ]
+        run: scripts/move.sh
