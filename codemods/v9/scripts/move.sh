@@ -1,5 +1,3 @@
-set -e
-
 find . -type f \( -name '.eslintrc.js' -o -name '.eslintrc.json' -o -name '.eslintrc.yaml' -o -name '.eslintrc.yml' \) | while read file; do
   dir=$(dirname "$file")
   new_path="${dir}/eslint.config.cjs"

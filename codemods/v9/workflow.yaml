@@ -5,8 +5,17 @@ nodes:
     name: Apply AST Transformations
     type: automatic
     steps:
+      - id: scan-file-jsdoc
+        name: "Scan file-jsdoc.ts"
+        js-ast-grep:
+          js_file: scripts/file-jsdoc.ts
+          include:
+            - "**/*.ts"
+            - "**/*.js"
       - id: scan-eslintrc-js-and-cjs
         name: "Scan .eslintrc.js and .eslintrc.cjs"
+        depends_on:
+          - scan-file-jsdoc
         js-ast-grep:
           js_file: scripts/javascript.ts
           include:
@@ -14,6 +23,8 @@ nodes:
             - "**/*.eslintrc.cjs"
       - id: scan-eslintrc-yaml-and-yml
         name: "Scan .eslintrc.yaml and .eslintrc.yml"
+        depends_on:
+          - scan-file-jsdoc
         js-ast-grep:
           js_file: scripts/yaml.ts
           include:
@@ -21,6 +32,8 @@ nodes:
             - "**/*.eslintrc.yml"
       - id: scan-eslintrc-json
         name: "Scan .eslintrc.json"
+        depends_on:
+          - scan-file-jsdoc
         js-ast-grep:
           js_file: scripts/json.ts
           include:
