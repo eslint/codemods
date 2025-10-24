@@ -1,7 +1,7 @@
 import { type SgRoot, type Edit, parse } from "codemod:ast-grep";
 import type JS from "codemod:ast-grep/langs/javascript";
 import { type SgNode } from "codemod:ast-grep";
-import { setGlobalVariable } from "codemod:workflow";
+import { setStepOutput } from "codemod:workflow";
 
 export default async function transform(root: SgRoot<JS>): Promise<string> {
   const rootNode = root.root();
@@ -54,7 +54,7 @@ export default async function transform(root: SgRoot<JS>): Promise<string> {
     edits.push(fileJsdoc.replace(""));
   }
 
-  setGlobalVariable("isJsdoccommentExists", isJsdoccommentExists.toString());
+  setStepOutput("isJsdoccommentExists", isJsdoccommentExists.toString());
 
   let newSource = rootNode.commitEdits(edits);
 
