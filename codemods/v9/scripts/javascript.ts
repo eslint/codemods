@@ -918,6 +918,177 @@ async function transform(root: SgRoot<JS>): Promise<string> {
     }
     // end camelcase
 
+    // start detecting no-restricted-imports
+    const noRestrictedImportsRule = sector.findAll({
+      rule: {
+        kind: "pair",
+        has: {
+          any: [
+            {
+              kind: "string",
+              any: [
+                {
+                  pattern: "'no-restricted-imports'",
+                },
+                {
+                  pattern: '"no-restricted-imports"',
+                },
+              ],
+            },
+            {
+              kind: "property_identifier",
+              regex: "camelcase",
+            },
+          ],
+        },
+        inside: {
+          kind: "object",
+          inside: {
+            kind: "pair",
+            has: {
+              kind: "property_identifier",
+              pattern: "$IDENTIFIER",
+            },
+          },
+        },
+      },
+    });
+    for (let noRestrictedImports of noRestrictedImportsRule) {
+      let paths = noRestrictedImports.findAll({
+        rule: {
+          kind: "object",
+          has: {
+            kind: "pair",
+            pattern: "$PAIR",
+            has: {
+              any: [
+                {
+                  kind: "property_identifier",
+                  regex: "name",
+                },
+                {
+                  kind: "string_fragment",
+                  has: {
+                    kind: "string",
+                    regex: "name",
+                  },
+                },
+              ],
+            },
+          },
+          inside: {
+            kind: "array",
+            inside: {
+              kind: "pair",
+              has: {
+                any: [
+                  {
+                    kind: "property_identifier",
+                    regex: "paths",
+                  },
+                  {
+                    kind: "string_fragment",
+                    has: {
+                      kind: "string",
+                      regex: "paths",
+                    },
+                  },
+                ],
+              },
+              inside: {
+                kind: "object",
+                inside: {
+                  kind: "array",
+                  has: {
+                    kind: "string",
+                    has: {
+                      kind: "string_fragment",
+                      pattern: "$TYPE",
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+      if (paths.length) {
+        let noRestrictedImportsType = paths[0]?.getMatch("TYPE")?.text();
+        let finalPaths: { name: string; content: string }[] = [];
+        for (let [index, path] of paths.entries()) {
+          let pair = path.getMatch("PAIR");
+          let nameRule = pair?.find({
+            rule: {
+              kind: "string",
+              has: {
+                kind: "string_fragment",
+                not: {
+                  regex: "name",
+                },
+                pattern: "$NAME",
+              },
+            },
+          });
+          if (nameRule) {
+            let name = nameRule.getMatch("NAME")?.text();
+            if (!name) continue;
+            finalPaths.push({
+              name,
+              content: path.text(),
+            });
+          }
+        }
+        const pathsByName = new Map<
+          string,
+          { name: string; content: string }
+        >();
+        for (const path of finalPaths) {
+          pathsByName.set(path.name, path);
+        }
+        finalPaths = Array.from(pathsByName.values());
+        delete sectorData.rules['"no-restricted-imports"'];
+        delete sectorData.rules["'no-restricted-imports'"];
+        let pairs = noRestrictedImports.findAll({
+          rule: {
+            kind: "pair",
+            inside: {
+              kind: "object",
+              inside: {
+                kind: "array",
+                inside: {
+                  kind: "pair",
+                  has: {
+                    kind: "string",
+                    has: {
+                      kind: "string_fragment",
+                      regex: "no-restricted-imports",
+                    },
+                  },
+                },
+              },
+            },
+          },
+        });
+        pairs = pairs.filter((pair) => {
+          let pairText = pair.text().trim().replaceAll(" ", "");
+          if (
+            pairText.startsWith("paths:") ||
+            pairText.startsWith("'paths':") ||
+            pairText.startsWith('"paths":')
+          ) {
+            return false;
+          }
+          return true;
+        });
+        sectorData.rules[
+          '"no-restricted-imports"'
+        ] = `["${noRestrictedImportsType}", {paths: ${finalPaths.map(
+          (path) => path.content
+        )}, ${pairs.map((pair) => `${pair.text()},`)}}]`;
+      }
+    }
+    // end detecting no-restricted-imports
+
     // detect globals start
     const globals: Record<string, string> = {};
     const detectGlobalsRule = sector.findAll({
