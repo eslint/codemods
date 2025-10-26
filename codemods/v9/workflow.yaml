@@ -5,8 +5,17 @@ nodes:
     name: Apply AST Transformations
     type: automatic
     steps:
+      - id: remove-unnecessary-eslint-comments
+        name: "Remove unnecessary eslint comments"
+        js-ast-grep:
+          js_file: scripts/remove-unnecessary-eslint-comments.ts
+          include:
+            - "**/*.ts"
+            - "**/*.js"
       - id: scan-file-jsdoc
         name: "Scan file-jsdoc.ts"
+        depends_on:
+          - remove-unnecessary-eslint-comments
         js-ast-grep:
           js_file: scripts/file-jsdoc.ts
           include:

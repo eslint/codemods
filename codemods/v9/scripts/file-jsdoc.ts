@@ -1,6 +1,5 @@
-import { type SgRoot, type Edit, parse } from "codemod:ast-grep";
+import { type Edit, type SgNode, type SgRoot } from "codemod:ast-grep";
 import type JS from "codemod:ast-grep/langs/javascript";
-import { type SgNode } from "codemod:ast-grep";
 import { setStepOutput } from "codemod:workflow";
 
 export default async function transform(root: SgRoot<JS>): Promise<string> {
