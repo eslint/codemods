@@ -1082,9 +1082,9 @@ async function transform(root: SgRoot<JS>): Promise<string> {
         });
         sectorData.rules[
           '"no-restricted-imports"'
-        ] = `["${noRestrictedImportsType}", {paths: ${finalPaths.map(
+        ] = `["${noRestrictedImportsType}", {paths: [${finalPaths.map(
           (path) => path.content
-        )}, ${pairs.map((pair) => `${pair.text()},`)}}]`;
+        )}], ${pairs.map((pair) => `${pair.text()},`)}}]`;
       }
     }
     // end detecting no-restricted-imports

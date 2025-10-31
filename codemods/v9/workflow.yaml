@@ -62,9 +62,9 @@ nodes:
             scan-eslintrc-yaml-and-yml,
             scan-eslintrc-json,
           ]
-        run: scripts/move.sh
+        run: $CODEMOD_PATH/scripts/move.sh
       - id: apply-custom-rules
         name: "Apply custom rules"
         depends_on:
           - move-eslintrc-files
-        run: scripts/custom-rules.sh
+        run: $CODEMOD_PATH/scripts/custom-rules.sh
