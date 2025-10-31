@@ -14,7 +14,8 @@ export default async function transform(root: SgRoot<JS>): Promise<string> {
           kind: "formal_parameters",
           has: {
             kind: "identifier",
-            regex: "context",
+            pattern: "$CONTEXT",
+            nthChild: 1,
           },
           follows: {
             kind: "property_identifier",
@@ -27,6 +28,7 @@ export default async function transform(root: SgRoot<JS>): Promise<string> {
 
   if (createRule) {
     let text = createRule.text();
+    let context = createRule.getMatch("CONTEXT")?.text() || "context";
 
     let newRoot = parse("javascript", text).root();
 
@@ -70,6 +72,9 @@ export default async function transform(root: SgRoot<JS>): Promise<string> {
       let identifier = expression.getMatch("IDENTIFIER");
       let property = expression.getMatch("PROPERTY");
       if (!identifier || !property) continue;
+      if (identifier.text() != context) {
+        continue;
+      }
       let propertyText = property.text();
       if (Object.keys(changeMap).includes(propertyText)) {
         newRootEdits.push(
@@ -91,10 +96,10 @@ export default async function transform(root: SgRoot<JS>): Promise<string> {
     text = newRoot.commitEdits(newRootEdits);
 
     let newCreate = `{
-        const contextSourceCode = context.sourceCode ?? context.getSourceCode();${text.substring(
-          1,
-          text.length
-        )}`;
+        const contextSourceCode = ${context}.sourceCode ?? ${context}.getSourceCode();${text.substring(
+      1,
+      text.length
+    )}`;
     edits.push(createRule.replace(newCreate));
   }
 
