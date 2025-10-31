@@ -63,10 +63,19 @@ nodes:
             scan-eslintrc-json,
           ]
         run: scripts/move.sh
+      - id: replace-current-statement
+        name: "Replace current statement"
+        depends_on:
+          - move-eslintrc-files
+        js-ast-grep:
+          js_file: scripts/replace-current-statement.ts
+          include:
+            - "**/*.ts"
+            - "**/*.js"
       - id: replace-context-method
         name: "Replace context method"
         depends_on:
-          - move-eslintrc-files
+          - replace-current-statement
         js-ast-grep:
           js_file: scripts/replace-context-method.ts
           include:
