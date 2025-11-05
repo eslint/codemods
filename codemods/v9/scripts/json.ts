@@ -12,7 +12,7 @@ async function transform(root: SgRoot<JSON>): Promise<string> {
       any: [
         {
           kind: "object",
-          inside: {
+          has: {
             kind: "pair",
             has: {
               kind: "string",

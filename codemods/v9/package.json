@@ -10,5 +10,9 @@
 	"scripts": {
 		"test": "npx codemod@latest jssg test -l typescript ./scripts/codemod.ts",
 		"check-types": "npx tsc --noEmit"
+	},
+	"dependencies": {
+		"@types/js-yaml": "^4.0.9",
+		"js-yaml": "^4.1.0"
 	}
 }

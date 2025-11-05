@@ -65,6 +65,4 @@ nodes:
         run: $CODEMOD_PATH/scripts/move.sh
       - id: apply-custom-rules
         name: "Apply custom rules"
-        depends_on:
-          - move-eslintrc-files
         run: $CODEMOD_PATH/scripts/custom-rules.sh
