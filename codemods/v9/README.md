@@ -1,39 +1,198 @@
-# @eslint/v9
+# @codemod/eslint-v8-to-v9
 
-Migratie eslint v8 to v9
+Automatically migrate your ESLint configuration and custom rules from v8 to v9 flat config format.
 
-## Installation
+## Overview
 
-```bash
-# Install from registry
-codemod run @eslint/v9
+This codemod provides a comprehensive migration solution for ESLint v8 to v9:
 
-# Or run locally
-codemod run -w workflow.yaml
-```
+- **Config Migration**: Converts `.eslintrc.*` files to the new flat config format
+- **Custom Rules Migration**: Automatically updates your custom ESLint rules to v9 format
+- **Breaking Changes**: Handles all v9 breaking changes in rules and options
+- **JSDoc Migration**: Migrates deprecated JSDoc rules to `eslint-plugin-jsdoc`
+- **Comment Cleanup**: Fixes malformed comments and removes deprecated syntax
+
+## What This Codemod Does
+
+This codemod performs a comprehensive migration from ESLint v8 to v9. It handles the following breaking changes from the [official ESLint v9 migration guide](https://eslint.org/docs/latest/use/migrate-to-9.0.0):
+
+- ✅ **New default config format (`eslint.config.js`)**
+- ✅ **Removed `require-jsdoc` and `valid-jsdoc` rules** - migrates to `eslint-plugin-jsdoc`
+- ✅ **Multiple `/* eslint */` comments for the same rule are now disallowed** - removes duplicates
+- ✅ **Stricter `/* exported */` parsing** - fixes malformed comments
+- ✅ **`no-constructor-return` and `no-sequences` rule schemas are stricter** - updates to new format
+- ✅ **`no-restricted-imports` now accepts multiple config entries with the same `name`** - deduplicates paths
+- ✅ **`"eslint:recommended"` and `"eslint:all"` no longer accepted in flat config** - converts to `js.configs.*`
+- ✅ **`no-unused-vars` now defaults `caughtErrors` to `"all"`** - adds backward-compatible default
+- ✅ **`no-useless-computed-key` flags unnecessary computed member names in classes by default** - adds `enforceForClassMembers: false`
+- ✅ **`camelcase` allow option only accepts an array of strings** - validates and migrates options
+- ✅ **Removed multiple `context` methods** - migrates to `sourceCode` equivalents
+- ✅ **Removed `sourceCode.getComments()`** - converts to combination of `getCommentsBefore/Inside/After`
+- ✅ **Removed `CodePath#currentSegments`** - adds code path tracking logic
+- ✅ **Function-style rules are no longer supported** - converts to object format with `meta` and `create`
+- ✅ **`Linter` now expects flat config format** - generates flat config files
+
+### Detailed Transformations:
+
+### 1. Configuration File Migration
+
+- **Converts** `.eslintrc.js`, `.eslintrc.json`, `.eslintrc.yaml`, and `.eslintrc.yml` to the new flat config format (`eslint.config.cjs`)
+- **Transforms** `extends` configurations (e.g., `"eslint:recommended"` → `js.configs.recommended`)
+- **Migrates** `env` settings to the new `languageOptions.globals` format
+- **Updates** `globals` and `parserOptions` to the flat config structure
+- **Preserves** `overrides` by converting them to separate configuration objects
+- **Adds** necessary imports (`@eslint/js`, `globals`, etc.)
+
+### 2. Rule Transformations
+
+Automatically updates several ESLint rules with breaking changes:
+
+- **`no-unused-vars`**: Adds default `caughtErrors: 'none'` option
+- **`no-useless-computed-key`**: Adds `enforceForClassMembers: false` option
+- **`no-sequences`**: Properly migrates `allowInParentheses` option
+- **`no-constructor-return`**: Ensures proper array format
+- **`camelcase`**: Migrates options while handling complex `allow` patterns
+- **`no-restricted-imports`**: Restructures paths configuration
+
+### 3. JSDoc Migration
+
+- **Detects** `require-jsdoc` and `valid-jsdoc` rules (removed in ESLint v9)
+- **Migrates** to `eslint-plugin-jsdoc` with appropriate configuration
+- **Removes** deprecated JSDoc-related eslint comments
+
+### 4. Custom Rule Migration
+
+Transforms your custom ESLint rules to the new format:
+
+- **Converts** old function-based rule exports to the new object format with `meta` and `create` properties
+- **Updates** `context` method calls to use `context.sourceCode` (e.g., `context.getSource()` → `contextSourceCode.getText()`)
+- **Migrates** deprecated methods:
+  - `getSource` → `getText`
+  - `getSourceLines` → `getLines`
+  - `getComments` → combination of `getCommentsBefore/Inside/After`
+  - `getAncestors`, `getScope`, `markVariableAsUsed` with TODO comments for new parameters
+- **Handles** `currentSegments` API changes by adding necessary code path tracking
+- **Detects** fixable rules and adds `fixable: "code"` to meta
+
+### 5. Comment Cleanup
+
+- **Removes** unnecessary eslint comments from files
+- **Fixes** malformed `/* exported */` comments to proper format
 
 ## Usage
 
-This codemod transforms typescript code by:
+### Migrate Configuration Files
 
-- Converting `var` declarations to `const`/`let`
-- Removing debug statements
-- Modernizing syntax patterns
-
-## Development
+Simply run the codemod in your project directory. It will automatically find and migrate all `.eslintrc.*` files:
 
 ```bash
-# Test the transformation
-npm test
+npx codemod@latest run @codemod/eslint-v8-to-v9
 
-# Validate the workflow
-codemod validate -w workflow.yaml
-
-# Publish to registry
-codemod login
-codemod publish
+# Or run locally
+npx codemod@latest workflow run -w workflow.yaml
 ```
 
-## License
+### Migrate Custom Rules
 
-MIT 
+For custom ESLint rules, you'll be prompted to provide paths to your rule files or directories:
+
+```bash
+# The codemod will ask for paths during execution
+Enter custom rules paths (comma-separated):
+src/eslint-rules, lib/rules/custom-rule.js
+```
+
+## Manual Steps Required
+
+After running this codemod, you may need to:
+
+1. **Install new dependencies**:
+
+```bash
+npm install --save-dev eslint@9 @eslint/js globals
+# If using JSDoc rules:
+npm install --save-dev eslint-plugin-jsdoc
+```
+
+2. **Review TODO comments** in migrated custom rules for context method migrations:
+
+   | **Removed on `context`**           | **Replacement on `SourceCode`**             |
+   | ---------------------------------- | ------------------------------------------- |
+   | `context.getAncestors()`           | `sourceCode.getAncestors(node)`             |
+   | `context.getScope()`               | `sourceCode.getScope(node)`                 |
+   | `context.markVariableAsUsed(name)` | `sourceCode.markVariableAsUsed(name, node)` |
+
+3. **Update JSDoc settings** manually if needed (marked with `// TODO: Migrate settings manually`)
+
+4. **Test your ESLint configuration**:
+
+```bash
+npx eslint .
+```
+
+## What Gets Transformed
+
+### Before (`.eslintrc.json`)
+
+```json
+{
+  "extends": ["eslint:recommended"],
+  "env": {
+    "node": true,
+    "es2021": true
+  },
+  "rules": {
+    "no-unused-vars": "error",
+    "require-jsdoc": [
+      "error",
+      {
+        "require": {
+          "FunctionDeclaration": true
+        }
+      }
+    ]
+  }
+}
+```
+
+### After (`eslint.config.cjs`)
+
+```javascript
+import { defineConfig } from "eslint/config";
+import js from "@eslint/js";
+import globals from "globals";
+import { jsdoc } from "eslint-plugin-jsdoc";
+
+export default defineConfig(
+  jsdoc({
+    config: "flat/recommended",
+    settings: {
+      // TODO: Migrate settings manually
+      require: { FunctionDeclaration: true },
+    },
+  }),
+  {
+    languageOptions: {
+      globals: { ...globals.node, ...globals.es2021 },
+      parserOptions: {},
+    },
+    extends: [js.configs.recommended],
+    rules: {
+      "no-unused-vars": ["error", { caughtErrors: "none" }],
+    },
+  }
+);
+```
+
+## Resources
+
+### Official ESLint Documentation
+
+- [ESLint v9 Migration Guide](https://eslint.org/docs/latest/use/migrate-to-9.0.0)
+- [Flat Config Documentation](https://eslint.org/docs/latest/use/configure/configuration-files)
+- [Preparing Custom Rules for ESLint v9](https://eslint.org/blog/2023/09/preparing-custom-rules-eslint-v9/)
+
+### Official ESLint Tools
+
+- [`@eslint/migrate-config`](https://www.npmjs.com/package/@eslint/migrate-config) - Official config file migration tool
+- [`eslint-transforms`](https://github.com/eslint/eslint-transforms) - Codemods for ESLint rules (not v8→v9 specific)

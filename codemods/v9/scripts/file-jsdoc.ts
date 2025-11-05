@@ -6,41 +6,17 @@ export default async function transform(root: SgRoot<JS>): Promise<string> {
   const rootNode = root.root();
   const edits: Edit[] = [];
 
-  let fileJsdocs: SgNode<JS>[] = rootNode.findAll({
+  const fileJsdocs: SgNode<JS>[] = rootNode.findAll({
     rule: {
       kind: "comment",
       any: [
         {
           kind: "comment",
-          regex: String.raw`^/\*eslint\s+("|')require-jsdoc("|')\s*:\s*\[("|')(error|warn)("|')[^\]]*\]\s*\*/`,
+          regex: String.raw`^/\*\s*eslint\s+["']?require-jsdoc["']?\s*:\s*(?:\[[^\]]*\]|["'](?:error|warn)["'])\s*\*/`,
         },
         {
           kind: "comment",
-          regex: String.raw`^/\*eslint\s+require-jsdoc\s*:\s*\[("|')(error|warn)("|')[^\]]*\]\s*\*/`,
-        },
-        {
-          kind: "comment",
-          regex: String.raw`^/\*eslint\s+require-jsdoc\s*:\s*("|')(error|warn)("|')\s*\*/`,
-        },
-        {
-          kind: "comment",
-          regex: String.raw`^/\*eslint\s+("|')require-jsdoc("|')\s*:\s*\[("|')(error|warn)("|')[^\]]*\]\s*\*/`,
-        },
-        {
-          kind: "comment",
-          regex: String.raw`^/\*eslint\s+valid-jsdoc\s*:\s*("|')(error|warn)("|')\s*\*/`,
-        },
-        {
-          kind: "comment",
-          regex: String.raw`^/\*eslint\s+valid-jsdoc\s*:\s*\[("|')(error|warn)("|')[^\]]*\]\s*\*/`,
-        },
-        {
-          kind: "comment",
-          regex: String.raw`^/\*eslint\s+valid-jsdoc\s*:\s*\[("|')(error|warn)("|')[^\]]*\]\s*\*/`,
-        },
-        {
-          kind: "comment",
-          regex: String.raw`^/\*eslint\s+valid-jsdoc\s*:\s*\[[^\]]*\]\s*\*/`,
+          regex: String.raw`^/\*\s*eslint\s+["']?valid-jsdoc["']?\s*:\s*(?:\[[^\]]*\]|["'](?:error|warn)["'])\s*\*/`,
         },
       ],
     },

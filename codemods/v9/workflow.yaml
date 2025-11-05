@@ -63,6 +63,3 @@ nodes:
             scan-eslintrc-json,
           ]
         run: $CODEMOD_PATH/scripts/move.sh
-      - id: apply-custom-rules
-        name: "Apply custom rules"
-        run: $CODEMOD_PATH/scripts/custom-rules.sh

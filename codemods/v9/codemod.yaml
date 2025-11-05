@@ -7,7 +7,7 @@ author: "Author <author@example.com>"
 license: "MIT"
 workflow: "workflow.yaml"
 category: "migration"
-repository: "https://github.com/codemod/eslint-codemods"
+repository: "https://github.com/codemod/eslint-codemods/codemods/v9"
 
 targets:
   languages: ["typescript"]
