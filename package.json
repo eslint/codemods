@@ -11,6 +11,8 @@
   },
   "devDependencies": {
     "typescript": "^5.5.4"
+  },
+  "dependencies": {
+    "@types/yaml": "^1.9.6"
   }
 }
-

@@ -1,0 +1,44 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/codemod/codemod/refs/heads/main/schemas/workflow.json
+
+version: "1"
+
+nodes:
+  - id: apply-transforms
+    name: Apply AST Transformations
+    type: automatic
+    steps:
+      - id: convert-to-new-rule-format
+        name: "Convert to new rule format"
+        js-ast-grep:
+          js_file: scripts/new-rule-format.ts
+          include:
+            - "**/*.ts"
+            - "**/*.js"
+            - "**/*.jsx"
+            - "**/*.cjs"
+            - "**/*.mjs"
+      - id: replace-context-methods
+        name: "Replace context methods"
+        depends_on:
+          - convert-to-new-rule-format
+        js-ast-grep:
+          js_file: scripts/replace-context-method.ts
+          include:
+            - "**/*.ts"
+            - "**/*.js"
+            - "**/*.jsx"
+            - "**/*.cjs"
+            - "**/*.mjs"
+      - id: replace-current-statement
+        name: "Replace current statement"
+        depends_on:
+          - convert-to-new-rule-format
+          - replace-context-methods
+        js-ast-grep:
+          js_file: scripts/replace-current-statement.ts
+          include:
+            - "**/*.ts"
+            - "**/*.js"
+            - "**/*.jsx"
+            - "**/*.cjs"
+            - "**/*.mjs"

@@ -1,0 +1,65 @@
+version: "1"
+
+nodes:
+  - id: apply-transforms
+    name: Apply AST Transformations
+    type: automatic
+    steps:
+      - id: fix-exported-comments
+        name: "Fix exported comments"
+        js-ast-grep:
+          js_file: scripts/fix-exported-comment.ts
+          include:
+            - "**/*.ts"
+            - "**/*.js"
+      - id: remove-unnecessary-eslint-comments
+        name: "Remove unnecessary eslint comments"
+        js-ast-grep:
+          js_file: scripts/remove-unnecessary-eslint-comments.ts
+          include:
+            - "**/*.ts"
+            - "**/*.js"
+      - id: scan-file-jsdoc
+        name: "Scan file-jsdoc.ts"
+        depends_on:
+          - remove-unnecessary-eslint-comments
+        js-ast-grep:
+          js_file: scripts/file-jsdoc.ts
+          include:
+            - "**/*.ts"
+            - "**/*.js"
+      - id: scan-eslintrc-js-and-cjs
+        name: "Scan .eslintrc.js and .eslintrc.cjs"
+        depends_on:
+          - scan-file-jsdoc
+        js-ast-grep:
+          js_file: scripts/javascript.ts
+          include:
+            - "**/*.eslintrc.js"
+            - "**/*.eslintrc.cjs"
+      - id: scan-eslintrc-yaml-and-yml
+        name: "Scan .eslintrc.yaml and .eslintrc.yml"
+        depends_on:
+          - scan-file-jsdoc
+        js-ast-grep:
+          js_file: scripts/yaml.ts
+          include:
+            - "**/*.eslintrc.yaml"
+            - "**/*.eslintrc.yml"
+      - id: scan-eslintrc-json
+        name: "Scan .eslintrc.json"
+        depends_on:
+          - scan-file-jsdoc
+        js-ast-grep:
+          js_file: scripts/json.ts
+          include:
+            - "**/*.eslintrc.json"
+      - id: move-eslintrc-files
+        name: "move .eslintrc.js, .eslintrc.json, .eslintrc.yaml and .eslintrc.yml to eslint.config.cjs"
+        depends_on:
+          [
+            scan-eslintrc-js-and-cjs,
+            scan-eslintrc-yaml-and-yml,
+            scan-eslintrc-json,
+          ]
+        run: $CODEMOD_PATH/scripts/move.sh
