@@ -1,17 +1,18 @@
 {
-	"name": "@eslint/v9",
-	"version": "0.1.0",
-	"description": "Migratie eslint v8 to v9",
-	"type": "module",
-	"devDependencies": {
-		"@codemod.com/jssg-types": "^1.0.7",
-		"typescript": "^5.8.3"
-	},
-	"scripts": {
-		"check-types": "npx tsc --noEmit"
-	},
-	"dependencies": {
-		"@types/js-yaml": "^4.0.9",
-		"js-yaml": "^4.1.0"
-	}
+  "name": "@eslint/v9",
+  "version": "0.1.0",
+  "description": "Migratie eslint v8 to v9",
+  "type": "module",
+  "devDependencies": {
+    "@codemod.com/jssg-types": "^1.0.7",
+    "typescript": "^5.8.3"
+  },
+  "scripts": {
+    "check-types": "npx tsc --noEmit",
+    "test": "echo 'No tests yet'"
+  },
+  "dependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "js-yaml": "^4.1.0"
+  }
 }
