@@ -1,4 +1,4 @@
-import { type SgRoot, type Edit, parse } from "codemod:ast-grep";
+import { type SgRoot, parse } from "codemod:ast-grep";
 import type YAML from "codemod:ast-grep/langs/yaml";
 import type JSON from "codemod:ast-grep/langs/json";
 import * as jsYaml from "js-yaml";

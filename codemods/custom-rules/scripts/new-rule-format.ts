@@ -1,4 +1,4 @@
-import { type SgRoot, parse } from "codemod:ast-grep";
+import { type SgRoot } from "codemod:ast-grep";
 import type JS from "codemod:ast-grep/langs/javascript";
 import { type SgNode } from "codemod:ast-grep";
 
@@ -131,9 +131,7 @@ async function transform(root: SgRoot<JS>): Promise<string> {
   const contextName = getContextParameterName(ruleDefinitionNode);
   const isFixable = isRuleFixable(root, contextName);
   const schemaDefinitionNode = getOldFormatSchemaDefinition(root);
-  const schemaValue = schemaDefinitionNode
-    ? getSchemaValue(schemaDefinitionNode)
-    : "[]";
+  const schemaValue = schemaDefinitionNode ? getSchemaValue(schemaDefinitionNode) : "[]";
 
   const ruleFunction = getRuleFunction(ruleDefinitionNode);
   const fixableProperty = isFixable ? '\n    fixable: "code",' : "";

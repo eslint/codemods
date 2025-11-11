@@ -1,4 +1,4 @@
-import { type SgRoot, type Edit, parse } from "codemod:ast-grep";
+import { type SgRoot, parse } from "codemod:ast-grep";
 import type JSON from "codemod:ast-grep/langs/json";
 import { type SgNode } from "codemod:ast-grep";
 import { getStepOutput } from "codemod:workflow";
@@ -94,12 +94,7 @@ async function transform(root: SgRoot<JSON>): Promise<string> {
     for (let rule of rulesRule) {
       let identifer = rule.getMatch("IDENTIFIER")?.text();
       if (!identifer) continue;
-      let value = rule
-        .text()
-        .trim()
-        .replace(`${identifer}:`, "")
-        .trim()
-        .replace(/,\s*$/, "");
+      let value = rule.text().trim().replace(`${identifer}:`, "").trim().replace(/,\s*$/, "");
       sectorData.rules[identifer] = value;
     }
     // end detecting rules
@@ -158,12 +153,7 @@ async function transform(root: SgRoot<JSON>): Promise<string> {
     for (let jsdoc of requireJsdocRule) {
       let identifier = jsdoc.getMatch("IDENTIFIER")?.text();
       if (identifier == '"rules"') {
-        let pair = jsdoc
-          ?.getMatch("PAIR")
-          ?.text()
-          .trim()
-          .replace('"require-jsdoc":', "")
-          .trim();
+        let pair = jsdoc?.getMatch("PAIR")?.text().trim().replace('"require-jsdoc":', "").trim();
         if (pair?.[0] == '"' && pair?.[pair.length - 1] == '"') {
           jsDocs.type = pair.substring(1, pair.length - 1);
           continue;
@@ -211,9 +201,7 @@ async function transform(root: SgRoot<JSON>): Promise<string> {
           }
           let jsdocOptions: Record<string, string> = {};
           if (jsdocOptionsRule.length) {
-            let optionsIdentifier = jsdocOptionsRule[0]
-              ?.getMatch("SETTING_IDENTIFIER")
-              ?.text();
+            let optionsIdentifier = jsdocOptionsRule[0]?.getMatch("SETTING_IDENTIFIER")?.text();
             if (optionsIdentifier == '"require"') {
               for (let option of jsdocOptionsRule) {
                 let identifier = option.getMatch("IDENTIFIER")?.text();
@@ -298,9 +286,7 @@ async function transform(root: SgRoot<JSON>): Promise<string> {
     }
     if (noConstructorReturn) {
       delete sectorData.rules['"no-constructor-return"'];
-      sectorData.rules[
-        '"no-constructor-return"'
-      ] = `["${noConstructorReturn}"]`;
+      sectorData.rules['"no-constructor-return"'] = `["${noConstructorReturn}"]`;
     }
 
     let noSequences = {
@@ -347,10 +333,7 @@ async function transform(root: SgRoot<JSON>): Promise<string> {
             noSequencesRuleType[0] == '"' &&
             noSequencesRuleType[noSequencesRuleType.length - 1] == '"'
           ) {
-            noSequencesRuleType = noSequencesRuleType.substring(
-              1,
-              noSequencesRuleType.length - 1
-            );
+            noSequencesRuleType = noSequencesRuleType.substring(1, noSequencesRuleType.length - 1);
           }
           let arrayRule = rule.getMatch("ARRAY");
           if (arrayRule) {
@@ -359,17 +342,13 @@ async function transform(root: SgRoot<JSON>): Promise<string> {
           return ["error", "warn"].includes(noSequencesRuleType) ? true : false;
         });
         if (noSequencesRuleTypeObject.length) {
-          let noSequencesRuleType =
-            noSequencesRuleTypeObject[0]?.getMatch("TYPE")?.text() || "";
+          let noSequencesRuleType = noSequencesRuleTypeObject[0]?.getMatch("TYPE")?.text() || "";
           // Remove quotes
           if (
             noSequencesRuleType[0] == '"' &&
             noSequencesRuleType[noSequencesRuleType.length - 1] == '"'
           ) {
-            noSequencesRuleType = noSequencesRuleType.substring(
-              1,
-              noSequencesRuleType.length - 1
-            );
+            noSequencesRuleType = noSequencesRuleType.substring(1, noSequencesRuleType.length - 1);
           }
           noSequences.type = noSequencesRuleType;
           let allowInParenthesesOptionRule = array?.find({
@@ -392,8 +371,7 @@ async function transform(root: SgRoot<JSON>): Promise<string> {
               .trim()
               .replace('"allowInParentheses":', "")
               .trim();
-            noSequences.allowInParentheses =
-              allowInParenthesesOption == "true" ? true : false;
+            noSequences.allowInParentheses = allowInParenthesesOption == "true" ? true : false;
             noSequences.allowInParenthesesExists = true;
           }
         }
@@ -422,9 +400,8 @@ async function transform(root: SgRoot<JSON>): Promise<string> {
         typeof noSequences.allowInParentheses == "boolean" &&
         noSequences.allowInParenthesesExists == true
       ) {
-        sectorData.rules[
-          '"no-sequences"'
-        ] = `["${noSequences.type}", {"allowInParentheses": ${noSequences.allowInParentheses}}]`;
+        sectorData.rules['"no-sequences"'] =
+          `["${noSequences.type}", {"allowInParentheses": ${noSequences.allowInParentheses}}]`;
       } else {
         sectorData.rules['"no-sequences"'] = `["${noSequences.type}"]`;
       }
@@ -475,10 +452,7 @@ async function transform(root: SgRoot<JSON>): Promise<string> {
         });
         let extendsText = extendsExecute?.text() || "";
         // Remove quotes
-        if (
-          extendsText[0] == '"' &&
-          extendsText[extendsText.length - 1] == '"'
-        ) {
+        if (extendsText[0] == '"' && extendsText[extendsText.length - 1] == '"') {
           extendsText = extendsText.substring(1, extendsText.length - 1);
         }
         if (extendsText == "eslint:recommended") {
@@ -575,10 +549,7 @@ async function transform(root: SgRoot<JSON>): Promise<string> {
             value = parseInt(value);
           }
           // Remove quotes from identifier
-          if (
-            identifier[0] == '"' &&
-            identifier[identifier.length - 1] == '"'
-          ) {
+          if (identifier[0] == '"' && identifier[identifier.length - 1] == '"') {
             identifier = identifier.substring(1, identifier.length - 1);
           }
           noUnusedVars.options[identifier] = value;
@@ -652,10 +623,7 @@ async function transform(root: SgRoot<JSON>): Promise<string> {
       if (isArrayRule.length) {
         let typeText = isArrayRule[0]?.getMatch("TYPE")?.text() || "";
         if (typeText[0] == '"' && typeText[typeText.length - 1] == '"') {
-          noUselessComputedKeys.type = typeText.substring(
-            1,
-            typeText.length - 1
-          );
+          noUselessComputedKeys.type = typeText.substring(1, typeText.length - 1);
         }
         let optionsRule = noUselessComputedVarsRule.findAll({
           rule: {
@@ -682,10 +650,7 @@ async function transform(root: SgRoot<JSON>): Promise<string> {
             .trim()
             .replace(/,\s*$/, "");
           // Remove quotes from identifier
-          if (
-            identifier[0] == '"' &&
-            identifier[identifier.length - 1] == '"'
-          ) {
+          if (identifier[0] == '"' && identifier[identifier.length - 1] == '"') {
             identifier = identifier.substring(1, identifier.length - 1);
           }
           noUselessComputedKeys.options[identifier] = value;
@@ -704,19 +669,15 @@ async function transform(root: SgRoot<JSON>): Promise<string> {
         if (typeRule.length) {
           let typeText = typeRule[0]?.getMatch("TYPE")?.text() || "";
           if (typeText[0] == '"' && typeText[typeText.length - 1] == '"') {
-            noUselessComputedKeys.type = typeText.substring(
-              1,
-              typeText.length - 1
-            );
+            noUselessComputedKeys.type = typeText.substring(1, typeText.length - 1);
           }
         }
       }
     }
     if (noUselessComputedKeys.type != "nothing") {
       delete sectorData.rules['"no-useless-computed-key"'];
-      sectorData.rules[
-        '"no-useless-computed-key"'
-      ] = `["${noUselessComputedKeys.type}", {enforceForClassMembers: ${noUselessComputedKeys.options.enforceForClassMembers}}]`;
+      sectorData.rules['"no-useless-computed-key"'] =
+        `["${noUselessComputedKeys.type}", {enforceForClassMembers: ${noUselessComputedKeys.options.enforceForClassMembers}}]`;
     }
     // end no-useless-computed-key
     // start camelcase
@@ -790,10 +751,7 @@ async function transform(root: SgRoot<JSON>): Promise<string> {
             value = parseInt(value);
           }
           // Remove quotes from identifier
-          if (
-            identifier[0] == '"' &&
-            identifier[identifier.length - 1] == '"'
-          ) {
+          if (identifier[0] == '"' && identifier[identifier.length - 1] == '"') {
             identifier = identifier.substring(1, identifier.length - 1);
           }
           if (identifier == "allow") {
@@ -912,7 +870,7 @@ async function transform(root: SgRoot<JSON>): Promise<string> {
           );
         }
         let finalPaths: { name: string; content: string }[] = [];
-        for (let [index, path] of paths.entries()) {
+        for (let [_index, path] of paths.entries()) {
           let pair = path.getMatch("PAIR");
           let nameRule = pair?.find({
             rule: {
@@ -932,10 +890,7 @@ async function transform(root: SgRoot<JSON>): Promise<string> {
             });
           }
         }
-        const pathsByName = new Map<
-          string,
-          { name: string; content: string }
-        >();
+        const pathsByName = new Map<string, { name: string; content: string }>();
         for (const path of finalPaths) {
           pathsByName.set(path.name, path);
         }
@@ -966,11 +921,10 @@ async function transform(root: SgRoot<JSON>): Promise<string> {
           }
           return true;
         });
-        sectorData.rules[
-          '"no-restricted-imports"'
-        ] = `["${noRestrictedImportsType}", {paths: ${finalPaths.map(
-          (path) => path.content
-        )}, ${pairs.map((pair) => `${pair.text()},`)}}]`;
+        sectorData.rules['"no-restricted-imports"'] =
+          `["${noRestrictedImportsType}", {paths: ${finalPaths.map(
+            (path) => path.content
+          )}, ${pairs.map((pair) => `${pair.text()},`)}}]`;
       }
     }
     // end detecting no-restricted-imports
@@ -1001,12 +955,7 @@ async function transform(root: SgRoot<JSON>): Promise<string> {
     for (let glob of detectGlobalsRule) {
       let identifier = glob.getMatch("IDENTIFIER")?.text();
       if (!identifier) continue;
-      let value: any = glob
-        .text()
-        .trim()
-        .replace(`${identifier}:`, "")
-        .trim()
-        .replace(/,\s*$/, "");
+      let value: any = glob.text().trim().replace(`${identifier}:`, "").trim().replace(/,\s*$/, "");
       if (value[0] == '"' && value[value.length - 1] == '"') {
         value = value.slice(1, value.length - 1);
       } else if (value == "true" || value == "false") {
@@ -1094,12 +1043,7 @@ async function transform(root: SgRoot<JSON>): Promise<string> {
     for (let env of detectingEnvRule) {
       let identifier = env.getMatch("IDENTIFIER")?.text();
       if (!identifier) continue;
-      let value: any = env
-        .text()
-        .trim()
-        .replace(`${identifier}:`, "")
-        .trim()
-        .replace(/,\s*$/, "");
+      let value: any = env.text().trim().replace(`${identifier}:`, "").trim().replace(/,\s*$/, "");
       if (value[0] == '"' && value[value.length - 1] == '"') {
         value = value.slice(1, value.length - 1);
       } else if (value == "true" || value == "false") {
@@ -1151,9 +1095,8 @@ async function transform(root: SgRoot<JSON>): Promise<string> {
     sectors.push(sectorData);
   }
 
-  let requireJsdocSettings = sectors.find(
-    (sector) => sector.requireJsdoc.exists
-  )?.requireJsdoc.settings;
+  let requireJsdocSettings = sectors.find((sector) => sector.requireJsdoc.exists)?.requireJsdoc
+    .settings;
   let newEslintConfig = `${imports.join("\n")}\nexport default defineConfig(${
     requireJsdocSettings
       ? `jsdoc({
@@ -1172,15 +1115,10 @@ async function transform(root: SgRoot<JSON>): Promise<string> {
       .join(", ");
     const extendsStr = sector.extends.join(",");
     let languageOptions = JSON.stringify(sector.languageOptions);
-    languageOptions = languageOptions.replace(
-      /"(\.\.\.[^"]+)":\s*(?:["']'?"?"|\{\})?,?/g,
-      "$1,"
-    );
+    languageOptions = languageOptions.replace(/"(\.\.\.[^"]+)":\s*(?:["']'?"?"|\{\})?,?/g, "$1,");
     return `\n{languageOptions: ${languageOptions}, ${
       sector.extends.length ? `extends: [${extendsStr}],\n` : ``
-    } rules: {${rulesStr}}\n, ${
-      sector.files ? `files: ${sector.files}\n` : ``
-    }}`;
+    } rules: {${rulesStr}}\n, ${sector.files ? `files: ${sector.files}\n` : ``}}`;
   })})`;
 
   const newSource = newEslintConfig;

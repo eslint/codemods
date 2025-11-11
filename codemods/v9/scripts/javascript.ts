@@ -1,4 +1,4 @@
-import { type SgRoot, type Edit, parse } from "codemod:ast-grep";
+import { type SgRoot, parse } from "codemod:ast-grep";
 import type JS from "codemod:ast-grep/langs/javascript";
 import { type SgNode } from "codemod:ast-grep";
 import { getStepOutput } from "codemod:workflow";
@@ -277,9 +277,7 @@ async function transform(root: SgRoot<JS>): Promise<string> {
           let jsdocType = jsdocTypeRule.getMatch("TYPE")?.text() || "";
           let jsdocOptions: Record<string, string> = {};
           if (jsdocOptionsRule.length) {
-            let optionsIdentifier = jsdocOptionsRule[0]
-              ?.getMatch("SETTING_IDENTIFIER")
-              ?.text();
+            let optionsIdentifier = jsdocOptionsRule[0]?.getMatch("SETTING_IDENTIFIER")?.text();
             if (optionsIdentifier == "require") {
               for (let option of jsdocOptionsRule) {
                 let identifier = option.getMatch("IDENTIFIER")?.text();
@@ -372,9 +370,7 @@ async function transform(root: SgRoot<JS>): Promise<string> {
     if (noConstructorReturn) {
       delete sectorData.rules['"no-constructor-return"'];
       delete sectorData.rules["'no-constructor-return'"];
-      sectorData.rules[
-        '"no-constructor-return"'
-      ] = `["${noConstructorReturn}"]`;
+      sectorData.rules['"no-constructor-return"'] = `["${noConstructorReturn}"]`;
     }
 
     let noSequences = {
@@ -455,8 +451,7 @@ async function transform(root: SgRoot<JS>): Promise<string> {
               .trim()
               .replace("allowInParentheses:", "")
               .trim();
-            noSequences.allowInParentheses =
-              allowInParenthesesOption == "true" ? true : false;
+            noSequences.allowInParentheses = allowInParenthesesOption == "true" ? true : false;
             noSequences.allowInParenthesesExists = true;
           }
         }
@@ -470,9 +465,7 @@ async function transform(root: SgRoot<JS>): Promise<string> {
             },
           },
         });
-        typeRule = typeRule.filter(
-          (rule) => rule.getMatch("TYPE")?.text() != "no-sequences"
-        );
+        typeRule = typeRule.filter((rule) => rule.getMatch("TYPE")?.text() != "no-sequences");
         if (typeRule.length) {
           noSequences.type = typeRule[0]?.getMatch("TYPE")?.text()!;
         }
@@ -485,9 +478,8 @@ async function transform(root: SgRoot<JS>): Promise<string> {
         typeof noSequences.allowInParentheses == "boolean" &&
         noSequences.allowInParenthesesExists == true
       ) {
-        sectorData.rules[
-          '"no-sequences"'
-        ] = `["${noSequences.type}", {"allowInParentheses": ${noSequences.allowInParentheses}}]`;
+        sectorData.rules['"no-sequences"'] =
+          `["${noSequences.type}", {"allowInParentheses": ${noSequences.allowInParentheses}}]`;
       } else {
         sectorData.rules['"no-sequences"'] = `["${noSequences.type}"]`;
       }
@@ -519,9 +511,7 @@ async function transform(root: SgRoot<JS>): Promise<string> {
         },
       });
       if (isArrayRule.length) {
-        const extendsStrings = isArrayRule.map(
-          (rule) => rule.getMatch("STRING")?.text() || ""
-        );
+        const extendsStrings = isArrayRule.map((rule) => rule.getMatch("STRING")?.text() || "");
         if (extendsStrings.includes("eslint:recommended")) {
           eslintRecommended = true;
         }
@@ -630,11 +620,7 @@ async function transform(root: SgRoot<JS>): Promise<string> {
         });
         for (let option of optionsRule) {
           let identifier = option.getMatch("IDENTIFIER")?.text();
-          let value: any = option
-            .text()
-            .trim()
-            .replace(`${identifier}:`, "")
-            .trim();
+          let value: any = option.text().trim().replace(`${identifier}:`, "").trim();
           if (!identifier) continue;
           if (
             (value[0] == "'" && value[value.length - 1] == "'") ||
@@ -658,9 +644,7 @@ async function transform(root: SgRoot<JS>): Promise<string> {
             },
           },
         });
-        typeRule = typeRule.filter(
-          (rule) => rule.getMatch("TYPE")?.text() != "no-unused-vars"
-        );
+        typeRule = typeRule.filter((rule) => rule.getMatch("TYPE")?.text() != "no-unused-vars");
         if (typeRule.length) {
           noUnusedVars.type = typeRule[0]?.getMatch("TYPE")?.text() || "";
         }
@@ -725,8 +709,7 @@ async function transform(root: SgRoot<JS>): Promise<string> {
         },
       });
       if (isArrayRule.length) {
-        noUselessComputedKeys.type =
-          isArrayRule[0]?.getMatch("TYPE")?.text() || "";
+        noUselessComputedKeys.type = isArrayRule[0]?.getMatch("TYPE")?.text() || "";
         let optionsRule = noUselessComputedVarsRule.findAll({
           rule: {
             kind: "pair",
@@ -762,17 +745,15 @@ async function transform(root: SgRoot<JS>): Promise<string> {
           (rule) => rule.getMatch("TYPE")?.text() != "no-useless-computed-key"
         );
         if (typeRule.length) {
-          noUselessComputedKeys.type =
-            typeRule[0]?.getMatch("TYPE")?.text() || "";
+          noUselessComputedKeys.type = typeRule[0]?.getMatch("TYPE")?.text() || "";
         }
       }
     }
     if (noUselessComputedKeys.type != "nothing") {
       delete sectorData.rules["'no-useless-computed-key'"];
       delete sectorData.rules['"no-useless-computed-key"'];
-      sectorData.rules[
-        '"no-useless-computed-key"'
-      ] = `["${noUselessComputedKeys.type}", {enforceForClassMembers: ${noUselessComputedKeys.options.enforceForClassMembers}}]`;
+      sectorData.rules['"no-useless-computed-key"'] =
+        `["${noUselessComputedKeys.type}", {enforceForClassMembers: ${noUselessComputedKeys.options.enforceForClassMembers}}]`;
     }
     // end no-useless-computed-key
     // start camelcase
@@ -847,11 +828,7 @@ async function transform(root: SgRoot<JS>): Promise<string> {
         for (let option of optionsRule) {
           let identifier = option.getMatch("IDENTIFIER")?.text();
           if (!identifier) continue;
-          let value: any = option
-            .text()
-            .trim()
-            .replace(`${identifier}:`, "")
-            .trim();
+          let value: any = option.text().trim().replace(`${identifier}:`, "").trim();
           if (
             (value[0] == "'" && value[value.length - 1] == "'") ||
             (value[0] == '"' && value[value.length - 1] == '"')
@@ -876,12 +853,7 @@ async function transform(root: SgRoot<JS>): Promise<string> {
             if (
               !items?.filter((item) => {
                 let text = item.text();
-                return (
-                  text[0] != "'" &&
-                  text[0] != '"' &&
-                  text[0] != "`" &&
-                  text != ","
-                );
+                return text[0] != "'" && text[0] != '"' && text[0] != "`" && text != ",";
               }).length
             ) {
               camelcase.options[identifier] = value;
@@ -904,8 +876,7 @@ async function transform(root: SgRoot<JS>): Promise<string> {
           (rule) => rule.getMatch("TYPE")?.text() != "no-useless-computed-key"
         );
         if (typeRule.length) {
-          noUselessComputedKeys.type =
-            typeRule[0]?.getMatch("TYPE")?.text() || "";
+          noUselessComputedKeys.type = typeRule[0]?.getMatch("TYPE")?.text() || "";
         }
       }
     }
@@ -1015,7 +986,7 @@ async function transform(root: SgRoot<JS>): Promise<string> {
       if (paths.length) {
         let noRestrictedImportsType = paths[0]?.getMatch("TYPE")?.text();
         let finalPaths: { name: string; content: string }[] = [];
-        for (let [index, path] of paths.entries()) {
+        for (let [_index, path] of paths.entries()) {
           let pair = path.getMatch("PAIR");
           let nameRule = pair?.find({
             rule: {
@@ -1038,10 +1009,7 @@ async function transform(root: SgRoot<JS>): Promise<string> {
             });
           }
         }
-        const pathsByName = new Map<
-          string,
-          { name: string; content: string }
-        >();
+        const pathsByName = new Map<string, { name: string; content: string }>();
         for (const path of finalPaths) {
           pathsByName.set(path.name, path);
         }
@@ -1080,11 +1048,10 @@ async function transform(root: SgRoot<JS>): Promise<string> {
           }
           return true;
         });
-        sectorData.rules[
-          '"no-restricted-imports"'
-        ] = `["${noRestrictedImportsType}", {paths: [${finalPaths.map(
-          (path) => path.content
-        )}], ${pairs.map((pair) => `${pair.text()},`)}}]`;
+        sectorData.rules['"no-restricted-imports"'] =
+          `["${noRestrictedImportsType}", {paths: [${finalPaths.map(
+            (path) => path.content
+          )}], ${pairs.map((pair) => `${pair.text()},`)}}]`;
       }
     }
     // end detecting no-restricted-imports
@@ -1180,11 +1147,7 @@ async function transform(root: SgRoot<JS>): Promise<string> {
     for (let option of detectParserOptions) {
       let identifier = option.getMatch("IDENTIFIER")?.text();
       if (!identifier) continue;
-      let value: any = option
-        .text()
-        .trim()
-        .replace(`${identifier}:`, "")
-        .trim();
+      let value: any = option.text().trim().replace(`${identifier}:`, "").trim();
       if (
         (value[0] == "'" && value[value.length - 1] == "'") ||
         (value[0] == '"' && value[value.length - 1] == '"')
@@ -1281,11 +1244,7 @@ async function transform(root: SgRoot<JS>): Promise<string> {
     });
     if (filesValueDetection) {
       let filesIdentifier = filesValueDetection.getMatch("IDENTIFIER")?.text();
-      let value = filesValueDetection
-        .text()
-        .trim()
-        .replace(`${filesIdentifier}:`, "")
-        .trim();
+      let value = filesValueDetection.text().trim().replace(`${filesIdentifier}:`, "").trim();
       files = value;
     }
     sectorData.files = files as string;
@@ -1293,9 +1252,8 @@ async function transform(root: SgRoot<JS>): Promise<string> {
     sectors.push(sectorData);
   }
 
-  let requireJsdocSettings = sectors.find(
-    (sector) => sector.requireJsdoc.exists
-  )?.requireJsdoc.settings;
+  let requireJsdocSettings = sectors.find((sector) => sector.requireJsdoc.exists)?.requireJsdoc
+    .settings;
   let newEslintConfig = `${imports.join("\n")}\nexport default defineConfig(${
     requireJsdocSettings
       ? `jsdoc({
@@ -1314,15 +1272,10 @@ async function transform(root: SgRoot<JS>): Promise<string> {
       .join(", ");
     const extendsStr = sector.extends.join(",");
     let languageOptions = JSON.stringify(sector.languageOptions);
-    languageOptions = languageOptions.replace(
-      /"(\.\.\.[^"]+)":\s*(?:["']'?"?"|\{\})?,?/g,
-      "$1,"
-    );
+    languageOptions = languageOptions.replace(/"(\.\.\.[^"]+)":\s*(?:["']'?"?"|\{\})?,?/g, "$1,");
     return `\n{languageOptions: ${languageOptions}, ${
       sector.extends.length ? `extends: [${extendsStr}],\n` : ``
-    } rules: {${rulesStr}}\n, ${
-      sector.files ? `files: ${sector.files}\n` : ``
-    }}`;
+    } rules: {${rulesStr}}\n, ${sector.files ? `files: ${sector.files}\n` : ``}}`;
   })})`;
 
   const newSource = newEslintConfig;

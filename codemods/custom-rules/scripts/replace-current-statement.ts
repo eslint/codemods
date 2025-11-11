@@ -38,7 +38,7 @@ export default async function transform(root: SgRoot<JS>): Promise<string> {
   if (createRule) {
     let newEdits = [];
     let newRoot = parse("javascript", createRule.text()).root();
-    let context = createRule.getMatch("CONTEXT")?.text() || "context";
+    let _context = createRule.getMatch("CONTEXT")?.text() || "context";
     const memberExpressionsRule = newRoot.findAll({
       rule: {
         kind: "member_expression",
