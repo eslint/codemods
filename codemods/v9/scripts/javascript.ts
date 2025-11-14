@@ -520,6 +520,9 @@ async function transform(root: SgRoot<JS>): Promise<string> {
         if (extendsStrings.includes("eslint:all")) {
           eslintAll = true;
         }
+        sectorData.extends = isArrayRule
+          .filter((extend) => !["eslint:recommended", "eslint:all"].includes(extend.text()))
+          .map((extend) => `"${extend.text()}"`);
       } else {
         let extendsExecute = extendsRule.find({
           rule: {
@@ -532,9 +535,10 @@ async function transform(root: SgRoot<JS>): Promise<string> {
         let extendsText = extendsExecute?.text() || "";
         if (extendsText == "eslint:recommended") {
           eslintRecommended = true;
-        }
-        if (extendsText == "eslint:all") {
+        } else if (extendsText == "eslint:all") {
           eslintAll = true;
+        } else {
+          sectorData.extends = [`"${extendsText}"`];
         }
       }
     }

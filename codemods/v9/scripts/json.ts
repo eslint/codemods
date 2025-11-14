@@ -433,7 +433,6 @@ async function transform(root: SgRoot<JSON>): Promise<string> {
       if (isArrayRule.length) {
         const extendsStrings = isArrayRule.map((rule) => {
           let str = rule.getMatch("STRING")?.text() || "";
-          // Remove quotes
           if (str[0] == '"' && str[str.length - 1] == '"') {
             return str.substring(1, str.length - 1);
           }
@@ -445,6 +444,9 @@ async function transform(root: SgRoot<JSON>): Promise<string> {
         if (extendsStrings.includes("eslint:all")) {
           eslintAll = true;
         }
+        sectorData.extends = isArrayRule
+          .filter((extend) => !['"eslint:recommended"', '"eslint:all"'].includes(extend.text()))
+          .map((extend) => `${extend.text()}`);
       } else {
         let extendsExecute = extendsRule.find({
           rule: {
@@ -452,15 +454,15 @@ async function transform(root: SgRoot<JSON>): Promise<string> {
           },
         });
         let extendsText = extendsExecute?.text() || "";
-        // Remove quotes
         if (extendsText[0] == '"' && extendsText[extendsText.length - 1] == '"') {
           extendsText = extendsText.substring(1, extendsText.length - 1);
         }
         if (extendsText == "eslint:recommended") {
           eslintRecommended = true;
-        }
-        if (extendsText == "eslint:all") {
+        } else if (extendsText == "eslint:all") {
           eslintAll = true;
+        } else {
+          sectorData.extends = [`"${extendsText}"`];
         }
       }
     }
