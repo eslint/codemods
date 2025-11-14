@@ -567,7 +567,7 @@ async function transform(root: SgRoot<JSON>): Promise<string> {
     let noUnusedVars = {
       type: "nothing",
       options: {
-        caughtErrors: "'none'",
+        caughtErrors: "none",
       } as Record<string, any>,
     };
     let noUnusedVarsRule = sector.find({
