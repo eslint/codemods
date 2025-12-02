@@ -1,5 +1,5 @@
 {
-  "include": ["utils/**/*.ts"],
+  "include": ["codemods/**/*.ts"],
   "exclude": [
     "**/tests/**/*",
     "**/rules/**/*.yml",
