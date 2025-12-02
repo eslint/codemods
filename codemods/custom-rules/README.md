@@ -1,4 +1,4 @@
-# @codemod/eslint-custom-rules-v8-to-v9
+# @eslint/custom-rules-v8-to-v9
 
 Automatically migrate your custom ESLint rules from v8 to v9 format.
 
@@ -38,7 +38,7 @@ Transforms your custom ESLint rules to the new format:
 Run the codemod and provide paths to your rule files or directories:
 
 ```bash
-npx codemod@latest run @codemod/eslint-custom-rules-v8-to-v9
+npx codemod@latest run @eslint/custom-rules-v8-to-v9
 
 # Or run locally
 npx codemod@latest workflow run -w workflow.yaml

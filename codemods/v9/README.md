@@ -1,4 +1,4 @@
-# @codemod/eslint-v8-to-v9
+# @eslint/v8-to-v9
 
 Automatically migrate your ESLint configuration from v8 to v9 flat config format.
 
@@ -65,7 +65,7 @@ Automatically updates several ESLint rules with breaking changes:
 Simply run the codemod in your project directory. It will automatically find and migrate all `.eslintrc.*` files:
 
 ```bash
-npx codemod@latest run @codemod/eslint-v8-to-v9
+npx codemod@latest run @eslint/v8-to-v9
 
 # Or run locally
 npx codemod@latest workflow run -w workflow.yaml
