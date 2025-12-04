@@ -1,7 +1,7 @@
 schema_version: "1.0"
 
 name: "@eslint/v8-to-v9-custom-rules"
-version: "1.0.2"
+version: "1.0.3"
 description: "Migrate custom ESLint rules from v8 to v9 format"
 author: "Amirabbas Ghasemi <amirabbas08dev@gmail.com>"
 license: "MIT"

@@ -5,9 +5,14 @@ Automatically migrate your custom ESLint rules from v8 to v9 format.
 ## Overview
 
 > [!CAUTION]
-> **Important:** Run this codemod only in directories containing ESLint rule files. It may incorrectly transform other JavaScript files that use `module.exports` to export functions.
+> **Important:** Run this codemod only in directories containing ESLint rule files. It may incorrectly transform other JavaScript files that export functions.
 
 This codemod transforms your custom ESLint rules to be compatible with ESLint v9. It handles all breaking changes in the custom rule API, including context method removals, new rule structure requirements, and deprecated APIs.
+
+**Supported export styles:**
+
+- CommonJS: `module.exports = function(context) { ... }`
+- ES Modules: `export default function(context) { ... }`
 
 ## What This Codemod Does
 
@@ -23,6 +28,32 @@ This codemod performs a comprehensive migration of custom ESLint rules from v8 t
 #### Custom Rule Migration
 
 Transforms your custom ESLint rules to the new format:
+
+**CommonJS:**
+
+```javascript
+// Before
+module.exports = function(context) { return { ... }; };
+
+// After
+module.exports = {
+  meta: { docs: {}, schema: [] },
+  create: function(context) { return { ... }; }
+};
+```
+
+**ES Modules:**
+
+```javascript
+// Before
+export default function(context) { return { ... }; };
+
+// After
+export default {
+  meta: { docs: {}, schema: [] },
+  create: function(context) { return { ... }; }
+};
+```
 
 - **Converts** old function-based rule exports to the new object format with `meta` and `create` properties
 - **Updates** `context` method calls to use `context.sourceCode` (e.g., `context.getSource()` → `contextSourceCode.getText()`)
@@ -51,7 +82,30 @@ npx codemod@latest workflow run -w workflow.yaml
 
 After running this codemod, you need to:
 
-1. **Review TODO comments** in migrated custom rules for context method migrations:
+1. **Review TODO comments** - Search for `TODO` in your migrated files and address each one:
+
+   | **TODO Comment**                                          | **Action Required**                                                  |
+   | --------------------------------------------------------- | -------------------------------------------------------------------- |
+   | `// TODO: Define schema - this rule uses context.options` | Define a proper JSON schema for your rule's options                  |
+   | `/* TODO: new node param */`                              | Add the `node` parameter to `getAncestors(node)` or `getScope(node)` |
+   | `/* TODO: new name, node params */`                       | Update `markVariableAsUsed(name, node)` with correct parameters      |
+
+2. **Fix schema for rules using options** - If your rule uses `context.options`, you must define the schema:
+
+   ```javascript
+   // Before (generated with TODO)
+   schema: []; // TODO: Define schema - this rule uses context.options
+
+   // After (manually fixed)
+   schema: [
+     {
+       type: "integer",
+       minimum: 1,
+     },
+   ];
+   ```
+
+3. **Update deprecated context methods** - The codemod replaces these automatically, but you need to verify the `node` parameter:
 
    | **Removed on `context`**           | **Replacement on `SourceCode`**             |
    | ---------------------------------- | ------------------------------------------- |
@@ -59,7 +113,7 @@ After running this codemod, you need to:
    | `context.getScope()`               | `sourceCode.getScope(node)`                 |
    | `context.markVariableAsUsed(name)` | `sourceCode.markVariableAsUsed(name, node)` |
 
-2. **Test your custom rules**:
+4. **Test your custom rules**:
 
 ```bash
 # Run your rule tests
