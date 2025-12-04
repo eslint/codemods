@@ -118,9 +118,7 @@ module.exports = {
         const tokenBefore = contextSourceCode.getTokenBefore(node);
 
         // DEPRECATED: context.getTokenByRangeStart() - should be sourceCode.getTokenByRangeStart()
-        const tokenByRangeStart = contextSourceCode.getTokenByRangeStart(
-          node.range[0]
-        );
+        const tokenByRangeStart = contextSourceCode.getTokenByRangeStart(node.range[0]);
 
         // DEPRECATED: context.getTokens() - should be sourceCode.getTokens()
         const tokens = contextSourceCode.getTokens(node);
@@ -132,10 +130,7 @@ module.exports = {
         const tokensBefore = contextSourceCode.getTokensBefore(node);
 
         // DEPRECATED: context.getTokensBetween() - should be sourceCode.getTokensBetween()
-        const tokensBetween = contextSourceCode.getTokensBetween(
-          node,
-          node.parent
-        );
+        const tokensBetween = contextSourceCode.getTokensBetween(node, node.parent);
       },
 
       VariableDeclaration(node) {
@@ -155,7 +150,7 @@ module.exports = {
 
       Identifier(node) {
         // Example usage that would trigger a fix
-        contextSourceCode.report({
+        context.report({
           node,
           message: "Example rule violation",
           fix(fixer) {
