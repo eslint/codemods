@@ -3,6 +3,7 @@ export type SectorData = {
   extends: string[];
   languageOptions: Record<string, any>;
   files: string;
+  plugins?: Record<string, string>;
   requireJsdoc: {
     exists: boolean;
     settings: Record<string, string>;
@@ -75,47 +76,87 @@ const makeNewConfig = (sectors: SectorData[], imports: string[]): string => {
   }
 
   sectors.forEach((sector, sectorIndex) => {
-    parts.push("  {");
+    const isLastSector = sectorIndex === sectors.length - 1;
 
-    if (sector.files) {
-      parts.push(`    files: ${sector.files},`);
-    }
+    // Check if we have any content for the sector object
+    const hasFiles = !!sector.files;
+    const hasLanguageOptions = Object.keys(sector.languageOptions).length > 0;
+    const hasRules = Object.keys(sector.rules).length > 0;
+    const hasExtends = sector.extends.length > 0;
+    const hasPlugins = sector.plugins && Object.keys(sector.plugins).length > 0;
 
-    if (Object.keys(sector.languageOptions).length > 0) {
-      const langOpts = { ...sector.languageOptions };
-      if (langOpts.ecmaVersion !== undefined || langOpts.ecmaFeatures !== undefined) {
-        if (!langOpts.parserOptions) {
-          langOpts.parserOptions = {};
+    // If this is a top-level config (no files), spread extends at array level
+    if (!hasFiles && hasExtends && !hasLanguageOptions && !hasRules && !hasPlugins) {
+      sector.extends.forEach((ext) => {
+        // Check if this is a TODO comment
+        if (ext.includes("TODO")) {
+          parts.push(`  ${ext}`);
+        } else {
+          parts.push(`  ${ext},`);
         }
-        if (langOpts.ecmaVersion !== undefined) {
-          langOpts.parserOptions.ecmaVersion = langOpts.ecmaVersion;
-          delete langOpts.ecmaVersion;
-        }
-        if (langOpts.ecmaFeatures !== undefined) {
-          langOpts.parserOptions.ecmaFeatures = langOpts.ecmaFeatures;
-          delete langOpts.ecmaFeatures;
-        }
-      }
-      const formattedLangOpts = formatValue(langOpts, 2);
-      parts.push(`    languageOptions: ${formattedLangOpts},`);
-    }
-
-    if (sector.extends.length) {
-      parts.push(`    extends: [${sector.extends.join(", ")}],`);
-    }
-
-    if (Object.keys(sector.rules).length > 0) {
-      parts.push("    rules: {");
-      const rulesEntries = Object.entries(sector.rules);
-      rulesEntries.forEach(([key, value], index) => {
-        const comma = index < rulesEntries.length - 1 ? "," : "";
-        parts.push(`      ${key}: ${value}${comma}`);
       });
-      parts.push("    },");
-    }
+    } else if (hasFiles || hasLanguageOptions || hasRules || hasExtends || hasPlugins) {
+      // This is an override or has additional properties
+      parts.push("  {");
 
-    const comma = sectorIndex < sectors.length - 1 ? "," : "";
-    parts.push(`  }${comma}`);
+      if (sector.files) {
+        parts.push(`    files: ${sector.files},`);
+      }
+
+      // In overrides (or when mixing with other properties), spread extends inside the object
+      if (hasExtends) {
+        sector.extends.forEach((ext) => {
+          // Check if this is a TODO comment
+          if (ext.includes("TODO")) {
+            parts.push(`    ${ext}`);
+          } else {
+            parts.push(`    ...${ext},`);
+          }
+        });
+      }
+
+      if (hasPlugins && sector.plugins) {
+        parts.push("    plugins: {");
+        const pluginsEntries = Object.entries(sector.plugins);
+        pluginsEntries.forEach(([key, value], index) => {
+          const comma = index < pluginsEntries.length - 1 ? "," : "";
+          parts.push(`      ${key}: ${value}${comma}`);
+        });
+        parts.push("    },");
+      }
+
+      if (hasLanguageOptions) {
+        const langOpts = { ...sector.languageOptions };
+        if (langOpts.ecmaVersion !== undefined || langOpts.ecmaFeatures !== undefined) {
+          if (!langOpts.parserOptions) {
+            langOpts.parserOptions = {};
+          }
+          if (langOpts.ecmaVersion !== undefined) {
+            langOpts.parserOptions.ecmaVersion = langOpts.ecmaVersion;
+            delete langOpts.ecmaVersion;
+          }
+          if (langOpts.ecmaFeatures !== undefined) {
+            langOpts.parserOptions.ecmaFeatures = langOpts.ecmaFeatures;
+            delete langOpts.ecmaFeatures;
+          }
+        }
+        const formattedLangOpts = formatValue(langOpts, 2);
+        parts.push(`    languageOptions: ${formattedLangOpts},`);
+      }
+
+      if (hasRules) {
+        parts.push("    rules: {");
+        const rulesEntries = Object.entries(sector.rules);
+        rulesEntries.forEach(([key, value], index) => {
+          const comma = index < rulesEntries.length - 1 ? "," : "";
+          parts.push(`      ${key}: ${value}${comma}`);
+        });
+        parts.push("    },");
+      }
+
+      const comma = isLastSector ? "" : ",";
+      parts.push(`  }${comma}`);
+    }
   });
 
   parts.push("]);");
