@@ -49,6 +49,7 @@ async function transform(root: SgRoot<JS>): Promise<string> {
   let imports = ['import { defineConfig } from "eslint/config";'];
 
   let sectors: SectorData[] = [];
+  let needsPrettierPlugin = false; // Track if we need to add prettier plugin config
 
   for (let sector of rulesSectorsRule) {
     let sectorData = {
@@ -56,6 +57,7 @@ async function transform(root: SgRoot<JS>): Promise<string> {
       extends: [] as string[],
       languageOptions: {} as Record<string, any>,
       files: String() as string,
+      plugins: {} as Record<string, string>,
       requireJsdoc: {
         exists: false,
         settings: {},
@@ -492,6 +494,7 @@ async function transform(root: SgRoot<JS>): Promise<string> {
     let eslintAll = false;
     let hasAirbnb = false;
     let hasPrettier = false;
+    let hasPrettierPlugin = false; // plugin:prettier/recommended
     let extendsRule = sector.find({
       rule: {
         kind: "pair",
@@ -531,6 +534,9 @@ async function transform(root: SgRoot<JS>): Promise<string> {
         ) {
           hasPrettier = true;
         }
+        if (extendsStrings.includes("plugin:prettier/recommended")) {
+          hasPrettierPlugin = true;
+        }
         sectorData.extends = isArrayRule
           .filter(
             (extend) =>
@@ -541,6 +547,7 @@ async function transform(root: SgRoot<JS>): Promise<string> {
                 "eslint-config-airbnb",
                 "prettier",
                 "eslint-config-prettier",
+                "plugin:prettier/recommended",
               ].includes(extend.text())
           )
           .map((extend) => `"${extend.text()}"`);
@@ -562,6 +569,8 @@ async function transform(root: SgRoot<JS>): Promise<string> {
           hasAirbnb = true;
         } else if (extendsText == "prettier" || extendsText == "eslint-config-prettier") {
           hasPrettier = true;
+        } else if (extendsText == "plugin:prettier/recommended") {
+          hasPrettierPlugin = true;
         } else {
           sectorData.extends = [`"${extendsText}"`];
         }
@@ -596,9 +605,20 @@ async function transform(root: SgRoot<JS>): Promise<string> {
       }
     }
     // end "eslint:recommended", "eslint:all", "airbnb", and "prettier"
-    // start handling plugin configs (e.g., "plugin:testing-library/react")
+    // start handling plugin configs and shared configs
     const pluginConfigPattern = /^plugin:([^/]+)\/(.+)$/;
     const processedExtends: string[] = [];
+
+    // Plugins that are known to support flat config
+    const flatConfigSupportedPlugins = [
+      "ember",
+      "n",
+      "qunit",
+      "react",
+      "vue",
+      "typescript-eslint",
+      "@typescript-eslint",
+    ];
 
     for (const extend of sectorData.extends) {
       // Check if this is a quoted string (not already processed reference)
@@ -610,23 +630,42 @@ async function transform(root: SgRoot<JS>): Promise<string> {
         const match = extendValue.match(pluginConfigPattern);
 
         if (match && match[1] && match[2]) {
+          // This is a plugin config (plugin:xxx/yyy)
           const pluginName = match[1];
           const configName = match[2];
-          // Convert plugin name to import name (e.g., "testing-library" -> "testingLibrary")
-          const importName = pluginName.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
-          const packageName = `eslint-plugin-${pluginName}`;
 
-          // Add import if not already present
-          const importStatement = `import ${importName} from "${packageName}";`;
-          if (!imports.includes(importStatement)) {
-            imports.push(importStatement);
+          // Check if this plugin supports flat config
+          const supportsFlatConfig = flatConfigSupportedPlugins.some(
+            (supported) => pluginName === supported || pluginName.startsWith(supported)
+          );
+
+          if (supportsFlatConfig) {
+            // Convert plugin name to import name (e.g., "testing-library" -> "testingLibrary")
+            const importName = pluginName.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+            const packageName = pluginName.startsWith("@")
+              ? pluginName
+              : `eslint-plugin-${pluginName}`;
+
+            // Add import if not already present
+            const importStatement = `import ${importName} from "${packageName}";`;
+            if (!imports.includes(importStatement)) {
+              imports.push(importStatement);
+            }
+
+            // Add reference to the config
+            processedExtends.push(`${importName}.configs["flat/${configName}"]`);
+          } else {
+            // Plugin doesn't support flat config - add TODO comment
+            processedExtends.push(
+              `/* TODO: Migrate "${extendValue}" manually - this plugin may not support flat config yet. You need to find the flat config equivalent or migrate manually. */`
+            );
           }
-
-          // Add reference to the config
-          processedExtends.push(`${importName}.configs["flat/${configName}"]`);
         } else {
-          // Keep non-plugin quoted extends as-is
-          processedExtends.push(extend);
+          // This is NOT a plugin config - it's a shared config (e.g., "@remix-run/eslint-config")
+          // We need to add TODO because we don't know how to import it
+          processedExtends.push(
+            `/* TODO: Import and use "${extendValue}" - you need to find its flat config export. Example: import configName from "${extendValue}"; then use ...configName or configName in the array */`
+          );
         }
       } else {
         // Keep non-quoted extends (already processed references) as-is
@@ -635,7 +674,19 @@ async function transform(root: SgRoot<JS>): Promise<string> {
     }
 
     sectorData.extends = processedExtends;
-    // end handling plugin configs
+    // end handling plugin configs and shared configs
+
+    // Handle plugin:prettier/recommended specially (needs manual setup)
+    if (hasPrettierPlugin) {
+      needsPrettierPlugin = true;
+      // Add necessary imports
+      if (!imports.includes('import prettierPlugin from "eslint-plugin-prettier";')) {
+        imports.push('import prettierPlugin from "eslint-plugin-prettier";');
+      }
+      if (!imports.includes('import eslintConfigPrettier from "eslint-config-prettier";')) {
+        imports.push('import eslintConfigPrettier from "eslint-config-prettier";');
+      }
+    }
     // start execute no-unused-vars
     let noUnusedVars = {
       type: "nothing",
@@ -1229,12 +1280,7 @@ async function transform(root: SgRoot<JS>): Promise<string> {
       let identifier = option.getMatch("IDENTIFIER")?.text();
       if (!identifier) continue;
       let value: any = option.text().trim().replace(`${identifier}:`, "").trim();
-      if (
-        (value[0] == "'" && value[value.length - 1] == "'") ||
-        (value[0] == '"' && value[value.length - 1] == '"')
-      ) {
-        value = value.slice(1, value.length - 1);
-      } else if (value == "true" || value == "false") {
+      if (value == "true" || value == "false") {
         value = value == "true" ? true : false;
       } else if (!isNaN(value)) {
         value = parseInt(value);
@@ -1331,6 +1377,33 @@ async function transform(root: SgRoot<JS>): Promise<string> {
     sectorData.files = files as string;
     // end files detection
     sectors.push(sectorData);
+  }
+
+  // Add prettier plugin configuration if needed
+  if (needsPrettierPlugin) {
+    sectors.push({
+      rules: { '"prettier/prettier"': '"error"' },
+      extends: [],
+      languageOptions: {},
+      files: "",
+      plugins: { prettier: "prettierPlugin" },
+      requireJsdoc: {
+        exists: false,
+        settings: {},
+      },
+    });
+    // Add eslint-config-prettier at the end
+    sectors.push({
+      rules: {},
+      extends: ["eslintConfigPrettier"],
+      languageOptions: {},
+      files: "",
+      plugins: {},
+      requireJsdoc: {
+        exists: false,
+        settings: {},
+      },
+    });
   }
 
   const newSource = makeNewConfig(sectors, imports);
