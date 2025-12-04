@@ -18,7 +18,7 @@ npx codemod@latest <codemod-name>
 For example:
 
 ```bash
-npx codemod@latest @eslint/v8-to-v9
+npx codemod@latest @eslint/v8-to-v9-config
 ```
 
 ### From source

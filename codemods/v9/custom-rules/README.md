@@ -4,6 +4,9 @@ Automatically migrate your custom ESLint rules from v8 to v9 format.
 
 ## Overview
 
+> [!CAUTION]
+> **Important:** Run this codemod only in directories containing ESLint rule files. It may incorrectly transform other JavaScript files that use `module.exports` to export functions.
+
 This codemod transforms your custom ESLint rules to be compatible with ESLint v9. It handles all breaking changes in the custom rule API, including context method removals, new rule structure requirements, and deprecated APIs.
 
 ## What This Codemod Does
@@ -42,14 +45,6 @@ npx codemod@latest run @eslint/v8-to-v9-custom-rules
 
 # Or run locally
 npx codemod@latest workflow run -w workflow.yaml
-```
-
-You'll be prompted to provide paths to your rule files or directories:
-
-```bash
-# The codemod will ask for paths during execution
-Enter custom rules paths (comma-separated):
-src/eslint-rules, lib/rules/custom-rule.js
 ```
 
 ## Manual Steps Required
