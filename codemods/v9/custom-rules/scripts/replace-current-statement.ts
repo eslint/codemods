@@ -85,87 +85,89 @@ const CODE_PATH_HANDLERS = `onCodePathStart(codePath) {
 
 // ============ Transform ============
 
-export default async function transform(root: SgRoot<JS>): Promise<string> {
+export default async function transform(root: SgRoot<JS>): Promise<string | null> {
   const rootNode = root.root();
   const edits: Edit[] = [];
 
   const createRule = rootNode.find(getCreateBlockSelector());
 
-  if (createRule) {
-    // Skip if already transformed (newCurrentCodePath already defined)
-    if (createRule.find(getAlreadyTransformedSelector())) {
-      return rootNode.text();
-    }
+  if (!createRule) {
+    return null;
+  }
 
-    // Skip if no currentSegments usage
-    if (!createRule.find(getCurrentSegmentsSelector())) {
-      return rootNode.text();
-    }
+  // Skip if already transformed (newCurrentCodePath already defined)
+  if (createRule.find(getAlreadyTransformedSelector())) {
+    return null;
+  }
 
-    const text = createRule.text();
-    let newEdits: Edit[] = [];
-    let newRoot = parse("javascript", text).root();
+  // Skip if no currentSegments usage
+  if (!createRule.find(getCurrentSegmentsSelector())) {
+    return null;
+  }
 
-    // Replace currentSegments references
-    const memberExpressions = newRoot.findAll({
-      rule: {
-        kind: "member_expression",
-        has: {
-          kind: "property_identifier",
-          regex: "^currentSegments$",
-        },
+  const text = createRule.text();
+  let newEdits: Edit[] = [];
+  let newRoot = parse("javascript", text).root();
+
+  // Replace currentSegments references
+  const memberExpressions = newRoot.findAll({
+    rule: {
+      kind: "member_expression",
+      has: {
+        kind: "property_identifier",
+        regex: "^currentSegments$",
       },
-    });
-    for (let expression of memberExpressions) {
-      newEdits.push(expression.replace("newCurrentSegments"));
-    }
+    },
+  });
+  for (let expression of memberExpressions) {
+    newEdits.push(expression.replace("newCurrentSegments"));
+  }
 
-    // Add code path handlers to return objects
-    const returnStatements = newRoot.findAll({
-      rule: {
-        kind: "object",
-        inside: {
-          kind: "return_statement",
-        },
+  // Add code path handlers to return objects
+  const returnStatements = newRoot.findAll({
+    rule: {
+      kind: "object",
+      inside: {
+        kind: "return_statement",
       },
-    });
-    for (let returnStatement of returnStatements) {
-      let returnStatementText = returnStatement.text();
+    },
+  });
+  for (let returnStatement of returnStatements) {
+    let returnStatementText = returnStatement.text();
 
-      if (
-        returnStatementText[0] === "{" &&
-        returnStatementText[returnStatementText.length - 1] === "}"
-      ) {
-        const innerContent = returnStatementText.slice(1, -1);
-        newEdits.push(
-          returnStatement.replace(`{
+    if (
+      returnStatementText[0] === "{" &&
+      returnStatementText[returnStatementText.length - 1] === "}"
+    ) {
+      const innerContent = returnStatementText.slice(1, -1);
+      newEdits.push(
+        returnStatement.replace(`{
       ${CODE_PATH_HANDLERS}
       ${innerContent}
     }`)
-        );
-      } else {
-        newEdits.push(
-          returnStatement.replace(`{
+      );
+    } else {
+      newEdits.push(
+        returnStatement.replace(`{
       ${returnStatementText},
       ${CODE_PATH_HANDLERS}
     }`)
-        );
-      }
+      );
     }
+  }
 
-    // Only transform if there are actual changes
-    if (newEdits.length === 0) {
-      return rootNode.text();
-    }
+  // Only transform if there are actual changes
+  if (newEdits.length === 0) {
+    return null;
+  }
 
-    let newText = newRoot.commitEdits(newEdits);
-    let newCreate = `{
+  let newText = newRoot.commitEdits(newEdits);
+  let newCreate = `{
     let newCurrentCodePath;
     let newCurrentSegments;
     const allCurrentSegments = [];
     ${newText.slice(1)}`;
-    edits.push(createRule.replace(newCreate));
-  }
+  edits.push(createRule.replace(newCreate));
 
   return rootNode.commitEdits(edits);
 }
