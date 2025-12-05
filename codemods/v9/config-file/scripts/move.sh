@@ -1,6 +1,6 @@
 find . -type f \( -name '.eslintrc.js' -o -name '.eslintrc.json' -o -name '.eslintrc.yaml' -o -name '.eslintrc.yml' \) | while read file; do
   dir=$(dirname "$file")
-  new_path="${dir}/eslint.config.cjs"
+  new_path="${dir}/eslint.config.mjs"
   if [[ -e "${new_path}" ]]; then
     echo "❌ ${new_path} already exists. Skipping moving ${file}."
     continue

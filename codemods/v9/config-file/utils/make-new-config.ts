@@ -85,32 +85,59 @@ const makeNewConfig = (sectors: SectorData[], imports: string[]): string => {
     const hasExtends = sector.extends.length > 0;
     const hasPlugins = sector.plugins && Object.keys(sector.plugins).length > 0;
 
-    // If this is a top-level config (no files), spread extends at array level
-    if (!hasFiles && hasExtends && !hasLanguageOptions && !hasRules && !hasPlugins) {
+    // Separate config references from other extends
+    // Config references are patterns like: js.configs.recommended, ember.configs["flat/recommended"]
+    const configRefPattern =
+      /^[a-zA-Z_$][a-zA-Z0-9_$]*\.configs(\.[a-zA-Z_$][a-zA-Z0-9_$]*|\[["']flat\/[^"']+["']\])$/;
+    const configRefs: string[] = [];
+    const otherExtends: string[] = [];
+
+    if (hasExtends) {
       sector.extends.forEach((ext) => {
-        // Check if this is a TODO comment
-        if (ext.includes("TODO")) {
-          parts.push(`  ${ext}`);
+        if (configRefPattern.test(ext)) {
+          configRefs.push(ext);
         } else {
-          parts.push(`  ${ext},`);
+          otherExtends.push(ext);
         }
       });
-    } else if (hasFiles || hasLanguageOptions || hasRules || hasExtends || hasPlugins) {
-      // This is an override or has additional properties
+    }
+
+    // Config references should always be added as separate array elements
+    configRefs.forEach((ext, index) => {
+      // Add comma unless this is the last config ref AND there are no more items to add
+      const isLastConfigRef = index === configRefs.length - 1;
+      const hasMoreItems =
+        !isLastSector ||
+        hasFiles ||
+        hasLanguageOptions ||
+        hasRules ||
+        hasPlugins ||
+        otherExtends.length > 0;
+      const comma = isLastConfigRef && !hasMoreItems ? "" : ",";
+      parts.push(`  ${ext}${comma}`);
+    });
+
+    // If there are other properties (files, languageOptions, rules, plugins) or non-config extends,
+    // create an object for them
+    if (hasFiles || hasLanguageOptions || hasRules || hasPlugins || otherExtends.length > 0) {
       parts.push("  {");
 
       if (sector.files) {
         parts.push(`    files: ${sector.files},`);
       }
 
-      // In overrides (or when mixing with other properties), spread extends inside the object
-      if (hasExtends) {
-        sector.extends.forEach((ext) => {
+      // Non-config extends (like TODO comments) should be handled separately
+      if (otherExtends.length > 0) {
+        otherExtends.forEach((ext) => {
           // Check if this is a TODO comment
           if (ext.includes("TODO")) {
             parts.push(`    ${ext}`);
           } else {
             parts.push(`    ...${ext},`);
+            // For other non-config extends, add as TODO comment instead of spreading
+            parts.push(
+              `    /* TODO: Migrate "${ext}" manually - this extend needs to be converted to flat config format */`
+            );
           }
         });
       }
@@ -127,19 +154,35 @@ const makeNewConfig = (sectors: SectorData[], imports: string[]): string => {
 
       if (hasLanguageOptions) {
         const langOpts = { ...sector.languageOptions };
-        if (langOpts.ecmaVersion !== undefined || langOpts.ecmaFeatures !== undefined) {
+        // Properties that must be moved into parserOptions in ESLint v9 flat config
+        // These are parser-specific options, not language options
+        const parserOptionProps = [
+          // ECMAScript parser options
+          "ecmaVersion",
+          "ecmaFeatures",
+          // Babel parser options
+          "requireConfigFile",
+          "babelOptions",
+          // TypeScript parser options
+          "project",
+          "createDefaultProgram",
+          "tsconfigRootDir",
+          "extraFileExtensions",
+          "program",
+        ];
+
+        // Move properties that should be in parserOptions
+        const propsToMove = parserOptionProps.filter((prop) => langOpts[prop] !== undefined);
+        if (propsToMove.length > 0) {
           if (!langOpts.parserOptions) {
             langOpts.parserOptions = {};
           }
-          if (langOpts.ecmaVersion !== undefined) {
-            langOpts.parserOptions.ecmaVersion = langOpts.ecmaVersion;
-            delete langOpts.ecmaVersion;
-          }
-          if (langOpts.ecmaFeatures !== undefined) {
-            langOpts.parserOptions.ecmaFeatures = langOpts.ecmaFeatures;
-            delete langOpts.ecmaFeatures;
-          }
+          propsToMove.forEach((prop) => {
+            langOpts.parserOptions[prop] = langOpts[prop];
+            delete langOpts[prop];
+          });
         }
+        // All other properties remain in languageOptions as-is
         const formattedLangOpts = formatValue(langOpts, 2);
         parts.push(`    languageOptions: ${formattedLangOpts},`);
       }
@@ -154,6 +197,7 @@ const makeNewConfig = (sectors: SectorData[], imports: string[]): string => {
         parts.push("    },");
       }
 
+      // Add comma if there are more sectors
       const comma = isLastSector ? "" : ",";
       parts.push(`  }${comma}`);
     }
