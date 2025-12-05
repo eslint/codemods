@@ -5,8 +5,9 @@ import { getStepOutput } from "codemod:workflow";
 import makeNewConfig from "../utils/make-new-config.ts";
 import type { SectorData } from "../utils/make-new-config.ts";
 
-async function transform(root: SgRoot<JS>): Promise<string> {
+async function transform(root: SgRoot<JS>): Promise<string | null> {
   const rootNode = root.root();
+  const source = rootNode.text();
 
   let rulesSectorsRule = rootNode.findAll({
     rule: {
@@ -1407,6 +1408,11 @@ async function transform(root: SgRoot<JS>): Promise<string> {
   }
 
   const newSource = makeNewConfig(sectors, imports);
+
+  // if not changes return null
+  if (newSource === source) {
+    return null;
+  }
   return newSource;
 }
 

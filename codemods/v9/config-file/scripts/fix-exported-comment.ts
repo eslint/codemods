@@ -1,7 +1,7 @@
 import { type Edit, type SgNode, type SgRoot } from "codemod:ast-grep";
 import type JS from "codemod:ast-grep/langs/javascript";
 
-export default async function transform(root: SgRoot<JS>): Promise<string> {
+export default async function transform(root: SgRoot<JS>): Promise<string | null> {
   const rootNode = root.root();
   const edits: Edit[] = [];
 
@@ -31,5 +31,9 @@ export default async function transform(root: SgRoot<JS>): Promise<string> {
 
   let newSource = rootNode.commitEdits(edits);
 
+  // if not changes return null
+  if (newSource === rootNode.text()) {
+    return null;
+  }
   return newSource;
 }
