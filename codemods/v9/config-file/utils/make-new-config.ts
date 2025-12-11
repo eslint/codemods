@@ -1,3 +1,5 @@
+import { getStepOutput } from "codemod:workflow";
+
 export type SectorData = {
   rules: Record<string, string>;
   extends: string[];
@@ -57,10 +59,24 @@ const makeNewConfig = (sectors: SectorData[], imports: string[]): string => {
 
   const parts: string[] = [];
 
+  const ignoreFiles = JSON.parse(
+    getStepOutput("scan-ignore-files", "ignoreFiles") || "[]"
+  ) as unknown as string[];
+
+  if (ignoreFiles.length) {
+    imports.push("import { defineConfig, globalIgnores } from 'eslint/config'");
+  } else {
+    imports.push("import { defineConfig } from 'eslint/config'");
+  }
+
   parts.push(imports.join("\n"));
   parts.push("");
 
   parts.push("export default defineConfig([");
+
+  if (ignoreFiles.length) {
+    parts.push(`  globalIgnores([${ignoreFiles.map((file) => `"${file}"`).join(", ")}]),`);
+  }
 
   if (requireJsdocSettings) {
     parts.push("  jsdoc({");

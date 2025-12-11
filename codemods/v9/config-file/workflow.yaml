@@ -5,6 +5,14 @@ nodes:
     name: Apply AST Transformations
     type: automatic
     steps:
+      - id: scan-ignore-files
+        name: "Scan ignore files"
+        js-ast-grep:
+          js_file: scripts/ignore-files.ts
+          max_threads: 1
+          include:
+            - "**/.gitignore"
+            - "**/.eslintignore"
       - id: fix-exported-comments
         name: "Fix exported comments"
         js-ast-grep:
@@ -32,6 +40,7 @@ nodes:
         name: "Scan .eslintrc.js and .eslintrc.cjs"
         depends_on:
           - scan-file-jsdoc
+          - scan-ignore-files
         js-ast-grep:
           js_file: scripts/javascript.ts
           include:
@@ -41,6 +50,7 @@ nodes:
         name: "Scan .eslintrc.yaml and .eslintrc.yml"
         depends_on:
           - scan-file-jsdoc
+          - scan-ignore-files
         js-ast-grep:
           js_file: scripts/yaml.ts
           include:
@@ -50,6 +60,7 @@ nodes:
         name: "Scan .eslintrc.json"
         depends_on:
           - scan-file-jsdoc
+          - scan-ignore-files
         js-ast-grep:
           js_file: scripts/json.ts
           include:

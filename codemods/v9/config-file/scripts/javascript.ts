@@ -47,7 +47,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
     },
   });
 
-  let imports = ['import { defineConfig } from "eslint/config";'];
+  let imports = [];
 
   let sectors: SectorData[] = [];
   let needsPrettierPlugin = false; // Track if we need to add prettier plugin config
