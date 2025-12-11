@@ -4,6 +4,7 @@ import { type SgNode } from "codemod:ast-grep";
 import { getStepOutput } from "codemod:workflow";
 import makeNewConfig from "../utils/make-new-config.ts";
 import type { SectorData } from "../utils/make-new-config.ts";
+import path from "path";
 
 async function transform(root: SgRoot<JS>): Promise<string | null> {
   const rootNode = root.root();
@@ -1798,7 +1799,8 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
     });
   }
 
-  const newSource = makeNewConfig(sectors, imports);
+  let directory = path.dirname(root.filename()).replace(/[\/\\]/g, "-");
+  const newSource = makeNewConfig(sectors, imports, directory);
 
   // if not changes return null
   if (newSource === source) {

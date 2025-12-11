@@ -55,14 +55,14 @@ const formatValue = (value: any, indent: number): string => {
   return String(value);
 };
 
-const makeNewConfig = (sectors: SectorData[], imports: string[]): string => {
+const makeNewConfig = (sectors: SectorData[], imports: string[], directory: string): string => {
   let requireJsdocSettings = sectors.find((sector) => sector.requireJsdoc.exists)?.requireJsdoc
     .settings;
 
   const parts: string[] = [];
 
   const ignoreFiles = JSON.parse(
-    getStepOutput("scan-ignore-files", "ignoreFiles") || "[]"
+    getStepOutput("scan-ignore-files", `ignoreFiles-${directory}`) || "[]"
   ) as unknown as string[];
 
   if (ignoreFiles.length) {
