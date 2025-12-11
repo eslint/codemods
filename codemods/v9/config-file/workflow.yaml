@@ -55,6 +55,6 @@ nodes:
           include:
             - "**/*.eslintrc.json"
       - id: move-eslintrc-files
-        name: "move .eslintrc.js, .eslintrc.json, .eslintrc.yaml and .eslintrc.yml to eslint.config.cjs"
+        name: "move .eslintrc.js, .eslintrc.json, .eslintrc.yaml and .eslintrc.yml to eslint.config.mjs"
         depends_on: [scan-eslintrc-js-and-cjs, scan-eslintrc-yaml-and-yml, scan-eslintrc-json]
         run: "$CODEMOD_PATH/scripts/move.sh"
