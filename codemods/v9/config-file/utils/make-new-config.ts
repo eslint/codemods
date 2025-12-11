@@ -2,7 +2,9 @@ import { getStepOutput } from "codemod:workflow";
 
 export type SectorData = {
   rules: Record<string, string>;
-  extends: string[];
+  extends: string[]; // Direct config objects to spread in array (e.g., js.configs.recommended)
+  extendsUnknown?: string[]; // Unknown extends that need TODO comments and should stay in extends property
+  extendsTodoComments?: string[]; // TODO comments for extends that couldn't be migrated
   languageOptions: Record<string, any>;
   files: string;
   plugins?: Record<string, string>;
@@ -64,13 +66,32 @@ const makeNewConfig = (sectors: SectorData[], imports: string[]): string => {
   ) as unknown as string[];
 
   if (ignoreFiles.length) {
-    imports.push("import { defineConfig, globalIgnores } from 'eslint/config'");
+    imports.push("import { defineConfig, globalIgnores } from '@eslint/config-helpers'");
   } else {
-    imports.push("import { defineConfig } from 'eslint/config'");
+    imports.push("import { defineConfig } from '@eslint/config-helpers'");
+  }
+
+  // Check if we need cleanGlobals helper (if any sector uses globals)
+  const needsCleanGlobals = sectors.some(
+    (sector) =>
+      sector.languageOptions.globals && Object.keys(sector.languageOptions.globals).length > 0
+  );
+  if (needsCleanGlobals && !imports.some((imp) => imp.includes('import globals from "globals"'))) {
+    imports.push('import globals from "globals";');
   }
 
   parts.push(imports.join("\n"));
   parts.push("");
+
+  // Add cleanGlobals helper if needed
+  if (needsCleanGlobals) {
+    parts.push("const cleanGlobals = (globalsObj) => {");
+    parts.push("  return Object.fromEntries(");
+    parts.push("    Object.entries(globalsObj).map(([key, value]) => [key.trim(), value])");
+    parts.push("  );");
+    parts.push("};");
+    parts.push("");
+  }
 
   parts.push("export default defineConfig([");
 
@@ -94,67 +115,65 @@ const makeNewConfig = (sectors: SectorData[], imports: string[]): string => {
   sectors.forEach((sector, sectorIndex) => {
     const isLastSector = sectorIndex === sectors.length - 1;
 
+    // Separate known configs (direct spreading) from unknown configs (keep in extends with TODO)
+    const directConfigs = sector.extends || []; // Known configs to spread directly
+    const unknownExtends = sector.extendsUnknown || []; // Unknown configs to keep in extends with TODO
+    const todoComments = sector.extendsTodoComments || [];
+
+    // Spread direct configs first (these are actual config objects, not strings)
+    directConfigs.forEach((config, index) => {
+      const isLastDirectConfig = index === directConfigs.length - 1;
+      const hasMoreItems =
+        !isLastSector ||
+        !!sector.files ||
+        Object.keys(sector.languageOptions).length > 0 ||
+        Object.keys(sector.rules).length > 0 ||
+        (sector.plugins && Object.keys(sector.plugins).length > 0) ||
+        unknownExtends.length > 0 ||
+        todoComments.length > 0;
+      const comma = isLastDirectConfig && !hasMoreItems ? "" : ",";
+      parts.push(`  ${config}${comma}`);
+    });
+
     // Check if we have any content for the sector object
     const hasFiles = !!sector.files;
     const hasLanguageOptions = Object.keys(sector.languageOptions).length > 0;
     const hasRules = Object.keys(sector.rules).length > 0;
-    const hasExtends = sector.extends.length > 0;
     const hasPlugins = sector.plugins && Object.keys(sector.plugins).length > 0;
+    const hasUnknownExtends = unknownExtends.length > 0;
 
-    // Separate config references from other extends
-    // Config references are patterns like: js.configs.recommended, ember.configs["flat/recommended"]
-    const configRefPattern =
-      /^[a-zA-Z_$][a-zA-Z0-9_$]*\.configs(\.[a-zA-Z_$][a-zA-Z0-9_$]*|\[["']flat\/[^"']+["']\])$/;
-    const configRefs: string[] = [];
-    const otherExtends: string[] = [];
-
-    if (hasExtends) {
-      sector.extends.forEach((ext) => {
-        if (configRefPattern.test(ext)) {
-          configRefs.push(ext);
-        } else {
-          otherExtends.push(ext);
-        }
-      });
-    }
-
-    // Config references should always be added as separate array elements
-    configRefs.forEach((ext, index) => {
-      // Add comma unless this is the last config ref AND there are no more items to add
-      const isLastConfigRef = index === configRefs.length - 1;
-      const hasMoreItems =
-        !isLastSector ||
-        hasFiles ||
-        hasLanguageOptions ||
-        hasRules ||
-        hasPlugins ||
-        otherExtends.length > 0;
-      const comma = isLastConfigRef && !hasMoreItems ? "" : ",";
-      parts.push(`  ${ext}${comma}`);
-    });
-
-    // If there are other properties (files, languageOptions, rules, plugins) or non-config extends,
-    // create an object for them
-    if (hasFiles || hasLanguageOptions || hasRules || hasPlugins || otherExtends.length > 0) {
+    // Create an object if we have any properties (files, rules, plugins, languageOptions, extends, TODO comments)
+    if (
+      hasFiles ||
+      hasLanguageOptions ||
+      hasRules ||
+      hasPlugins ||
+      hasUnknownExtends ||
+      todoComments.length > 0
+    ) {
       parts.push("  {");
 
       if (sector.files) {
         parts.push(`    files: ${sector.files},`);
       }
 
-      // Non-config extends (like TODO comments) should be handled separately
-      if (otherExtends.length > 0) {
-        otherExtends.forEach((ext) => {
-          // Check if this is a TODO comment
-          if (ext.includes("TODO")) {
-            parts.push(`    ${ext}`);
-          } else {
-            parts.push(`    ...${ext},`);
-            // For other non-config extends, add as TODO comment instead of spreading
-            parts.push(
-              `    /* TODO: Migrate "${ext}" manually - this extend needs to be converted to flat config format */`
-            );
-          }
+      // Unknown extends - keep in extends property with TODO comment above
+      if (hasUnknownExtends) {
+        parts.push(
+          "    // TODO: The following extends need manual migration - check their flat config support"
+        );
+        parts.push("    extends: [");
+        unknownExtends.forEach((ext, index) => {
+          const comma = index < unknownExtends.length - 1 ? "," : "";
+          parts.push(`      ${ext}${comma}`);
+        });
+        parts.push("    ],");
+      }
+
+      // TODO comments should be added inside the object
+      if (todoComments.length > 0) {
+        todoComments.forEach((comment) => {
+          parts.push(`    ${comment}`);
         });
       }
 
@@ -163,13 +182,34 @@ const makeNewConfig = (sectors: SectorData[], imports: string[]): string => {
         const pluginsEntries = Object.entries(sector.plugins);
         pluginsEntries.forEach(([key, value], index) => {
           const comma = index < pluginsEntries.length - 1 ? "," : "";
-          parts.push(`      ${key}: ${value}${comma}`);
+          parts.push(`      "${key}": ${value}${comma}`);
         });
         parts.push("    },");
       }
 
       if (hasLanguageOptions) {
         const langOpts = { ...sector.languageOptions };
+
+        // Clean globals if they exist (remove whitespace from keys)
+        if (langOpts.globals && typeof langOpts.globals === "object") {
+          const cleanedGlobals: Record<string, any> = {};
+          Object.entries(langOpts.globals).forEach(([key, value]) => {
+            // Check if this is a spread operator (starts with ...)
+            if (key.startsWith("...globals.")) {
+              // For spread operators like ...globals.browser, wrap with cleanGlobals
+              const spreadKey = key.replace("...", "");
+              cleanedGlobals[`...cleanGlobals(${spreadKey})`] = value;
+            } else if (key.startsWith("...")) {
+              // Other spread operators - keep as is but might need cleanGlobals
+              cleanedGlobals[key] = value;
+            } else {
+              // Regular globals - just trim the key
+              cleanedGlobals[key.trim()] = value;
+            }
+          });
+          langOpts.globals = cleanedGlobals;
+        }
+
         // Properties that must be moved into parserOptions in ESLint v9 flat config
         // These are parser-specific options, not language options
         const parserOptionProps = [

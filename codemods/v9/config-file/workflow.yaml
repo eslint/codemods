@@ -69,3 +69,6 @@ nodes:
         name: "move .eslintrc.js, .eslintrc.json, .eslintrc.yaml and .eslintrc.yml to eslint.config.mjs"
         depends_on: [scan-eslintrc-js-and-cjs, scan-eslintrc-yaml-and-yml, scan-eslintrc-json]
         run: "$CODEMOD_PATH/scripts/move.sh"
+      - id: remove-eslintignore-files
+        name: "Remove .eslintignore files"
+        run: "rm **/.eslintignore"

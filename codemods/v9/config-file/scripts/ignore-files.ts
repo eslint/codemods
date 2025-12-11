@@ -11,7 +11,14 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
   const beforeIgnoreFiles = JSON.parse(beforeIgnoreFilesStr) as string[];
   ignoreFiles = [...beforeIgnoreFiles, ...ignoreFiles];
 
-  setStepOutput("ignoreFiles", JSON.stringify(ignoreFiles, null, 2));
+  setStepOutput(
+    "ignoreFiles",
+    JSON.stringify(
+      ignoreFiles.filter((file) => !file.startsWith("#")),
+      null,
+      2
+    )
+  );
   return null;
 }
 
