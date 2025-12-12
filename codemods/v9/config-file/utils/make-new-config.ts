@@ -55,7 +55,11 @@ const formatValue = (value: any, indent: number): string => {
   return String(value);
 };
 
-const makeNewConfig = (sectors: SectorData[], imports: string[], directory: string): string => {
+const makeNewConfig = (
+  sectors: SectorData[],
+  imports: string[],
+  directory: string
+): string => {
   let requireJsdocSettings = sectors.find((sector) => sector.requireJsdoc.exists)?.requireJsdoc
     .settings;
 
@@ -66,9 +70,9 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
   ) as unknown as string[];
 
   if (ignoreFiles.length) {
-    imports.push("import { defineConfig, globalIgnores } from '@eslint/config-helpers'");
+    imports.push(`import { defineConfig, globalIgnores } from "@eslint/config-helpers";`);
   } else {
-    imports.push("import { defineConfig } from '@eslint/config-helpers'");
+    imports.push(`import { defineConfig } from "@eslint/config-helpers";`);
   }
 
   // Check if we need cleanGlobals helper (if any sector uses globals)
@@ -87,7 +91,9 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
   if (needsCleanGlobals) {
     parts.push("const cleanGlobals = (globalsObj) => {");
     parts.push("  return Object.fromEntries(");
-    parts.push("    Object.entries(globalsObj).map(([key, value]) => [key.trim(), value])");
+    parts.push(
+      "    Object.entries(globalsObj).map(([key, value]) => [key.trim(), value])",
+    );
     parts.push("  );");
     parts.push("};");
     parts.push("");
@@ -96,7 +102,16 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
   parts.push("export default defineConfig([");
 
   if (ignoreFiles.length) {
-    parts.push(`  globalIgnores([${ignoreFiles.map((file) => `"${file}"`).join(", ")}]),`);
+    if (ignoreFiles.length === 1) {
+      parts.push(`  globalIgnores(["${ignoreFiles[0]}"]),`);
+    } else {
+      parts.push("  globalIgnores([");
+      ignoreFiles.forEach((file, index) => {
+        const comma = index < ignoreFiles.length - 1 ? "," : "";
+        parts.push(`    "${file}"${comma}`);
+      });
+      parts.push("  ]),");
+    }
   }
 
   if (requireJsdocSettings) {
@@ -104,8 +119,9 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
     parts.push("    config: 'flat/recommended',");
     parts.push("    settings: {");
     parts.push("      // TODO: Migrate settings manually");
-    Object.entries(requireJsdocSettings).forEach(([key, value], index, arr) => {
-      const comma = index < arr.length - 1 ? "," : "";
+    const settingsEntries = Object.entries(requireJsdocSettings);
+    settingsEntries.forEach(([key, value], index) => {
+      const comma = index < settingsEntries.length - 1 ? "," : "";
       parts.push(`      ${key}: ${value}${comma}`);
     });
     parts.push("    },");
@@ -160,7 +176,7 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
       // Unknown extends - keep in extends property with TODO comment above
       if (hasUnknownExtends) {
         parts.push(
-          "    // TODO: The following extends need manual migration - check their flat config support"
+          "    // TODO: The following extends need manual migration - check their flat config support",
         );
         parts.push("    extends: [");
         unknownExtends.forEach((ext, index) => {

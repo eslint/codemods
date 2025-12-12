@@ -83,9 +83,19 @@ npm install --save-dev eslint@9 @eslint/js globals
 npm install --save-dev eslint-plugin-jsdoc
 ```
 
-2. **Update JSDoc settings** manually if needed (marked with `// TODO: Migrate settings manually`)
+2. **Remove `.eslintignore` files**:
 
-3. **Test your ESLint configuration**:
+> ⚠️ **Warning**: This codemod attempts to remove `.eslintignore` files, but it may fail due to permission issues. Please manually check and remove these files if needed by running:
+>
+> ```bash
+> rm **/.eslintignore
+> ```
+>
+> Note: In ESLint v9 flat config, ignore patterns are specified in the config file itself using `ignores` property, so `.eslintignore` files are no longer needed.
+
+3. **Update JSDoc settings** manually if needed (marked with `// TODO: Migrate settings manually`)
+
+4. **Test your ESLint configuration**:
 
 ```bash
 npx eslint .
