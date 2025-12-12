@@ -71,6 +71,19 @@ npx codemod@latest run @eslint/v8-to-v9-config
 npx codemod@latest workflow run -w workflow.yaml
 ```
 
+## ⚠️ Important Warnings
+
+### Extends Behavior Changes
+
+> **Critical**: The behavior of `extends` configurations has changed significantly between ESLint v8 and v9. While this codemod attempts to migrate your `extends` configurations automatically, **you must manually review and test your ESLint rules after migration**. Some extends may require manual refactoring because:
+>
+> - Flat config format handles extends differently than the legacy format
+> - Some plugins/configs may not fully support flat config yet
+> - Rule precedence and merging behavior has changed
+> - Some extends may need to be converted to direct config object spreading
+>
+> **Always run `npx eslint .` after migration and fix any issues that arise.**
+
 ## Manual Steps Required
 
 After running this codemod, you may need to:

@@ -1,4 +1,4 @@
-find . -type f \( -name '.eslintrc.js' -o -name '.eslintrc.json' -o -name '.eslintrc.yaml' -o -name '.eslintrc.yml' \) | while read file; do
+find . -type f \( -name '.eslintrc.js' -o -name '.eslintrc.json' -o -name '.eslintrc.yaml' -o -name '.eslintrc.yml' -o -name '.eslintrc.cjs' -o -name '.eslintrc.mjs' \) | while read file; do
   dir=$(dirname "$file")
   new_path="${dir}/eslint.config.mjs"
   if [[ -e "${new_path}" ]]; then

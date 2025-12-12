@@ -148,7 +148,14 @@ const makeNewConfig = (
         unknownExtends.length > 0 ||
         todoComments.length > 0;
       const comma = isLastDirectConfig && !hasMoreItems ? "" : ",";
-      parts.push(`  ${config}${comma}`);
+      // Handle spread operators in config (e.g., ...angular.configs.recommended)
+      // Configs starting with ... will be spread, others will be used directly
+      if (config.startsWith("...")) {
+        parts.push(`  ${config}${comma}`);
+      } else {
+        // For config objects without spread, use them directly
+        parts.push(`  ${config}${comma}`);
+      }
     });
 
     // Check if we have any content for the sector object
@@ -174,10 +181,12 @@ const makeNewConfig = (
       }
 
       // Unknown extends - keep in extends property with TODO comment above
+      // Note: In flat config, extends is not supported, but we keep it for unknown configs
       if (hasUnknownExtends) {
         parts.push(
           "    // TODO: The following extends need manual migration - check their flat config support",
         );
+        parts.push("    // NOTE: 'extends' is not supported in flat config - these should be spread directly in the array");
         parts.push("    extends: [");
         unknownExtends.forEach((ext, index) => {
           const comma = index < unknownExtends.length - 1 ? "," : "";
@@ -187,9 +196,15 @@ const makeNewConfig = (
       }
 
       // TODO comments should be added inside the object
+      // Also handle processor property if present in todoComments
       if (todoComments.length > 0) {
         todoComments.forEach((comment) => {
-          parts.push(`    ${comment}`);
+          // Check if this is a processor property (not a comment)
+          if (comment.includes("processor:") && !comment.trim().startsWith("//")) {
+            parts.push(`    ${comment}`);
+          } else {
+            parts.push(`    ${comment}`);
+          }
         });
       }
 
@@ -264,7 +279,12 @@ const makeNewConfig = (
         const rulesEntries = Object.entries(sector.rules);
         rulesEntries.forEach(([key, value], index) => {
           const comma = index < rulesEntries.length - 1 ? "," : "";
-          parts.push(`      ${key}: ${value}${comma}`);
+          // Handle spread operators in rules (keys starting with ...)
+          if (key.startsWith("...")) {
+            parts.push(`      ${key}${comma}`);
+          } else {
+            parts.push(`      ${key}: ${value}${comma}`);
+          }
         });
         parts.push("    },");
       }

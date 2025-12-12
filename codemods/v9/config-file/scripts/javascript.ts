@@ -52,6 +52,11 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
 
   let sectors: SectorData[] = [];
   let needsPrettierPlugin = false; // Track if we need to add prettier plugin config
+  let needsAngularConfigs = false; // Track if we need to add Angular configs
+  let angularConfigInfo: {
+    pluginImportName: string;
+    hasInlineTemplates: boolean;
+  } | null = null;
 
   for (let sector of rulesSectorsRule) {
     let sectorData = {
@@ -952,10 +957,10 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
 
         // Special handling for Angular plugins
         if (migration.isAngularPlugin) {
-          const configName = extendValue.match(/plugin:([^/]+)\/(.+)$/)?.[2] || "recommended";
+          const rawConfigName = extendValue.match(/plugin:([^/]+)\/(.+)$/)?.[2] || "recommended";
           const isTemplateConfig = extendValue.includes("template");
 
-          if (isTemplateConfig) {
+          if (isTemplateConfig && !rawConfigName.includes("process-inline-templates")) {
             // Angular template plugin needs template parser
             if (
               !imports.includes(
@@ -973,10 +978,13 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
               sectorData.plugins["@angular-eslint/template"] = "angularTemplate";
             }
 
-            todoComments.push(
-              `// TODO: Angular template config "${extendValue}" requires manual conversion. Create a config for HTML files: { files: ["**/*.html"], plugins: { "@angular-eslint/template": angularTemplate }, languageOptions: { parser: templateParser }, rules: { ...angularTemplate.configs.${configName}.rules } }`
-            );
-          } else {
+            // Mark that we need to create Angular template config
+            needsAngularConfigs = true;
+            angularConfigInfo = {
+              pluginImportName: migration.pluginImportName,
+              hasInlineTemplates: false,
+            };
+          } else if (!isTemplateConfig) {
             // Angular main plugin needs TypeScript parser and template plugin
             if (
               !imports.includes(
@@ -1001,12 +1009,12 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
               ext.includes("plugin:@angular-eslint/template/process-inline-templates")
             );
 
-            todoComments.push(
-              `// TODO: Angular ESLint "${extendValue}" requires manual conversion. Angular plugins don't support flat config. You need to:\n` +
-                ` //  1. Create a config for TypeScript files: { files: ["**/*.ts"], plugins: { "@angular-eslint": ${migration.pluginImportName}, "@angular-eslint/template": angularTemplate }, languageOptions: { parser: typescriptParser, parserOptions: { project: ["tsconfig.json"], createDefaultProgram: true } }${hasInlineTemplates ? ', processor: "@angular-eslint/template/extract-inline-html"' : ""}, rules: { ...${migration.pluginImportName}.configs.${configName}.rules } }\n` +
-                ` //  2. Create a config for HTML files: { files: ["**/*.html"], plugins: { "@angular-eslint/template": angularTemplate }, languageOptions: { parser: templateParser }, rules: { ...angularTemplate.configs.recommended.rules } }\n` +
-                ` //  See: https://github.com/angular-eslint/angular-eslint for migration guide `
-            );
+            // Mark that we need to create Angular configs
+            needsAngularConfigs = true;
+            angularConfigInfo = {
+              pluginImportName: migration.pluginImportName,
+              hasInlineTemplates: hasInlineTemplates,
+            };
           }
         } else {
           // Generic manual conversion TODO for other plugins
@@ -1772,6 +1780,75 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
     sectors.push(sectorData);
   }
 
+  // Add Angular ESLint configurations if needed
+  if (needsAngularConfigs && angularConfigInfo) {
+    const { pluginImportName, hasInlineTemplates } = angularConfigInfo;
+
+    // Add TypeScript config for Angular
+    const tsConfig: SectorData = {
+      rules: {},
+      extends: [],
+      languageOptions: {
+        parser: "typescriptParser",
+        parserOptions: {
+          project: '["tsconfig.json"]',
+          createDefaultProgram: true,
+        },
+      },
+      files: '["**/*.ts"]',
+      plugins: {
+        "@angular-eslint": pluginImportName,
+        "@angular-eslint/template": "angularTemplate",
+      },
+      requireJsdoc: {
+        exists: false,
+        settings: {},
+      },
+    };
+
+    // Add processor if inline templates are needed
+    if (hasInlineTemplates) {
+      // Add processor as a TODO comment - will be handled in make-new-config.ts
+      if (!tsConfig.extendsTodoComments) {
+        tsConfig.extendsTodoComments = [];
+      }
+      tsConfig.extendsTodoComments.push(
+        `processor: "@angular-eslint/template/extract-inline-html",`,
+      );
+    }
+
+    // Spread Angular config rules directly into the rules object
+    tsConfig.rules = {
+      [`...${pluginImportName}.configs.recommended.rules`]: "",
+    };
+
+    sectors.push(tsConfig);
+
+    // Add HTML config for Angular templates
+    const htmlConfig: SectorData = {
+      rules: {},
+      extends: [],
+      languageOptions: {
+        parser: "templateParser",
+      },
+      files: '["**/*.html"]',
+      plugins: {
+        "@angular-eslint/template": "angularTemplate",
+      },
+      requireJsdoc: {
+        exists: false,
+        settings: {},
+      },
+    };
+
+    // Spread Angular template config rules directly into the rules object
+    htmlConfig.rules = {
+      [`...angularTemplate.configs.recommended.rules`]: "",
+    };
+
+    sectors.push(htmlConfig);
+  }
+
   // Add prettier plugin configuration if needed
   if (needsPrettierPlugin) {
     sectors.push({
@@ -1799,7 +1876,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
     });
   }
 
-  let directory = path.dirname(root.filename()).replace(/[\/\\]/g, "-");
+  let directory = path.dirname(root.filename()).replace(/[/\\]/g, "-");
   const newSource = makeNewConfig(sectors, imports, directory);
 
   // if not changes return null
