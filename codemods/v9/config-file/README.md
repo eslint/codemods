@@ -139,33 +139,40 @@ npx eslint .
 }
 ```
 
-### After (`eslint.config.cjs`)
+### After (`eslint.config.mjs`)
 
 ```javascript
-import { defineConfig } from "eslint/config";
+import { jsdoc } from "eslint-plugin-jsdoc";
 import js from "@eslint/js";
 import globals from "globals";
-import { jsdoc } from "eslint-plugin-jsdoc";
+import { defineConfig } from "@eslint/config-helpers";
 
-export default defineConfig(
+const cleanGlobals = (globalsObj) => {
+  return Object.fromEntries(Object.entries(globalsObj).map(([key, value]) => [key.trim(), value]));
+};
+
+export default defineConfig([
   jsdoc({
     config: "flat/recommended",
     settings: {
       // TODO: Migrate settings manually
-      require: { FunctionDeclaration: true },
+      FunctionDeclaration: true,
     },
   }),
+  js.configs.recommended,
   {
     languageOptions: {
-      globals: { ...globals.node, ...globals.es2021 },
+      globals: {
+        ...cleanGlobals(globals.node),
+        ...cleanGlobals(globals.es2021),
+      },
       parserOptions: {},
     },
-    extends: [js.configs.recommended],
     rules: {
       "no-unused-vars": ["error", { caughtErrors: "none" }],
     },
-  }
-);
+  },
+]);
 ```
 
 ## Resources

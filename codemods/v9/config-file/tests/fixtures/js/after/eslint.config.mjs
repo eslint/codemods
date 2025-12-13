@@ -1,7 +1,13 @@
-import { defineConfig } from "eslint/config";
 import { jsdoc } from "eslint-plugin-jsdoc";
 import js from "@eslint/js";
 import globals from "globals";
+import { defineConfig } from "@eslint/config-helpers";
+
+const cleanGlobals = (globalsObj) => {
+  return Object.fromEntries(
+    Object.entries(globalsObj).map(([key, value]) => [key.trim(), value])
+  );
+};
 
 export default defineConfig([
   jsdoc({
@@ -20,9 +26,9 @@ export default defineConfig([
         jQuery: readonly,
         $: readonly,
         test: test,
-        ...globals.browser,
-        ...globals.es2021,
-        ...globals.node
+        ...cleanGlobals(globals.browser),
+        ...cleanGlobals(globals.es2021),
+        ...cleanGlobals(globals.node)
       },
       parserOptions: {
         ecmaVersion: "latest"
@@ -121,8 +127,8 @@ export default defineConfig([
     files: ["*.test.js", "*.spec.js", "**/__tests__/**/*.js"],
     languageOptions: {
       globals: {
-        ...globals.jest,
-        ...globals.mocha
+        ...cleanGlobals(globals.jest),
+        ...cleanGlobals(globals.mocha)
       },
       parserOptions: {}
     },
@@ -135,7 +141,7 @@ export default defineConfig([
     files: ["*.config.js", "webpack.config.js", "vite.config.js"],
     languageOptions: {
       globals: {
-        ...globals.node
+        ...cleanGlobals(globals.node)
       },
       parserOptions: {}
     },

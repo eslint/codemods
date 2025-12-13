@@ -1,6 +1,12 @@
-import { defineConfig } from "eslint/config";
 import js from "@eslint/js";
 import globals from "globals";
+import { defineConfig } from "@eslint/config-helpers";
+
+const cleanGlobals = (globalsObj) => {
+  return Object.fromEntries(
+    Object.entries(globalsObj).map(([key, value]) => [key.trim(), value])
+  );
+};
 
 export default defineConfig([
   js.configs.recommended,
@@ -9,9 +15,9 @@ export default defineConfig([
       globals: {
         myCustomGlobal: readonly,
         jQuery: readonly,
-        ...globals.browser,
-        ...globals.es2021,
-        ...globals.node
+        ...cleanGlobals(globals.browser),
+        ...cleanGlobals(globals.es2021),
+        ...cleanGlobals(globals.node)
       },
       parserOptions: {
         ecmaVersion: "latest"
@@ -30,7 +36,7 @@ export default defineConfig([
     files: ["*.test.js", "*.spec.js"],
     languageOptions: {
       globals: {
-        ...globals.jest
+        ...cleanGlobals(globals.jest)
       },
       parserOptions: {}
     },
