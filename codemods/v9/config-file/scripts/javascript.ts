@@ -1813,7 +1813,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
         tsConfig.extendsTodoComments = [];
       }
       tsConfig.extendsTodoComments.push(
-        `processor: "@angular-eslint/template/extract-inline-html",`,
+        `processor: "@angular-eslint/template/extract-inline-html",`
       );
     }
 
