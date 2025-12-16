@@ -4,7 +4,7 @@ version: "1"
 
 nodes:
   - id: apply-transforms
-    name: Apply AST Transformations
+    name: Apply ESLint v8 to v9 Custom Rules Migration
     type: automatic
     steps:
       - id: convert-to-new-rule-format
