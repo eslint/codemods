@@ -6,7 +6,7 @@ import path from "path";
 async function transform(root: SgRoot<JS>): Promise<string | null> {
   const rootNode = root.root();
   const source = rootNode.text();
-  let directory = path.dirname(root.filename()).replace(/[\/\\]/g, "-");
+  let directory = path.dirname(root.filename()).replace(/[/\\]/g, "-");
   let ignoreFiles = source.split("\n").filter((line) => line.trim() !== "");
 
   const beforeIgnoreFilesStr = getOrSetStepOutput(
@@ -17,14 +17,11 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
   const beforeIgnoreFiles = JSON.parse(beforeIgnoreFilesStr) as string[];
   ignoreFiles = [...beforeIgnoreFiles, ...ignoreFiles];
 
-  setStepOutput(
-    `ignoreFiles-${directory}`,
-    JSON.stringify(
-      ignoreFiles.filter((file) => !file.startsWith("#")),
-      null,
-      2
-    )
-  );
+  ignoreFiles = ignoreFiles
+    .filter((file) => !file.startsWith("#"))
+    .filter((file, index, self) => self.indexOf(file) === index);
+
+  setStepOutput(`ignoreFiles-${directory}`, JSON.stringify(ignoreFiles, null, 2));
   return null;
 }
 

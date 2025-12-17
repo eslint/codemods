@@ -1,7 +1,7 @@
 schema_version: "1.0"
 
 name: "@eslint/v8-to-v9-config"
-version: "1.1.13"
+version: "1.1.14"
 description: "Migrate ESLint configuration from v8 to v9 flat config format"
 author: "Amirabbas Ghasemi <amirabbas08dev@gmail.com>"
 license: "MIT"
