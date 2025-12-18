@@ -3,9 +3,7 @@ import globals from "globals";
 import { defineConfig } from "@eslint/config-helpers";
 
 const cleanGlobals = (globalsObj) => {
-  return Object.fromEntries(
-    Object.entries(globalsObj).map(([key, value]) => [key.trim(), value])
-  );
+  return Object.fromEntries(Object.entries(globalsObj).map(([key, value]) => [key.trim(), value]));
 };
 
 export default defineConfig([
@@ -13,35 +11,35 @@ export default defineConfig([
   {
     languageOptions: {
       globals: {
-        myCustomGlobal: readonly,
-        jQuery: readonly,
+        myCustomGlobal: "readonly",
+        jQuery: "readonly",
         ...cleanGlobals(globals.browser),
         ...cleanGlobals(globals.es2021),
-        ...cleanGlobals(globals.node)
+        ...cleanGlobals(globals.node),
       },
       parserOptions: {
-        ecmaVersion: "latest"
+        ecmaVersion: "latest",
       },
-      sourceType: "module"
+      sourceType: "module",
     },
     rules: {
-      "no-console": ["warn", { "allow": ["warn", "error"] }],
-      "no-sequences": ["error", {"allowInParentheses": false}],
-      "no-unused-vars": ["error", {"caughtErrors":"all","vars":"all","args":"after-used"}],
-      "no-useless-computed-key": ["error", {enforceForClassMembers: true}],
-      "camelcase": ["error", {"properties":"always","ignoreDestructuring":false}]
+      "no-console": ["warn", { allow: ["warn", "error"] }],
+      "no-sequences": ["error", { allowInParentheses: false }],
+      "no-unused-vars": ["error", { caughtErrors: '"all"', vars: '"all"', args: '"after-used"' }],
+      "no-useless-computed-key": ["error", { enforceForClassMembers: true }],
+      camelcase: ["error", { properties: '"always"', ignoreDestructuring: false }],
     },
   },
   {
     files: ["*.test.js", "*.spec.js"],
     languageOptions: {
       globals: {
-        ...cleanGlobals(globals.jest)
+        ...cleanGlobals(globals.jest),
       },
-      parserOptions: {}
+      parserOptions: {},
     },
     rules: {
-      "no-console": "off"
+      "no-console": "off",
     },
-  }
+  },
 ]);

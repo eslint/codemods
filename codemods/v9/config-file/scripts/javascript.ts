@@ -893,12 +893,6 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
             result: '"@typescript-eslint/flat/strict"',
           },
 
-          // Remix - these are config objects, use directly
-          "@remix-run/eslint-config": {
-            import: 'import remixConfig from "@remix-run/eslint-config";',
-            result: "...remixConfig",
-          },
-
           // Next.js - these are config objects, use directly
           "@next/eslint-config-next": {
             import: 'import nextConfig from "@next/eslint-config-next";',
@@ -1231,12 +1225,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
           let identifier = option.getMatch("IDENTIFIER")?.text();
           let value: any = option.text().trim().replace(`${identifier}:`, "").trim();
           if (!identifier) continue;
-          if (
-            (value[0] == "'" && value[value.length - 1] == "'") ||
-            (value[0] == '"' && value[value.length - 1] == '"')
-          ) {
-            value = value.slice(1, value.length - 1);
-          } else if (value == "true" || value == "false") {
+          if (value == "true" || value == "false") {
             value = value == "true" ? true : false;
           } else if (!isNaN(value)) {
             value = parseInt(value);
@@ -1438,12 +1427,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
           let identifier = option.getMatch("IDENTIFIER")?.text();
           if (!identifier) continue;
           let value: any = option.text().trim().replace(`${identifier}:`, "").trim();
-          if (
-            (value[0] == "'" && value[value.length - 1] == "'") ||
-            (value[0] == '"' && value[value.length - 1] == '"')
-          ) {
-            value = value.slice(1, value.length - 1);
-          } else if (value == "true" || value == "false") {
+          if (value == "true" || value == "false") {
             value = value == "true" ? true : false;
           } else if (!isNaN(value)) {
             value = parseInt(value);
@@ -1700,12 +1684,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
       let identifier = glob.getMatch("IDENTIFIER")?.text();
       if (!identifier) continue;
       let value: any = glob.text().trim().replace(`${identifier}:`, "").trim();
-      if (
-        (value[0] == "'" && value[value.length - 1] == "'") ||
-        (value[0] == '"' && value[value.length - 1] == '"')
-      ) {
-        value = value.slice(1, value.length - 1);
-      } else if (value == "true" || value == "false") {
+      if (value == "true" || value == "false") {
         value = value == "true" ? true : false;
       } else if (!isNaN(value)) {
         value = parseInt(value);
@@ -1799,12 +1778,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
       let identifier = env.getMatch("IDENTIFIER")?.text();
       if (!identifier) continue;
       let value: any = env.text().trim().replace(`${identifier}:`, "").trim();
-      if (
-        (value[0] == "'" && value[value.length - 1] == "'") ||
-        (value[0] == '"' && value[value.length - 1] == '"')
-      ) {
-        value = value.slice(1, value.length - 1);
-      } else if (value == "true" || value == "false") {
+      if (value == "true" || value == "false") {
         value = value == "true" ? true : false;
       } else if (!isNaN(value)) {
         value = parseInt(value);
