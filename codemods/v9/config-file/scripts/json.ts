@@ -40,7 +40,7 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
     },
   });
 
-  let imports = [];
+  let imports: string[] = [];
 
   let sectors: SectorData[] = [];
   let needsPrettierPlugin = false; // Track if we need to add prettier plugin config
@@ -81,6 +81,83 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
       let newSectorRoot = parse("json", newSectorText) as SgRoot<JSON>;
       sector = newSectorRoot.root();
     }
+
+    // start detecting parser
+    // In flat config, parser must be an imported object, not a string
+    // Map common parser packages to their import names
+    const parserImportMap: Record<string, { importName: string; packageName: string }> = {
+      "@typescript-eslint/parser": {
+        importName: "typescriptParser",
+        packageName: "@typescript-eslint/parser",
+      },
+      "@babel/eslint-parser": { importName: "babelParser", packageName: "@babel/eslint-parser" },
+      "babel-eslint": { importName: "babelEslint", packageName: "babel-eslint" },
+      "vue-eslint-parser": { importName: "vueParser", packageName: "vue-eslint-parser" },
+      espree: { importName: "espree", packageName: "espree" },
+      "@angular-eslint/template-parser": {
+        importName: "templateParser",
+        packageName: "@angular-eslint/template-parser",
+      },
+      "svelte-eslint-parser": { importName: "svelteParser", packageName: "svelte-eslint-parser" },
+      "jsonc-eslint-parser": { importName: "jsoncParser", packageName: "jsonc-eslint-parser" },
+      "yaml-eslint-parser": { importName: "yamlParser", packageName: "yaml-eslint-parser" },
+      "@graphql-eslint/eslint-plugin": {
+        importName: "graphqlParser",
+        packageName: "@graphql-eslint/eslint-plugin",
+      },
+    };
+
+    const parserPairRule = rootNode.find({
+      rule: {
+        kind: "pair",
+        has: {
+          kind: "string",
+          regex: '"parser"',
+        },
+      },
+    });
+    let parser = "";
+    if (parserPairRule) {
+      // Find the value string (the second string that is not "parser")
+      let parserValueRule = parserPairRule.find({
+        rule: {
+          kind: "string",
+          not: {
+            regex: '"parser"',
+          },
+        },
+      });
+      if (parserValueRule) {
+        let parserString = parserValueRule.text();
+        // Remove quotes
+        if (parserString[0] == '"' && parserString[parserString.length - 1] == '"') {
+          parserString = parserString.substring(1, parserString.length - 1);
+        }
+
+        const parserInfo = parserImportMap[parserString];
+        if (parserInfo) {
+          // Add import for the parser
+          const parserImport = `import ${parserInfo.importName} from "${parserInfo.packageName}";`;
+          if (!imports.includes(parserImport)) {
+            imports.push(parserImport);
+          }
+          parser = parserInfo.importName;
+        } else {
+          // Unknown parser - generate a reasonable import name
+          const importName = parserString
+            .replace(/^@/, "")
+            .replace(/[/-]([a-z])/g, (_, letter: string) => letter.toUpperCase())
+            .replace(/^([a-z])/, (_, letter: string) => letter.toUpperCase())
+            .replace(/[^a-zA-Z0-9]/g, "");
+          const parserImport = `import ${importName} from "${parserString}";`;
+          if (!imports.includes(parserImport)) {
+            imports.push(parserImport);
+          }
+          parser = importName;
+        }
+      }
+    }
+    // end detecting parser
 
     // start detecting rules
     let rulesRule = sector.findAll({
@@ -1593,6 +1670,9 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
       } else {
         languageOptions.globals[identifier] = value;
       }
+    }
+    if (parser) {
+      languageOptions.parser = parser;
     }
     sectorData.languageOptions = languageOptions;
     // end detecting env
