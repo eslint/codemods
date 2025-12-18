@@ -2,7 +2,7 @@ import { type SgRoot, parse } from "codemod:ast-grep";
 import type YAML from "codemod:ast-grep/langs/yaml";
 import type JSON from "codemod:ast-grep/langs/json";
 import * as jsYaml from "js-yaml";
-import jsonTransform from "./json.ts";
+import jsonTransform from "./transform-json-config.ts";
 
 async function transform(root: SgRoot<YAML>): Promise<string | null> {
   const yamlText = root.root().text();

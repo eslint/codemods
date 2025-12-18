@@ -42,7 +42,7 @@ nodes:
           - scan-file-jsdoc
           - scan-ignore-files
         js-ast-grep:
-          js_file: scripts/javascript.ts
+          js_file: scripts/transform-js-config.ts
           include:
             - "**/*.eslintrc.js"
             - "**/*.eslintrc.cjs"
@@ -52,7 +52,7 @@ nodes:
           - scan-file-jsdoc
           - scan-ignore-files
         js-ast-grep:
-          js_file: scripts/yaml.ts
+          js_file: scripts/transform-yaml-config.ts
           include:
             - "**/*.eslintrc.yaml"
             - "**/*.eslintrc.yml"
@@ -62,14 +62,13 @@ nodes:
           - scan-file-jsdoc
           - scan-ignore-files
         js-ast-grep:
-          js_file: scripts/json.ts
+          js_file: scripts/transform-json-config.ts
           include:
             - "**/*.eslintrc.json"
       - id: move-eslintrc-files
         name: "move .eslintrc.js, .eslintrc.json, .eslintrc.yaml and .eslintrc.yml to eslint.config.mjs"
         depends_on: [scan-eslintrc-js-and-cjs, scan-eslintrc-yaml-and-yml, scan-eslintrc-json]
-        run: "\"$CODEMOD_PATH/scripts/move.sh\""
+        run: '"$CODEMOD_PATH/scripts/move.sh"'
       - id: remove-eslintignore-files
         name: "Remove .eslintignore files"
-        run: "find . -name \"*.eslintignore\" -type f -delete"
-      
+        run: 'find . -name "*.eslintignore" -type f -delete'
