@@ -80,8 +80,52 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
     imports.push('import globals from "globals";');
   }
 
+  // Check if we need __dirname (used in tsconfigRootDir or other parserOptions)
+  // In ES modules (.mjs), __dirname is not available, so we need to define it
+  const needsDirname = sectors.some((sector) => {
+    const langOpts = sector.languageOptions;
+    if (!langOpts) return false;
+
+    // Check tsconfigRootDir in languageOptions (will be moved to parserOptions)
+    if (langOpts.tsconfigRootDir === "__dirname") return true;
+
+    // Check parserOptions.tsconfigRootDir
+    if (langOpts.parserOptions?.tsconfigRootDir === "__dirname") return true;
+
+    // Check if any value in languageOptions contains __dirname
+    const checkForDirname = (obj: Record<string, any>): boolean => {
+      for (const value of Object.values(obj)) {
+        if (value === "__dirname") return true;
+        if (typeof value === "string" && value.includes("__dirname")) return true;
+        if (typeof value === "object" && value !== null) {
+          if (checkForDirname(value)) return true;
+        }
+      }
+      return false;
+    };
+
+    return checkForDirname(langOpts);
+  });
+
+  if (needsDirname) {
+    // Add imports for url and path modules (at the beginning)
+    if (!imports.some((imp) => imp.includes('from "url"'))) {
+      imports.unshift('import { fileURLToPath } from "url";');
+    }
+    if (!imports.some((imp) => imp.includes('from "path"'))) {
+      imports.unshift('import path from "path";');
+    }
+  }
+
   parts.push(imports.join("\n"));
   parts.push("");
+
+  // Add __dirname definition if needed (before any other code)
+  if (needsDirname) {
+    parts.push("const __filename = fileURLToPath(import.meta.url);");
+    parts.push("const __dirname = path.dirname(__filename);");
+    parts.push("");
+  }
 
   // Add cleanGlobals helper if needed
   if (needsCleanGlobals) {

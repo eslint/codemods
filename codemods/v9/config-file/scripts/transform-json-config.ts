@@ -768,16 +768,12 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
             };
           }
 
-          // For other plugins, try to use plugin.configs["flat/config"]
-          // This requires plugin to be registered in plugins object
-          const configPath = `${importName}.configs["flat/${configName}"]`;
-
+          // Just register the plugin, don't add configs
           return {
-            result: configPath,
+            result: "", // No config to spread
             import: `import ${importName} from "${packageName}";`,
             pluginName: pluginName, // Name used in plugins object
             pluginImportName: importName, // Import name for the plugin
-            isDirectConfig: true, // Must be spread directly in array, not in extends
           };
         } else {
           // Plugin not in our list - keep in extends with TODO (unknown how to migrate)
