@@ -1658,7 +1658,7 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
         tsConfig.extendsTodoComments = [];
       }
       tsConfig.extendsTodoComments.push(
-        `processor: "@angular-eslint/template/extract-inline-html",`,
+        `processor: "@angular-eslint/template/extract-inline-html",`
       );
     }
 

@@ -55,11 +55,7 @@ const formatValue = (value: any, indent: number): string => {
   return String(value);
 };
 
-const makeNewConfig = (
-  sectors: SectorData[],
-  imports: string[],
-  directory: string
-): string => {
+const makeNewConfig = (sectors: SectorData[], imports: string[], directory: string): string => {
   let requireJsdocSettings = sectors.find((sector) => sector.requireJsdoc.exists)?.requireJsdoc
     .settings;
 
@@ -91,9 +87,7 @@ const makeNewConfig = (
   if (needsCleanGlobals) {
     parts.push("const cleanGlobals = (globalsObj) => {");
     parts.push("  return Object.fromEntries(");
-    parts.push(
-      "    Object.entries(globalsObj).map(([key, value]) => [key.trim(), value])",
-    );
+    parts.push("    Object.entries(globalsObj).map(([key, value]) => [key.trim(), value])");
     parts.push("  );");
     parts.push("};");
     parts.push("");
@@ -184,9 +178,11 @@ const makeNewConfig = (
       // Note: In flat config, extends is not supported, but we keep it for unknown configs
       if (hasUnknownExtends) {
         parts.push(
-          "    // TODO: The following extends need manual migration - check their flat config support",
+          "    // TODO: The following extends need manual migration - check their flat config support"
         );
-        parts.push("    // NOTE: 'extends' is not supported in flat config - these should be spread directly in the array");
+        parts.push(
+          "    // NOTE: 'extends' is not supported in flat config - these should be spread directly in the array"
+        );
         parts.push("    extends: [");
         unknownExtends.forEach((ext, index) => {
           const comma = index < unknownExtends.length - 1 ? "," : "";

@@ -7,4 +7,7 @@ find . -type f \( -name '.eslintrc.js' -o -name '.eslintrc.json' -o -name '.esli
   fi
   mv "$file" "$new_path"
   echo "✅ Moved $file -> $new_path"
+  # install prettier using npm and run prettier for eslint.config.mjs
+  npm install prettier -g
+  npx prettier --write "$new_path"
 done
