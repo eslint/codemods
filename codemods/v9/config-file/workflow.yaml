@@ -77,9 +77,11 @@ nodes:
         name: "move .eslintrc.js, .eslintrc.json, .eslintrc.yaml and .eslintrc.yml to eslint.config.mjs"
         depends_on: [scan-eslintrc-js-and-cjs, scan-eslintrc-yaml-and-yml, scan-eslintrc-json]
         run: '"$CODEMOD_PATH/scripts/move.sh"'
+      - id: code-formating
+        depends_on:
+          - move-eslintrc-files
+        name: "Code formating"
+        run: ${{ params.codeFormattingCommand }}
       - id: remove-eslintignore-files
         name: "Remove .eslintignore files"
         run: 'find . -name "*.eslintignore" -type f -delete'
-      - id: code-formating
-        name: "Code formating"
-        run: ${{ params.codeFormattingCommand }}

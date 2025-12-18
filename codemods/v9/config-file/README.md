@@ -73,16 +73,30 @@ npx codemod@latest workflow run -w workflow.yaml
 
 ## ⚠️ Important Warnings
 
-### Extends Behavior Changes
+This codemod automatically migrates your ESLint configuration from v8 to v9 config format.
 
-> **Critical**: The behavior of `extends` configurations has changed significantly between ESLint v8 and v9. While this codemod attempts to migrate your `extends` configurations automatically, **you must manually review and test your ESLint rules after migration**. Some extends may require manual refactoring because:
->
-> - Flat config format handles extends differently than the legacy format
-> - Some plugins/configs may not fully support flat config yet
-> - Rule precedence and merging behavior has changed
-> - Some extends may need to be converted to direct config object spreading
->
-> **Always run `npx eslint .` after migration and fix any issues that arise.**
+It also supports migration for the following popular plugins and presets:
+
+| Plugin/Config        | Migration Support                             |
+| -------------------- | --------------------------------------------- |
+| `eslint:recommended` | ✅ Fully migrated to `js.configs.recommended` |
+| `eslint:all`         | ✅ Fully migrated to `js.configs.all`         |
+| `prettier`           | ✅ Fully migrated                             |
+| `@angular-eslint/*`  | ✅ Fully migrated                             |
+| `ember`              | ✅ Fully migrated                             |
+
+### ⚠️ Unsupported Plugins, Extends, and Custom Rules
+
+For **custom rules** and **`extends` entries from plugins not listed above**, this codemod will:
+
+1. **Comment out** unsupported plugins and extends
+2. **Add the following TODO comments** to explain the required manual follow-up
+3. **Keep the rest of the migration safe** to merge and easy to test
+
+```js
+// TODO: Custom rule migrations for v9 are handled by a separate codemod: @eslint/v8-to-v9-custom-rules
+// TODO: For unsupported plugins or extends, check whether the plugin author has released ESLint v9 support and follow their migration guide once it's available.
+```
 
 ## Manual Steps Required
 

@@ -11,7 +11,7 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
       any: [
         {
           kind: "comment",
-          regex: String.raw`^\/\*\s?eslint([\w\d\s\W\D\S])*\s?\*\/`,
+          regex: String.raw`^\/\*\s*eslint\s+[\w\/@-]+\s*:[\s\S]*\*\/$`,
         },
       ],
     },

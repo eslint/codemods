@@ -178,19 +178,18 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
       // Note: In flat config, extends is not supported, but we keep it for unknown configs
       if (hasUnknownExtends) {
         parts.push(
-          "    // TODO: The following extends need manual migration - check their flat config support"
+          "// TODO: Custom rule migrations for v9 are handled by a separate codemod: @eslint/v8-to-v9-custom-rules"
         );
         parts.push(
-          "    // NOTE: 'extends' is not supported in flat config - these should be spread directly in the array"
+          "// TODO: For unsupported plugins or extends, check whether the plugin author has released ESLint v9 support and follow their migration guide once it's available."
         );
         parts.push("    extends: [");
         unknownExtends.forEach((ext, index) => {
           const comma = index < unknownExtends.length - 1 ? "," : "";
-          parts.push(`      ${ext}${comma}`);
+          parts.push(`      //${ext}${comma}`);
         });
         parts.push("    ],");
       }
-
       // TODO comments should be added inside the object
       // Also handle processor property if present in todoComments
       if (todoComments.length > 0) {
