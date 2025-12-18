@@ -4,7 +4,7 @@ params:
   schema:
     codeFormattingCommand:
       name: "Code formatting command"
-      default: 'npm install prettier -g && npx prettier --write "**/eslint.config.mjs" --ignore-path /dev/null'
+      default: npm i -g prettier && npx prettier --write "**/eslint.config.mjs" --ignore-path /dev/null --no-config
       type: string
       description: "Command to format the code"
 
