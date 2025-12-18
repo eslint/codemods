@@ -86,6 +86,7 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
   // Add cleanGlobals helper if needed
   if (needsCleanGlobals) {
     parts.push("const cleanGlobals = (globalsObj) => {");
+    parts.push("  if (!globalsObj) return {};");
     parts.push("  return Object.fromEntries(");
     parts.push("    Object.entries(globalsObj).map(([key, value]) => [key.trim(), value])");
     parts.push("  );");

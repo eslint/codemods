@@ -1008,10 +1008,11 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
             };
           }
         } else {
-          // Generic manual conversion TODO for other plugins
-          const configName = extendValue.match(/plugin:([^/]+)\/(.+)$/)?.[2] || "recommended";
           todoComments.push(
-            `// TODO: Manually convert "${extendValue}" - This plugin doesn't support flat config. You need to spread its rules and globals manually. Example: { plugins: { ${migration.pluginName}: ${migration.pluginImportName} }, rules: { ...${migration.pluginImportName}.configs.${configName}.rules }, languageOptions: { globals: { ...(${migration.pluginImportName}.configs.${configName}.globals || {}) } } } `
+            "// TODO: Custom rule migrations for v9 are handled by a separate codemod: @eslint/v8-to-v9-custom-rules"
+          );
+          todoComments.push(
+            "// TODO: For unsupported plugins or extends, check whether the plugin author has released ESLint v9 support and follow their migration guide once it's available."
           );
         }
         // Don't add to unknownExtends - plugin is registered as replacement

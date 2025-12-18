@@ -4,6 +4,7 @@ import globals from "globals";
 import { defineConfig } from "@eslint/config-helpers";
 
 const cleanGlobals = (globalsObj) => {
+  if (!globalsObj) return {};
   return Object.fromEntries(Object.entries(globalsObj).map(([key, value]) => [key.trim(), value]));
 };
 
