@@ -61,9 +61,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
   for (let sector of rulesSectorsRule) {
     let sectorData = {
       rules: {} as Record<string, string>,
-      extends: [] as string[], // Known configs to spread directly in array
-      extendsUnknown: [] as string[], // Unknown configs to keep in extends property with TODO
-      extendsTodoComments: [] as string[], // TODO comments for extends
+      extends: [] as string[], // Preserved extends exactly as they were
       languageOptions: {} as Record<string, any>,
       files: String() as string,
       plugins: {} as Record<string, string>,
@@ -71,6 +69,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
         exists: false,
         settings: {},
       },
+      extendsTodoComments: [] as string[], // TODO comments for extends
     };
     // start detecting parser
     // In flat config, parser must be an imported object, not a string
@@ -231,43 +230,6 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
       sectorData.rules[identifer] = value;
     }
     // end detecting rules
-    // start detecting extends
-    let arrayExtendsRule = sector.find({
-      rule: {
-        kind: "array",
-        inside: {
-          kind: "pair",
-          has: {
-            any: [
-              {
-                kind: "property_identifier",
-                regex: "extends",
-              },
-              {
-                kind: "string",
-                has: {
-                  kind: "string_fragment",
-                  regex: "extends",
-                },
-              },
-            ],
-          },
-        },
-      },
-    });
-    if (arrayExtendsRule) {
-      let arrayExtendsText = arrayExtendsRule.text();
-      let arrayExtends = arrayExtendsText
-        .slice(1, arrayExtendsText.length - 1)
-        .trim()
-        .split(",");
-      for (let extend of arrayExtends) {
-        if (extend) {
-          sectorData.extends.push(extend.trim());
-        }
-      }
-    }
-    // end detecting extends
 
     // start jsDocs section
     let jsDocs = {
@@ -573,378 +535,8 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
         sectorData.rules['"no-sequences"'] = `["${noSequences.type}"]`;
       }
     }
-    // end no-constructor-return and no-sequences section
-    // ============================================
-    // COMPREHENSIVE EXTENDS MIGRATION SYSTEM
-    // Handles all extends cases from ESLint v8 to v9
-    // ============================================
 
-    /**
-     * Comprehensive extends migration function
-     * Handles:
-     * - ESLint built-in configs (eslint:recommended, eslint:all)
-     * - Popular shared configs (airbnb, prettier, etc.)
-     * - Plugin configs (plugin:react/recommended, etc.)
-     * - Scoped packages (@typescript-eslint/eslint-recommended)
-     * - Configs that changed names in v9
-     * - Configs that need to be converted to plugins
-     * - Unsupported configs (with TODO comments)
-     */
-    function migrateExtends(extendsValue: string): {
-      result: string; // Direct config object reference (e.g., "js.configs.recommended")
-      import?: string;
-      needsPrettierPlugin?: boolean;
-      pluginName?: string; // Plugin name for registration in plugins object
-      pluginImportName?: string; // Import name for the plugin
-      isDirectConfig?: boolean; // If true, result should be spread directly in array, not in extends
-      needsManualConversion?: boolean; // If true, plugin needs manual rules/globals spreading
-      isAngularPlugin?: boolean; // If true, this is an Angular plugin requiring special handling
-    } {
-      const extendValue = extendsValue.trim();
-
-      // ============================================
-      // 1. ESLint Built-in Configs
-      // ============================================
-      // CRITICAL: extends does NOT work in flat config - must use direct config objects
-      if (extendValue === "eslint:recommended") {
-        return {
-          result: "js.configs.recommended",
-          import: 'import js from "@eslint/js";',
-          isDirectConfig: true, // Must be spread directly in array, not in extends
-        };
-      }
-      if (extendValue === "eslint:all") {
-        return {
-          result: "js.configs.all",
-          import: 'import js from "@eslint/js";',
-          isDirectConfig: true, // Must be spread directly in array, not in extends
-        };
-      }
-
-      // ============================================
-      // 2. Popular Shared Configs
-      // ============================================
-      // For shared configs, we need to import them and use them directly (not as strings)
-      // But for defineConfig extends, we can use the imported variable directly
-      const sharedConfigs: Record<string, { import: string; result: string }> = {
-        // Airbnb configs - these need to be imported and used directly
-        airbnb: { import: 'import airbnb from "eslint-config-airbnb";', result: "airbnb" },
-        "eslint-config-airbnb": {
-          import: 'import airbnb from "eslint-config-airbnb";',
-          result: "airbnb",
-        },
-        "airbnb-base": {
-          import: 'import airbnbBase from "eslint-config-airbnb-base";',
-          result: "airbnbBase",
-        },
-        "eslint-config-airbnb-base": {
-          import: 'import airbnbBase from "eslint-config-airbnb-base";',
-          result: "airbnbBase",
-        },
-        "airbnb-typescript": {
-          import: 'import airbnbTypescript from "eslint-config-airbnb-typescript";',
-          result: "airbnbTypescript",
-        },
-        "eslint-config-airbnb-typescript": {
-          import: 'import airbnbTypescript from "eslint-config-airbnb-typescript";',
-          result: "airbnbTypescript",
-        },
-
-        // Prettier configs
-        prettier: { import: 'import prettier from "eslint-config-prettier";', result: "prettier" },
-        "eslint-config-prettier": {
-          import: 'import prettier from "eslint-config-prettier";',
-          result: "prettier",
-        },
-
-        // Standard configs
-        standard: { import: 'import standard from "eslint-config-standard";', result: "standard" },
-        "eslint-config-standard": {
-          import: 'import standard from "eslint-config-standard";',
-          result: "standard",
-        },
-        "standard-with-typescript": {
-          import: 'import standardWithTypescript from "eslint-config-standard-with-typescript";',
-          result: "standardWithTypescript",
-        },
-        "eslint-config-standard-with-typescript": {
-          import: 'import standardWithTypescript from "eslint-config-standard-with-typescript";',
-          result: "standardWithTypescript",
-        },
-
-        // Google configs
-        google: { import: 'import google from "eslint-config-google";', result: "google" },
-        "eslint-config-google": {
-          import: 'import google from "eslint-config-google";',
-          result: "google",
-        },
-
-        // XO configs
-        xo: { import: 'import xo from "eslint-config-xo";', result: "xo" },
-        "eslint-config-xo": { import: 'import xo from "eslint-config-xo";', result: "xo" },
-        "xo-typescript": {
-          import: 'import xoTypescript from "eslint-config-xo-typescript";',
-          result: "xoTypescript",
-        },
-        "eslint-config-xo-typescript": {
-          import: 'import xoTypescript from "eslint-config-xo-typescript";',
-          result: "xoTypescript",
-        },
-      };
-
-      if (sharedConfigs[extendValue]) {
-        return sharedConfigs[extendValue];
-      }
-
-      // ============================================
-      // 3. Plugin Configs (plugin:xxx/yyy)
-      // ============================================
-      const pluginConfigPattern = /^plugin:([^/]+)\/(.+)$/;
-      const pluginMatch = extendValue.match(pluginConfigPattern);
-
-      if (pluginMatch && pluginMatch[1] && pluginMatch[2]) {
-        const pluginName = pluginMatch[1];
-        const configName = pluginMatch[2];
-
-        // Special handling for prettier plugin
-        if (pluginName === "prettier" && configName === "recommended") {
-          return {
-            result: "",
-            needsPrettierPlugin: true,
-          };
-        }
-
-        // Plugins that are known to support flat config with their package names
-        const flatConfigSupportedPlugins: Record<
-          string,
-          { packageName: string; importName: string }
-        > = {
-          // React
-          react: { packageName: "eslint-plugin-react", importName: "react" },
-          "react-hooks": { packageName: "eslint-plugin-react-hooks", importName: "reactHooks" },
-          "react-native": { packageName: "eslint-plugin-react-native", importName: "reactNative" },
-
-          // Vue
-          vue: { packageName: "eslint-plugin-vue", importName: "vue" },
-
-          // TypeScript
-          "typescript-eslint": {
-            packageName: "@typescript-eslint/eslint-plugin",
-            importName: "typescriptEslint",
-          },
-          "@typescript-eslint": {
-            packageName: "@typescript-eslint/eslint-plugin",
-            importName: "typescriptEslint",
-          },
-
-          // Testing
-          jest: { packageName: "eslint-plugin-jest", importName: "jest" },
-          vitest: { packageName: "eslint-plugin-vitest", importName: "vitest" },
-          "testing-library": {
-            packageName: "eslint-plugin-testing-library",
-            importName: "testingLibrary",
-          },
-          playwright: { packageName: "eslint-plugin-playwright", importName: "playwright" },
-
-          // Node.js
-          n: { packageName: "eslint-plugin-n", importName: "n" },
-          node: { packageName: "eslint-plugin-node", importName: "node" },
-
-          // Import/Export
-          import: { packageName: "eslint-plugin-import", importName: "importPlugin" },
-          "unused-imports": {
-            packageName: "eslint-plugin-unused-imports",
-            importName: "unusedImports",
-          },
-
-          // Security
-          security: { packageName: "eslint-plugin-security", importName: "security" },
-          sonarjs: { packageName: "eslint-plugin-sonarjs", importName: "sonarjs" },
-
-          // Code Quality
-          unicorn: { packageName: "eslint-plugin-unicorn", importName: "unicorn" },
-          promise: { packageName: "eslint-plugin-promise", importName: "promise" },
-          compat: { packageName: "eslint-plugin-compat", importName: "compat" },
-
-          // Framework specific
-          ember: { packageName: "eslint-plugin-ember", importName: "ember" },
-          qunit: { packageName: "eslint-plugin-qunit", importName: "qunit" },
-          angular: { packageName: "@angular-eslint/eslint-plugin", importName: "angular" },
-          "@angular-eslint": {
-            packageName: "@angular-eslint/eslint-plugin",
-            importName: "angular",
-          },
-
-          // Accessibility
-          "jsx-a11y": { packageName: "eslint-plugin-jsx-a11y", importName: "jsxA11y" },
-
-          // Documentation
-          jsdoc: { packageName: "eslint-plugin-jsdoc", importName: "jsdoc" },
-
-          // Styling
-          tailwindcss: { packageName: "eslint-plugin-tailwindcss", importName: "tailwindcss" },
-
-          // GraphQL
-          graphql: { packageName: "eslint-plugin-graphql", importName: "graphql" },
-
-          // Next.js
-          next: { packageName: "@next/eslint-plugin-next", importName: "next" },
-          "@next": { packageName: "@next/eslint-plugin-next", importName: "next" },
-        };
-
-        // Check if plugin is in our supported list
-        const pluginInfo = flatConfigSupportedPlugins[pluginName];
-
-        if (pluginInfo) {
-          // Generate import name from plugin name if not in map
-          const importName =
-            pluginInfo.importName ||
-            pluginName
-              .replace(/^@/, "")
-              .replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())
-              .replace(/^([a-z])/, (_, letter) => letter.toUpperCase());
-
-          const packageName =
-            pluginInfo.packageName ||
-            (pluginName.startsWith("@") ? pluginName : `eslint-plugin-${pluginName}`);
-
-          // CRITICAL: extends does NOT work in flat config - must use direct config objects
-          // For plugins with flat config support (like ember), try /recommended export first
-          // For other plugins, use manual conversion with plugin.configs
-
-          // Special handling for plugins known to have /recommended flat config export
-          const pluginsWithRecommendedExport = ["ember"];
-          if (pluginsWithRecommendedExport.includes(pluginName) && configName === "recommended") {
-            // Use /recommended export (e.g., eslint-plugin-ember/recommended)
-            // No plugin registration needed - these are standalone config objects
-            const recommendedImportName = `${importName}Recommended`;
-            return {
-              result: `${recommendedImportName}.configs.base`, // Will add all configs separately
-              import: `import ${recommendedImportName} from "${packageName}/recommended";`,
-              isDirectConfig: true, // Must be spread directly in array
-              // No pluginName/pluginImportName - don't register in plugins object
-            };
-          }
-
-          // Plugins that don't have flat config support - need manual conversion
-          // These plugins need their rules and globals spread manually in a config object
-          const pluginsWithoutFlatConfig = ["qunit", "n"];
-
-          // Angular ESLint plugins - require special handling (no flat config support)
-          // They need separate configs for TypeScript and HTML files, plus parser imports
-          const angularPlugins = ["angular", "@angular-eslint"];
-          const isAngularPlugin = angularPlugins.includes(pluginName);
-
-          if (pluginsWithoutFlatConfig.includes(pluginName) || isAngularPlugin) {
-            // Return empty result - will be handled by adding plugin to plugins object
-            // Rules and globals will need to be manually spread (handled separately)
-            return {
-              result: "", // Empty - plugin will be registered, rules/globals added manually
-              import: `import ${importName} from "${packageName}";`,
-              pluginName: pluginName,
-              pluginImportName: importName,
-              needsManualConversion: true, // Flag to indicate manual conversion needed
-              isAngularPlugin: isAngularPlugin, // Special flag for Angular
-            };
-          }
-
-          // Just register the plugin, don't add configs
-          return {
-            result: "", // No config to spread
-            import: `import ${importName} from "${packageName}";`,
-            pluginName: pluginName, // Name used in plugins object
-            pluginImportName: importName, // Import name for the plugin
-          };
-        } else {
-          // Plugin not in our list - keep in extends with TODO (unknown how to migrate)
-          // Return empty result - will be added to extendsUnknown
-          return {
-            result: `"${extendValue}"`, // Keep original string in extends
-            // No import - user needs to figure it out
-          };
-        }
-      }
-
-      // ============================================
-      // 4. Scoped Package Configs (@scope/package)
-      // ============================================
-      if (extendValue.startsWith("@")) {
-        // Check for known scoped configs
-        const scopedConfigs: Record<string, { import: string; result: string }> = {
-          // TypeScript ESLint - use string format for defineConfig
-          "@typescript-eslint/eslint-recommended": {
-            import: 'import typescriptEslint from "@typescript-eslint/eslint-plugin";',
-            result: '"@typescript-eslint/flat/recommended"',
-          },
-          "@typescript-eslint/recommended": {
-            import: 'import typescriptEslint from "@typescript-eslint/eslint-plugin";',
-            result: '"@typescript-eslint/flat/recommended"',
-          },
-          "@typescript-eslint/recommended-requiring-type-checking": {
-            import: 'import typescriptEslint from "@typescript-eslint/eslint-plugin";',
-            result: '"@typescript-eslint/flat/recommended-type-checked"',
-          },
-          "@typescript-eslint/strict": {
-            import: 'import typescriptEslint from "@typescript-eslint/eslint-plugin";',
-            result: '"@typescript-eslint/flat/strict"',
-          },
-
-          // Next.js - these are config objects, use directly
-          "@next/eslint-config-next": {
-            import: 'import nextConfig from "@next/eslint-config-next";',
-            result: "...nextConfig",
-          },
-        };
-
-        if (scopedConfigs[extendValue]) {
-          return scopedConfigs[extendValue];
-        }
-
-        // Unknown scoped config - keep in extends with TODO (unknown how to migrate)
-        return {
-          result: `"${extendValue}"`, // Keep original string in extends
-          // No import - user needs to figure it out
-        };
-      }
-
-      // ============================================
-      // 5. Configs that changed names in v9
-      // ============================================
-      const renamedConfigs: Record<string, string> = {
-        // Note: Add any configs that were renamed in v9 here
-      };
-
-      if (renamedConfigs[extendValue]) {
-        return {
-          result: renamedConfigs[extendValue],
-        };
-      }
-
-      // ============================================
-      // 6. Configs that need to be converted to plugins
-      // ============================================
-      // Some configs in v8 were actually plugins in disguise
-      // These should be converted to plugin imports
-      const pluginConvertedConfigs: Record<string, { import: string; result: string }> = {
-        // Add any configs that should be converted to plugins here
-      };
-
-      if (pluginConvertedConfigs[extendValue]) {
-        return pluginConvertedConfigs[extendValue];
-      }
-
-      // ============================================
-      // 7. Unknown/Unsupported Configs
-      // ============================================
-      // If we get here, we don't know how to handle this config
-      // Keep it in extends with TODO comment
-      return {
-        result: `"${extendValue}"`, // Keep original string in extends
-        // No import - user needs to figure it out
-      };
-    }
-
-    // Extract extends from the sector
+    // Extract extends from the sector - preserve exactly as they were
     let extendsRule = sector.find({
       rule: {
         kind: "pair",
@@ -955,7 +547,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
       },
     });
 
-    const extendsToProcess: string[] = [];
+    const preservedExtends: string[] = [];
 
     if (extendsRule) {
       // Check if extends is an array or single string
@@ -976,7 +568,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
         // Array of extends
         for (let extendNode of isArrayRule) {
           const extendText = extendNode.getMatch("STRING")?.text() || "";
-          extendsToProcess.push(extendText);
+          preservedExtends.push(extendText);
         }
       } else {
         // Single string extends
@@ -990,166 +582,124 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
         });
         const extendText = extendsExecute?.text() || "";
         if (extendText) {
-          extendsToProcess.push(extendText);
+          preservedExtends.push(extendText);
         }
       }
     }
 
-    // Process each extend
-    // Separate known configs (direct spreading) from unknown configs (keep in extends with TODO)
-    let needsPrettierPluginFlag = false;
-    const directConfigs: string[] = []; // Known configs to spread directly in array (e.g., js.configs.recommended)
-    const unknownExtends: string[] = []; // Unknown configs to keep in extends property with TODO
-    const todoComments: string[] = []; // TODO comments to add in object
+    // Store extends exactly as they were
+    sectorData.extends = preservedExtends;
 
-    for (const extendValue of extendsToProcess) {
-      const migration = migrateExtends(extendValue);
+    // Extract plugins from the sector - preserve exactly as they were
+    let pluginsRule = sector.find({
+      rule: {
+        kind: "pair",
+        inside: {
+          kind: "object",
+          any: [
+            {
+              nthChild: 1,
+            },
+            {
+              inside: {
+                kind: "array",
+                inside: {
+                  kind: "pair",
+                  has: {
+                    kind: "property_identifier",
+                    nthChild: 1,
+                    regex: "overrides",
+                  },
+                },
+              },
+            },
+          ],
+        },
+        has: {
+          kind: "property_identifier",
+          regex: "plugins",
+          nthChild: 1,
+        },
+      },
+    });
 
-      if (migration.needsPrettierPlugin) {
-        needsPrettierPluginFlag = true;
-      }
+    if (pluginsRule) {
+      // Check if plugins is an object or array
+      let pluginsObject = pluginsRule.find({
+        rule: {
+          kind: "object",
+        },
+      });
 
-      if (migration.import && !imports.includes(migration.import)) {
-        imports.push(migration.import);
-      }
+      if (pluginsObject) {
+        // Extract all plugin pairs from the object
+        let pluginPairs = pluginsObject.findAll({
+          rule: {
+            kind: "pair",
+            pattern: "$PAIR",
+            has: {
+              any: [
+                {
+                  kind: "property_identifier",
+                  pattern: "$PLUGIN_NAME",
+                },
+                {
+                  kind: "string",
+                  nthChild: 1,
+                  pattern: "$PLUGIN_NAME",
+                },
+              ],
+            },
+          },
+        });
 
-      // Handle plugins that need manual conversion (no flat config support)
-      // These have a replacement (plugin registration), so don't keep in extends
-      if (migration.needsManualConversion && migration.pluginName && migration.pluginImportName) {
-        // Register plugin
-        if (!sectorData.plugins[migration.pluginName]) {
-          sectorData.plugins[migration.pluginName] = migration.pluginImportName;
-        }
-
-        // Special handling for Angular plugins
-        if (migration.isAngularPlugin) {
-          const rawConfigName = extendValue.match(/plugin:([^/]+)\/(.+)$/)?.[2] || "recommended";
-          const isTemplateConfig = extendValue.includes("template");
-
-          if (isTemplateConfig && !rawConfigName.includes("process-inline-templates")) {
-            // Angular template plugin needs template parser
-            if (
-              !imports.includes(
-                'import angularTemplate from "@angular-eslint/eslint-plugin-template";'
-              )
-            ) {
-              imports.push('import angularTemplate from "@angular-eslint/eslint-plugin-template";');
-            }
-            if (
-              !imports.includes('import templateParser from "@angular-eslint/template-parser";')
-            ) {
-              imports.push('import templateParser from "@angular-eslint/template-parser";');
-            }
-            if (!sectorData.plugins["@angular-eslint/template"]) {
-              sectorData.plugins["@angular-eslint/template"] = "angularTemplate";
-            }
-
-            // Mark that we need to create Angular template config
-            needsAngularConfigs = true;
-            angularConfigInfo = {
-              pluginImportName: migration.pluginImportName,
-              hasInlineTemplates: false,
-            };
-          } else if (!isTemplateConfig) {
-            // Angular main plugin needs TypeScript parser and template plugin
-            if (
-              !imports.includes(
-                'import angularTemplate from "@angular-eslint/eslint-plugin-template";'
-              )
-            ) {
-              imports.push('import angularTemplate from "@angular-eslint/eslint-plugin-template";');
-            }
-            if (
-              !imports.includes('import templateParser from "@angular-eslint/template-parser";')
-            ) {
-              imports.push('import templateParser from "@angular-eslint/template-parser";');
-            }
-            if (!imports.includes('import typescriptParser from "@typescript-eslint/parser";')) {
-              imports.push('import typescriptParser from "@typescript-eslint/parser";');
-            }
-            if (!sectorData.plugins["@angular-eslint/template"]) {
-              sectorData.plugins["@angular-eslint/template"] = "angularTemplate";
-            }
-
-            const hasInlineTemplates = extendsToProcess.some((ext) =>
-              ext.includes("plugin:@angular-eslint/template/process-inline-templates")
-            );
-
-            // Mark that we need to create Angular configs
-            needsAngularConfigs = true;
-            angularConfigInfo = {
-              pluginImportName: migration.pluginImportName,
-              hasInlineTemplates: hasInlineTemplates,
-            };
+        for (let pluginPair of pluginPairs) {
+          let pluginName = pluginPair.getMatch("PLUGIN_NAME")?.text() || "";
+          // Remove quotes if present
+          if (
+            (pluginName[0] === '"' && pluginName[pluginName.length - 1] === '"') ||
+            (pluginName[0] === "'" && pluginName[pluginName.length - 1] === "'")
+          ) {
+            pluginName = pluginName.slice(1, -1);
           }
-        } else {
-          todoComments.push(
-            "// TODO: Custom rule migrations for v9 are handled by a separate codemod: @eslint/v8-to-v9-custom-rules"
-          );
-          todoComments.push(
-            "// TODO: For unsupported plugins or extends, check whether the plugin author has released ESLint v9 support and follow their migration guide once it's available."
-          );
-        }
-        // Don't add to unknownExtends - plugin is registered as replacement
-      } else if (migration.result) {
-        // Check if this is a TODO comment
-        if (
-          migration.result.includes("TODO") ||
-          migration.result.includes("/*") ||
-          migration.result.includes("//")
-        ) {
-          todoComments.push(migration.result);
-        } else if (migration.isDirectConfig) {
-          // Known config - spread directly in array
-          directConfigs.push(migration.result);
 
-          // Special handling for ember/recommended - need to add all configs
-          if (migration.result.includes("emberRecommended.configs.base")) {
-            directConfigs.push("emberRecommended.configs.gjs");
-            directConfigs.push("emberRecommended.configs.gts");
+          // Get the plugin value (could be a string, identifier, or require call)
+          let pluginValue = pluginPair.text().trim();
+          // Remove the plugin name and colon
+          pluginValue = pluginValue.replace(new RegExp(`^["']?${pluginName}["']?:\\s*`), "").trim();
+          // Remove trailing comma if present
+          pluginValue = pluginValue.replace(/,\s*$/, "");
+
+          // Preserve the plugin exactly as it was
+          imports.push(`import ${pluginName} from "eslint-plugin-${pluginName}";`);
+          sectorData.plugins[pluginName] = pluginValue;
+        }
+      } else {
+        // Plugins might be an array
+        let pluginsArray = pluginsRule.find({
+          rule: {
+            kind: "array",
+          },
+        });
+
+        if (pluginsArray) {
+          let pluginStrings = pluginsArray.findAll({
+            rule: {
+              kind: "string_fragment",
+              pattern: "$PLUGIN",
+              inside: {
+                kind: "string",
+              },
+            },
+          });
+
+          for (let pluginString of pluginStrings) {
+            let pluginText = pluginString.getMatch("PLUGIN")?.text() || "";
+            // For array plugins, use the plugin name as both key and value
+            imports.push(`import ${pluginText} from "eslint-plugin-${pluginText}";`);
+            sectorData.plugins[pluginText] = pluginText;
           }
-        } else if (migration.result.startsWith('"') && migration.result.endsWith('"')) {
-          // Unknown config (quoted string) - keep in extends with TODO
-          // Only if it doesn't have a replacement (plugin registration, etc.)
-          unknownExtends.push(migration.result);
-        } else {
-          // Other unknown format - keep in extends
-          unknownExtends.push(`"${extendValue}"`);
         }
-      } else if (!migration.result && !migration.needsPrettierPlugin) {
-        // No result and not prettier - this is unknown, keep original value in extends
-        // Only if it doesn't have a replacement
-        unknownExtends.push(`"${extendValue}"`);
-      }
-
-      // Register plugin in plugins object if needed (for plugins with flat config)
-      // Don't register ember - it uses standalone config objects
-      if (
-        migration.pluginName &&
-        migration.pluginImportName &&
-        !migration.needsManualConversion &&
-        migration.pluginName !== "ember"
-      ) {
-        if (!sectorData.plugins[migration.pluginName]) {
-          sectorData.plugins[migration.pluginName] = migration.pluginImportName;
-        }
-      }
-    }
-
-    // Store configs separately
-    sectorData.extends = directConfigs; // Known configs - will be spread directly in array
-    sectorData.extendsUnknown = unknownExtends; // Unknown configs - will be kept in extends property with TODO
-    sectorData.extendsTodoComments = todoComments; // TODO comments - will be added in object
-
-    // Handle plugin:prettier/recommended specially (needs manual setup)
-    if (needsPrettierPluginFlag) {
-      needsPrettierPlugin = true;
-      // Add necessary imports
-      if (!imports.includes('import prettierPlugin from "eslint-plugin-prettier";')) {
-        imports.push('import prettierPlugin from "eslint-plugin-prettier";');
-      }
-      if (!imports.includes('import eslintConfigPrettier from "eslint-config-prettier";')) {
-        imports.push('import eslintConfigPrettier from "eslint-config-prettier";');
       }
     }
     // ============================================

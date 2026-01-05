@@ -1,13 +1,22 @@
+import path from "path";
+import { fileURLToPath } from "url";
 import { jsdoc } from "eslint-plugin-jsdoc";
-import js from "@eslint/js";
 import globals from "globals";
+import { jsdoc } from "eslint-plugin-jsdoc";
+import { jsdoc } from "eslint-plugin-jsdoc";
+import { jsdoc } from "eslint-plugin-jsdoc";
 import { defineConfig } from "@eslint/config-helpers";
+import { FlatCompat } from "@eslint/eslintrc";
+import js from "@eslint/js";
 
-const cleanGlobals = (globalsObj) => {
-  if (!globalsObj) return {};
-  return Object.fromEntries(Object.entries(globalsObj).map(([key, value]) => [key.trim(), value]));
-};
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
+const compatWithRecommendedAndAll = new FlatCompat({
+  baseDirectory: __dirname,
+  recommendedConfig: js.configs.recommended,
+  allConfig: js.configs.all,
+});
 export default defineConfig([
   jsdoc({
     config: "flat/recommended",
@@ -15,19 +24,18 @@ export default defineConfig([
       // TODO: Migrate settings manually
     },
   }),
-  js.configs.recommended,
-  js.configs.all,
   {
     files: ["*.test.js", "*.spec.js", "**/__tests__/**/*.js"],
+    extends: compatWithRecommendedAndAll.extends(),
     languageOptions: {
       globals: {
         myCustomGlobal: "readonly",
         jQuery: "readonly",
         $: "readonly",
         test: "test",
-        ...cleanGlobals(globals.browser),
-        ...cleanGlobals(globals.es2021),
-        ...cleanGlobals(globals.node),
+        ...globals.browser,
+        ...globals.es2021,
+        ...globals.node,
       },
       parserOptions: {
         ecmaVersion: "latest",
@@ -77,7 +85,11 @@ export default defineConfig([
       "require-await": "error",
       "no-param-reassign": ["error", { props: false }],
       indent: ["error", 2, { SwitchCase: 1 }],
-      quotes: ["error", "single", { avoidEscape: true, allowTemplateLiterals: true }],
+      quotes: [
+        "error",
+        "single",
+        { avoidEscape: true, allowTemplateLiterals: true },
+      ],
       semi: ["error", "always"],
       "comma-dangle": ["error", "always-multiline"],
       "comma-spacing": ["error", { before: false, after: true }],
@@ -127,7 +139,8 @@ export default defineConfig([
             },
             {
               name: "moment",
-              message: "Please use date-fns or dayjs instead - moment is quite heavy.",
+              message:
+                "Please use date-fns or dayjs instead - moment is quite heavy.",
             },
             {
               name: "axios",
@@ -149,8 +162,8 @@ export default defineConfig([
     files: ["*.test.js", "*.spec.js", "**/__tests__/**/*.js"],
     languageOptions: {
       globals: {
-        ...cleanGlobals(globals.jest),
-        ...cleanGlobals(globals.mocha),
+        ...globals.jest,
+        ...globals.mocha,
       },
       parserOptions: {},
     },
@@ -163,7 +176,7 @@ export default defineConfig([
     files: ["*.config.js", "webpack.config.js", "vite.config.js"],
     languageOptions: {
       globals: {
-        ...cleanGlobals(globals.node),
+        ...globals.node,
       },
       parserOptions: {},
     },

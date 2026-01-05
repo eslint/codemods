@@ -1,22 +1,27 @@
-import js from "@eslint/js";
+import path from "path";
+import { fileURLToPath } from "url";
 import globals from "globals";
 import { defineConfig } from "@eslint/config-helpers";
+import { FlatCompat } from "@eslint/eslintrc";
+import js from "@eslint/js";
 
-const cleanGlobals = (globalsObj) => {
-  if (!globalsObj) return {};
-  return Object.fromEntries(Object.entries(globalsObj).map(([key, value]) => [key.trim(), value]));
-};
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
+const compatWithRecommended = new FlatCompat({
+  baseDirectory: __dirname,
+  recommendedConfig: js.configs.recommended,
+});
 export default defineConfig([
-  js.configs.recommended,
   {
+    extends: compatWithRecommended.extends(),
     languageOptions: {
       globals: {
         myCustomGlobal: "readonly",
         jQuery: "readonly",
-        ...cleanGlobals(globals.browser),
-        ...cleanGlobals(globals.es2021),
-        ...cleanGlobals(globals.node),
+        ...globals.browser,
+        ...globals.es2021,
+        ...globals.node,
       },
       parserOptions: {
         ecmaVersion: "latest",
@@ -26,16 +31,22 @@ export default defineConfig([
     rules: {
       "no-console": ["warn", { allow: ["warn", "error"] }],
       "no-sequences": ["error", { allowInParentheses: false }],
-      "no-unused-vars": ["error", { caughtErrors: '"all"', vars: '"all"', args: '"after-used"' }],
+      "no-unused-vars": [
+        "error",
+        { caughtErrors: '"all"', vars: '"all"', args: '"after-used"' },
+      ],
       "no-useless-computed-key": ["error", { enforceForClassMembers: true }],
-      camelcase: ["error", { properties: '"always"', ignoreDestructuring: false }],
+      camelcase: [
+        "error",
+        { properties: '"always"', ignoreDestructuring: false },
+      ],
     },
   },
   {
     files: ["*.test.js", "*.spec.js"],
     languageOptions: {
       globals: {
-        ...cleanGlobals(globals.jest),
+        ...globals.jest,
       },
       parserOptions: {},
     },

@@ -11,11 +11,13 @@ npx codemod@latest run @eslint/v8-to-v9-config
 npx codemod@latest workflow run -w workflow.yaml
 ```
 
-After running, install dependencies:
+After running, the codemod will display a list of packages that need to be installed. Install them:
 
 ```bash
-npm install --save-dev eslint@9 @eslint/js globals
+npm install --save-dev eslint@9 @eslint/js globals @eslint/eslintrc
 ```
+
+> **Note**: If your config uses `extends`, you'll also need `@eslint/eslintrc` for FlatCompat support.
 
 Then test your config:
 
@@ -70,27 +72,62 @@ Fixes ESLint comment syntax that became invalid in v9:
 
 ### Step 5: Extends & Plugin Migration
 
-**Supported presets (fully migrated):**
+**All extends and plugins are preserved exactly as they were** - no additions or removals.
 
-| Config/Plugin        | Migration                  |
-| -------------------- | -------------------------- |
-| `eslint:recommended` | → `js.configs.recommended` |
-| `eslint:all`         | → `js.configs.all`         |
-| `prettier`           | ✅ Fully migrated          |
-| `@angular-eslint/*`  | ✅ Fully migrated          |
-| `ember`              | ✅ Fully migrated          |
+#### Extends Migration
 
-> ⚠️ **Unsupported plugins and extends**: For plugins not listed above, this codemod will:
->
-> 1. Comment out the unsupported extends/plugins
-> 2. Add TODO comments explaining the required manual follow-up:
->
-> ```js
-> // TODO: For unsupported plugins or extends, check whether the plugin author
-> // has released ESLint v9 support and follow their migration guide.
-> ```
->
-> Check the plugin's documentation for v9 migration instructions.
+The codemod uses `FlatCompat` from `@eslint/eslintrc` to migrate extends to the flat config format:
+
+- **`eslint:recommended` and `eslint:all`**: These are automatically detected and handled with special FlatCompat instances that include `recommendedConfig` and/or `allConfig` properties
+- **All other extends**: Preserved exactly as they were and converted using `compat.extends()` method
+- **`eslint:recommended` and `eslint:all` are filtered out** from the extends array since they're handled by the FlatCompat configuration
+
+**Example:**
+
+If your original config had:
+
+```json
+{
+  "extends": ["eslint:recommended", "plugin:react/recommended", "airbnb"]
+}
+```
+
+The migrated config will be:
+
+```javascript
+import { FlatCompat } from "@eslint/eslintrc";
+import js from "@eslint/js";
+
+const compatWithRecommended = new FlatCompat({
+  baseDirectory: __dirname,
+  recommendedConfig: js.configs.recommended,
+});
+
+export default defineConfig([
+  {
+    extends: compatWithRecommended.extends(["plugin:react/recommended", "airbnb"]),
+    // ... other config
+  },
+]);
+```
+
+Note that `eslint:recommended` is handled by the `recommendedConfig` in FlatCompat, so it's filtered out from the extends array.
+
+**Required dependency:**
+
+```bash
+npm install --save-dev @eslint/eslintrc
+```
+
+#### Plugin Migration
+
+**All plugins are preserved exactly as they were** - the codemod extracts them from the original config and maintains their exact format, including:
+
+- Plugin names
+- Plugin values (imports, require calls, etc.)
+- Plugin structure (object or array format)
+
+The codemod automatically adds import statements for plugins when they're detected in the original config.
 
 ### Step 6: Ignore File Migration
 
@@ -169,44 +206,50 @@ This codemod attempts to migrate `.eslintignore` content to the config file's `i
 **After** (`eslint.config.mjs`):
 
 ```javascript
+import path from "path";
+import { fileURLToPath } from "url";
 import js from "@eslint/js";
 import globals from "globals";
+import { FlatCompat } from "@eslint/eslintrc";
 import { defineConfig } from "@eslint/config-helpers";
 
-const cleanGlobals = (globalsObj) => {
-  if (!globalsObj) return {};
-  return Object.fromEntries(Object.entries(globalsObj).map(([key, value]) => [key.trim(), value]));
-};
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const compatWithRecommended = new FlatCompat({
+  baseDirectory: __dirname,
+  recommendedConfig: js.configs.recommended,
+});
 
 export default defineConfig([
-  js.configs.recommended,
   {
+    extends: compatWithRecommended.extends([]),
     languageOptions: {
       globals: {
         myCustomGlobal: "readonly",
         jQuery: "readonly",
-        ...cleanGlobals(globals.browser),
-        ...cleanGlobals(globals.es2021),
-        ...cleanGlobals(globals.node),
+        ...globals.browser,
+        ...globals.es2021,
+        ...globals.node,
       },
       parserOptions: {
         ecmaVersion: "latest",
+        sourceType: "module",
       },
-      sourceType: "module",
     },
     rules: {
       "no-console": ["warn", { allow: ["warn", "error"] }],
       "no-sequences": ["error", { allowInParentheses: false }],
-      "no-unused-vars": ["error", { caughtErrors: '"all"', vars: '"all"', args: '"after-used"' }],
+      "no-unused-vars": ["error", { caughtErrors: "all", vars: "all", args: "after-used" }],
       "no-useless-computed-key": ["error", { enforceForClassMembers: true }],
-      camelcase: ["error", { properties: '"always"', ignoreDestructuring: false }],
+      camelcase: ["error", { properties: "always", ignoreDestructuring: false }],
     },
   },
   {
     files: ["*.test.js", "*.spec.js"],
     languageOptions: {
       globals: {
-        ...cleanGlobals(globals.jest),
+        ...globals.jest,
       },
       parserOptions: {},
     },
@@ -216,6 +259,8 @@ export default defineConfig([
   },
 ]);
 ```
+
+> **Note**: If your config has other extends (e.g., `"plugin:react/recommended"`), they will be included in the `compat.extends()` array, while `eslint:recommended` and `eslint:all` are automatically handled by the FlatCompat configuration.
 
 ## Resources
 
