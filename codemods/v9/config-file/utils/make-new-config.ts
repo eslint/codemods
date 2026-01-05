@@ -71,15 +71,6 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
     imports.push(`import { defineConfig } from "@eslint/config-helpers";`);
   }
 
-  // Check if we need cleanGlobals helper (if any sector uses globals)
-  const needsCleanGlobals = sectors.some(
-    (sector) =>
-      sector.languageOptions.globals && Object.keys(sector.languageOptions.globals).length > 0
-  );
-  if (needsCleanGlobals && !imports.some((imp) => imp.includes('import globals from "globals"'))) {
-    imports.push('import globals from "globals";');
-  }
-
   // Check if we need __dirname (used in tsconfigRootDir or other parserOptions)
   // In ES modules (.mjs), __dirname is not available, so we need to define it
   const needsDirname = sectors.some((sector) => {
@@ -124,17 +115,6 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
   if (needsDirname) {
     parts.push("const __filename = fileURLToPath(import.meta.url);");
     parts.push("const __dirname = path.dirname(__filename);");
-    parts.push("");
-  }
-
-  // Add cleanGlobals helper if needed
-  if (needsCleanGlobals) {
-    parts.push("const cleanGlobals = (globalsObj) => {");
-    parts.push("  if (!globalsObj) return {};");
-    parts.push("  return Object.fromEntries(");
-    parts.push("    Object.entries(globalsObj).map(([key, value]) => [key.trim(), value])");
-    parts.push("  );");
-    parts.push("};");
     parts.push("");
   }
 
@@ -266,12 +246,7 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
           const cleanedGlobals: Record<string, any> = {};
           Object.entries(langOpts.globals).forEach(([key, value]) => {
             // Check if this is a spread operator (starts with ...)
-            if (key.startsWith("...globals.")) {
-              // For spread operators like ...globals.browser, wrap with cleanGlobals
-              const spreadKey = key.replace("...", "");
-              cleanedGlobals[`...cleanGlobals(${spreadKey})`] = value;
-            } else if (key.startsWith("...")) {
-              // Other spread operators - keep as is but might need cleanGlobals
+            if (key.startsWith("...")) {
               cleanedGlobals[key] = value;
             } else {
               // Regular globals - just trim the key
