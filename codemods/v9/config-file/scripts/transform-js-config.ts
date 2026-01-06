@@ -5,6 +5,7 @@ import { getStepOutput } from "codemod:workflow";
 import makeNewConfig from "../utils/make-new-config.ts";
 import type { SectorData } from "../utils/make-new-config.ts";
 import path from "path";
+import makePluginImport from "../utils/make-plugin-import.ts";
 
 async function transform(root: SgRoot<JS>): Promise<string | null> {
   const rootNode = root.root();
@@ -51,12 +52,6 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
   let imports: string[] = [];
 
   let sectors: SectorData[] = [];
-  let needsPrettierPlugin = false; // Track if we need to add prettier plugin config
-  let needsAngularConfigs = false; // Track if we need to add Angular configs
-  let angularConfigInfo: {
-    pluginImportName: string;
-    hasInlineTemplates: boolean;
-  } | null = null;
 
   for (let sector of rulesSectorsRule) {
     let sectorData = {
@@ -64,7 +59,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
       extends: [] as string[], // Preserved extends exactly as they were
       languageOptions: {} as Record<string, any>,
       files: String() as string,
-      plugins: {} as Record<string, string>,
+      plugins: [] as string[],
       requireJsdoc: {
         exists: false,
         settings: {},
@@ -671,8 +666,9 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
           pluginValue = pluginValue.replace(/,\s*$/, "");
 
           // Preserve the plugin exactly as it was
-          imports.push(`import ${pluginName} from "eslint-plugin-${pluginName}";`);
-          sectorData.plugins[pluginName] = pluginValue;
+          const pluginImport = makePluginImport(pluginName);
+          imports.push(`import ${pluginImport.identifier} from "${pluginImport.packageName}";`);
+          sectorData.plugins.push(pluginImport.identifier);
         }
       } else {
         // Plugins might be an array
@@ -696,8 +692,9 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
           for (let pluginString of pluginStrings) {
             let pluginText = pluginString.getMatch("PLUGIN")?.text() || "";
             // For array plugins, use the plugin name as both key and value
-            imports.push(`import ${pluginText} from "eslint-plugin-${pluginText}";`);
-            sectorData.plugins[pluginText] = pluginText;
+            const pluginImport = makePluginImport(pluginText);
+            imports.push(`import ${pluginImport.identifier} from "${pluginImport.packageName}";`);
+            sectorData.plugins.push(pluginImport.identifier);
           }
         }
       }
@@ -1378,102 +1375,6 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
     sectorData.files = files as string;
     // end files detection
     sectors.push(sectorData);
-  }
-
-  // Add Angular ESLint configurations if needed
-  if (needsAngularConfigs && angularConfigInfo) {
-    const { pluginImportName, hasInlineTemplates } = angularConfigInfo;
-
-    // Add TypeScript config for Angular
-    const tsConfig: SectorData = {
-      rules: {},
-      extends: [],
-      languageOptions: {
-        parser: "typescriptParser",
-        parserOptions: {
-          project: '["tsconfig.json"]',
-          createDefaultProgram: true,
-        },
-      },
-      files: '["**/*.ts"]',
-      plugins: {
-        "@angular-eslint": pluginImportName,
-        "@angular-eslint/template": "angularTemplate",
-      },
-      requireJsdoc: {
-        exists: false,
-        settings: {},
-      },
-    };
-
-    // Add processor if inline templates are needed
-    if (hasInlineTemplates) {
-      // Add processor as a TODO comment - will be handled in make-new-config.ts
-      if (!tsConfig.extendsTodoComments) {
-        tsConfig.extendsTodoComments = [];
-      }
-      tsConfig.extendsTodoComments.push(
-        `processor: "@angular-eslint/template/extract-inline-html",`
-      );
-    }
-
-    // Spread Angular config rules directly into the rules object
-    tsConfig.rules = {
-      [`...${pluginImportName}.configs.recommended.rules`]: "",
-    };
-
-    sectors.push(tsConfig);
-
-    // Add HTML config for Angular templates
-    const htmlConfig: SectorData = {
-      rules: {},
-      extends: [],
-      languageOptions: {
-        parser: "templateParser",
-      },
-      files: '["**/*.html"]',
-      plugins: {
-        "@angular-eslint/template": "angularTemplate",
-      },
-      requireJsdoc: {
-        exists: false,
-        settings: {},
-      },
-    };
-
-    // Spread Angular template config rules directly into the rules object
-    htmlConfig.rules = {
-      [`...angularTemplate.configs.recommended.rules`]: "",
-    };
-
-    sectors.push(htmlConfig);
-  }
-
-  // Add prettier plugin configuration if needed
-  if (needsPrettierPlugin) {
-    sectors.push({
-      rules: { '"prettier/prettier"': '"error"' },
-      extends: [],
-      languageOptions: {},
-      files: "",
-      plugins: { prettier: "prettierPlugin" },
-      requireJsdoc: {
-        exists: false,
-        settings: {},
-      },
-    });
-    // Add eslint-config-prettier at the end
-    sectors.push({
-      rules: {},
-      extends: ["eslintConfigPrettier"],
-      languageOptions: {},
-      files: "",
-      plugins: {},
-      requireJsdoc: {
-        exists: false,
-        settings: {},
-      },
-    });
   }
 
   let directory = path.dirname(root.filename()).replace(/[/\\]/g, "-");

@@ -1,11 +1,12 @@
 import { getStepOutput } from "codemod:workflow";
+import makePluginImport from "./make-plugin-import.ts";
 
 export type SectorData = {
   rules: Record<string, string>;
   extends: string[]; // Preserved extends exactly as they were (as strings)
   languageOptions: Record<string, unknown>;
   files: string;
-  plugins?: Record<string, string>;
+  plugins?: string[];
   requireJsdoc: {
     exists: boolean;
     settings: Record<string, string>;
@@ -213,7 +214,7 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
     const hasFiles = !!sector.files;
     const hasLanguageOptions = Object.keys(sector.languageOptions).length > 0;
     const hasRules = Object.keys(sector.rules).length > 0;
-    const hasPlugins = sector.plugins && Object.keys(sector.plugins).length > 0;
+    const hasPlugins = sector.plugins && sector.plugins.length > 0;
     const hasExtends = preservedExtends.length > 0;
 
     // Create an object if we have any properties (files, rules, plugins, languageOptions, extends, TODO comments)
@@ -267,12 +268,11 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
         });
       }
 
-      if (hasPlugins && sector.plugins) {
+      if (hasPlugins) {
         parts.push("    plugins: {");
-        const pluginsEntries = Object.entries(sector.plugins);
-        pluginsEntries.forEach(([key, value], index) => {
-          const comma = index < pluginsEntries.length - 1 ? "," : "";
-          parts.push(`      "${key}": ${value}${comma}`);
+        sector.plugins?.forEach((plugin, index) => {
+          const comma = index < (sector.plugins?.length ?? 0) - 1 ? "," : "";
+          parts.push(`      ${plugin}${comma}`);
         });
         parts.push("    },");
       }
@@ -360,12 +360,41 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
     return packageName || importStatement;
   });
 
+  for (let extend of sectors.map((sector) => sector.extends).flat()) {
+    if (extend.startsWith("eslint:")) {
+      importNames.push(`@eslint/js`);
+    } else if (extend.startsWith("plugin:")) {
+      extend = extend.replace("plugin:", "");
+      let splitted = extend.split("/");
+      let packageDate;
+      if (splitted.length > 1) {
+        splitted.pop();
+        packageDate = makePluginImport(splitted.join("/"));
+      } else {
+        packageDate = makePluginImport(splitted[0] ?? "");
+      }
+      importNames.push(packageDate.packageName);
+    } else if (extend.startsWith("config:")) {
+      extend = extend.replace("config:", "");
+      importNames.push(`eslint-config-${extend.split(":")[1]}`);
+    } else if (extend.startsWith("@")) {
+      let splitted = extend.split("/");
+      if (splitted.length > 2) {
+        splitted.pop();
+      } else if (splitted.length === 2) {
+        importNames.push(splitted.join("/"));
+      } else {
+        importNames.push(extend);
+      }
+    }
+  }
+
   if (importNames.length > 0) {
-    const uniquePackages = [
+    const uniqueImportNames = [
       ...new Set(importNames.filter((pkg) => pkg && !pkg.startsWith("import"))),
     ];
 
-    if (uniquePackages.length > 0) {
+    if (uniqueImportNames.length > 0) {
       console.log(`
 ╔════════════════════════════════════════════════════════════════╗
 ║  Package Installation Required                                 ║
@@ -373,10 +402,12 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
 
 You will need to install the following packages:
 
-${uniquePackages.map((pkg) => `  • ${pkg}`).join("\n")}
+${uniqueImportNames.map((pkg) => `  • ${pkg}`).join("\n")}
 
 Installation command:
-  npm install ${uniquePackages.map((pkg) => `${pkg}`).join(" ")} -D
+  npm install ${uniqueImportNames.map((pkg) => `${pkg}`).join(" ")} -D
+
+\x1b[33mNote: Please verify that all packages are not deprecated and still supported for ESLint v9.\x1b[0m
 
 `);
     }

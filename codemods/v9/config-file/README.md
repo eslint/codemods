@@ -18,6 +18,7 @@ npm install --save-dev eslint@9 @eslint/js globals @eslint/eslintrc
 ```
 
 > **Note**: If your config uses `extends`, you'll also need `@eslint/eslintrc` for FlatCompat support.
+> ⚠️ **Important**: The codemod will display a yellow note reminding you to verify that all packages are not deprecated and still supported for ESLint v9. Please check each package before installing.
 
 Then test your config:
 
@@ -128,6 +129,16 @@ npm install --save-dev @eslint/eslintrc
 - Plugin structure (object or array format)
 
 The codemod automatically adds import statements for plugins when they're detected in the original config.
+
+**Plugin Naming Conventions:**
+
+The codemod follows ESLint v9 conventions for plugin package names and import identifiers:
+
+- **Unscoped packages**: `eslint-plugin-foo` → imports as `fooPlugin` from `"eslint-plugin-foo"`
+- **Scoped packages**: `@foo/eslint-plugin` → imports as `fooPlugin` from `"@foo/eslint-plugin"`
+- **Scoped packages with suffix**: `@foo/eslint-plugin-bar` → imports as `fooBarPlugin` from `"@foo/eslint-plugin-bar"`
+
+The import identifiers are automatically generated to be valid JavaScript identifiers, converting package names to camelCase format.
 
 ### Step 6: Ignore File Migration
 

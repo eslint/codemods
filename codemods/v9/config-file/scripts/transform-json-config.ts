@@ -5,6 +5,7 @@ import { getStepOutput } from "codemod:workflow";
 import makeNewConfig from "../utils/make-new-config.ts";
 import type { SectorData } from "../utils/make-new-config.ts";
 import path from "path";
+import makePluginImport from "../utils/make-plugin-import.ts";
 
 async function transform(root: SgRoot<JSON>): Promise<string | null> {
   const rootNode = root.root();
@@ -43,12 +44,6 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
   let imports: string[] = [];
 
   let sectors: SectorData[] = [];
-  let needsPrettierPlugin = false; // Track if we need to add prettier plugin config
-  let needsAngularConfigs = false; // Track if we need to add Angular configs
-  let angularConfigInfo: {
-    pluginImportName: string;
-    hasInlineTemplates: boolean;
-  } | null = null;
 
   for (let sector of rulesSectorsRule) {
     let sectorData = {
@@ -56,7 +51,7 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
       extends: [] as string[], // Preserved extends exactly as they were
       languageOptions: {} as Record<string, any>,
       files: String() as string,
-      plugins: {} as Record<string, string>,
+      plugins: [] as string[],
       requireJsdoc: {
         exists: false,
         settings: {},
@@ -468,374 +463,6 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
         sectorData.rules['"no-sequences"'] = `["${noSequences.type}"]`;
       }
     }
-    // end no-constructor-return and no-sequences section
-    // ============================================
-    // COMPREHENSIVE EXTENDS MIGRATION SYSTEM
-    // Handles all extends cases from ESLint v8 to v9
-    // ============================================
-
-    /**
-     * Comprehensive extends migration function
-     * Handles:
-     * - ESLint built-in configs (eslint:recommended, eslint:all)
-     * - Popular shared configs (airbnb, prettier, etc.)
-     * - Plugin configs (plugin:react/recommended, etc.)
-     * - Scoped packages (@typescript-eslint/eslint-recommended)
-     * - Configs that changed names in v9
-     * - Configs that need to be converted to plugins
-     * - Unsupported configs (with TODO comments)
-     */
-    function _migrateExtends(extendsValue: string): {
-      result: string; // Direct config object reference (e.g., "js.configs.recommended")
-      import?: string;
-      needsPrettierPlugin?: boolean;
-      pluginName?: string; // Plugin name for registration in plugins object
-      pluginImportName?: string; // Import name for the plugin
-      isDirectConfig?: boolean; // If true, result should be spread directly in array, not in extends
-      needsManualConversion?: boolean; // If true, plugin needs manual rules/globals spreading
-      isAngularPlugin?: boolean; // If true, this is an Angular plugin requiring special handling
-    } {
-      const extendValue = extendsValue.trim();
-
-      // ============================================
-      // 1. ESLint Built-in Configs
-      // ============================================
-      // CRITICAL: extends does NOT work in flat config - must use direct config objects
-      if (extendValue === "eslint:recommended") {
-        return {
-          result: "js.configs.recommended",
-          import: 'import js from "@eslint/js";',
-          isDirectConfig: true, // Must be spread directly in array, not in extends
-        };
-      }
-      if (extendValue === "eslint:all") {
-        return {
-          result: "js.configs.all",
-          import: 'import js from "@eslint/js";',
-          isDirectConfig: true, // Must be spread directly in array, not in extends
-        };
-      }
-
-      // ============================================
-      // 2. Popular Shared Configs
-      // ============================================
-      const sharedConfigs: Record<string, { import: string; result: string }> = {
-        // Airbnb configs
-        airbnb: { import: 'import airbnb from "eslint-config-airbnb";', result: "airbnb" },
-        "eslint-config-airbnb": {
-          import: 'import airbnb from "eslint-config-airbnb";',
-          result: "airbnb",
-        },
-        "airbnb-base": {
-          import: 'import airbnbBase from "eslint-config-airbnb-base";',
-          result: "airbnbBase",
-        },
-        "eslint-config-airbnb-base": {
-          import: 'import airbnbBase from "eslint-config-airbnb-base";',
-          result: "airbnbBase",
-        },
-        "airbnb-typescript": {
-          import: 'import airbnbTypescript from "eslint-config-airbnb-typescript";',
-          result: "airbnbTypescript",
-        },
-        "eslint-config-airbnb-typescript": {
-          import: 'import airbnbTypescript from "eslint-config-airbnb-typescript";',
-          result: "airbnbTypescript",
-        },
-
-        // Prettier configs
-        prettier: { import: 'import prettier from "eslint-config-prettier";', result: "prettier" },
-        "eslint-config-prettier": {
-          import: 'import prettier from "eslint-config-prettier";',
-          result: "prettier",
-        },
-
-        // Standard configs
-        standard: { import: 'import standard from "eslint-config-standard";', result: "standard" },
-        "eslint-config-standard": {
-          import: 'import standard from "eslint-config-standard";',
-          result: "standard",
-        },
-        "standard-with-typescript": {
-          import: 'import standardWithTypescript from "eslint-config-standard-with-typescript";',
-          result: "standardWithTypescript",
-        },
-        "eslint-config-standard-with-typescript": {
-          import: 'import standardWithTypescript from "eslint-config-standard-with-typescript";',
-          result: "standardWithTypescript",
-        },
-
-        // Google configs
-        google: { import: 'import google from "eslint-config-google";', result: "google" },
-        "eslint-config-google": {
-          import: 'import google from "eslint-config-google";',
-          result: "google",
-        },
-
-        // XO configs
-        xo: { import: 'import xo from "eslint-config-xo";', result: "xo" },
-        "eslint-config-xo": { import: 'import xo from "eslint-config-xo";', result: "xo" },
-        "xo-typescript": {
-          import: 'import xoTypescript from "eslint-config-xo-typescript";',
-          result: "xoTypescript",
-        },
-        "eslint-config-xo-typescript": {
-          import: 'import xoTypescript from "eslint-config-xo-typescript";',
-          result: "xoTypescript",
-        },
-      };
-
-      if (sharedConfigs[extendValue]) {
-        return sharedConfigs[extendValue];
-      }
-
-      // ============================================
-      // 3. Plugin Configs (plugin:xxx/yyy)
-      // ============================================
-      const pluginConfigPattern = /^plugin:([^/]+)\/(.+)$/;
-      const pluginMatch = extendValue.match(pluginConfigPattern);
-
-      if (pluginMatch && pluginMatch[1] && pluginMatch[2]) {
-        const pluginName = pluginMatch[1];
-        const configName = pluginMatch[2];
-
-        // Special handling for prettier plugin
-        if (pluginName === "prettier" && configName === "recommended") {
-          return {
-            result: "",
-            needsPrettierPlugin: true,
-          };
-        }
-
-        // Plugins that are known to support flat config with their package names
-        const flatConfigSupportedPlugins: Record<
-          string,
-          { packageName: string; importName: string }
-        > = {
-          // React
-          react: { packageName: "eslint-plugin-react", importName: "react" },
-          "react-hooks": { packageName: "eslint-plugin-react-hooks", importName: "reactHooks" },
-          "react-native": { packageName: "eslint-plugin-react-native", importName: "reactNative" },
-
-          // Vue
-          vue: { packageName: "eslint-plugin-vue", importName: "vue" },
-
-          // TypeScript
-          "typescript-eslint": {
-            packageName: "@typescript-eslint/eslint-plugin",
-            importName: "typescriptEslint",
-          },
-          "@typescript-eslint": {
-            packageName: "@typescript-eslint/eslint-plugin",
-            importName: "typescriptEslint",
-          },
-
-          // Testing
-          jest: { packageName: "eslint-plugin-jest", importName: "jest" },
-          vitest: { packageName: "eslint-plugin-vitest", importName: "vitest" },
-          "testing-library": {
-            packageName: "eslint-plugin-testing-library",
-            importName: "testingLibrary",
-          },
-          playwright: { packageName: "eslint-plugin-playwright", importName: "playwright" },
-
-          // Node.js
-          n: { packageName: "eslint-plugin-n", importName: "n" },
-          node: { packageName: "eslint-plugin-node", importName: "node" },
-
-          // Import/Export
-          import: { packageName: "eslint-plugin-import", importName: "importPlugin" },
-          "unused-imports": {
-            packageName: "eslint-plugin-unused-imports",
-            importName: "unusedImports",
-          },
-
-          // Security
-          security: { packageName: "eslint-plugin-security", importName: "security" },
-          sonarjs: { packageName: "eslint-plugin-sonarjs", importName: "sonarjs" },
-
-          // Code Quality
-          unicorn: { packageName: "eslint-plugin-unicorn", importName: "unicorn" },
-          promise: { packageName: "eslint-plugin-promise", importName: "promise" },
-          compat: { packageName: "eslint-plugin-compat", importName: "compat" },
-
-          // Framework specific
-          ember: { packageName: "eslint-plugin-ember", importName: "ember" },
-          qunit: { packageName: "eslint-plugin-qunit", importName: "qunit" },
-          angular: { packageName: "@angular-eslint/eslint-plugin", importName: "angular" },
-          "@angular-eslint": {
-            packageName: "@angular-eslint/eslint-plugin",
-            importName: "angular",
-          },
-
-          // Accessibility
-          "jsx-a11y": { packageName: "eslint-plugin-jsx-a11y", importName: "jsxA11y" },
-
-          // Documentation
-          jsdoc: { packageName: "eslint-plugin-jsdoc", importName: "jsdoc" },
-
-          // Styling
-          tailwindcss: { packageName: "eslint-plugin-tailwindcss", importName: "tailwindcss" },
-
-          // GraphQL
-          graphql: { packageName: "eslint-plugin-graphql", importName: "graphql" },
-
-          // Next.js
-          next: { packageName: "@next/eslint-plugin-next", importName: "next" },
-          "@next": { packageName: "@next/eslint-plugin-next", importName: "next" },
-        };
-
-        // Check if plugin is in our supported list
-        const pluginInfo = flatConfigSupportedPlugins[pluginName];
-
-        if (pluginInfo) {
-          // Generate import name from plugin name if not in map
-          const importName =
-            pluginInfo.importName ||
-            pluginName
-              .replace(/^@/, "")
-              .replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())
-              .replace(/^([a-z])/, (_, letter) => letter.toUpperCase());
-
-          const packageName =
-            pluginInfo.packageName ||
-            (pluginName.startsWith("@") ? pluginName : `eslint-plugin-${pluginName}`);
-
-          // CRITICAL: extends does NOT work in flat config - must use direct config objects
-          // For plugins with flat config support (like ember), try /recommended export first
-          // For other plugins, use manual conversion with plugin.configs
-
-          // Special handling for plugins known to have /recommended flat config export
-          const pluginsWithRecommendedExport = ["ember"];
-          if (pluginsWithRecommendedExport.includes(pluginName) && configName === "recommended") {
-            // Use /recommended export (e.g., eslint-plugin-ember/recommended)
-            // No plugin registration needed - these are standalone config objects
-            const recommendedImportName = `${importName}Recommended`;
-            return {
-              result: `${recommendedImportName}.configs.base`, // Will add all configs separately
-              import: `import ${recommendedImportName} from "${packageName}/recommended";`,
-              isDirectConfig: true, // Must be spread directly in array
-              // No pluginName/pluginImportName - don't register in plugins object
-            };
-          }
-
-          // Plugins that don't have flat config support - need manual conversion
-          // These plugins need their rules and globals spread manually in a config object
-          const pluginsWithoutFlatConfig = ["qunit", "n"];
-
-          // Angular ESLint plugins - require special handling (no flat config support)
-          // They need separate configs for TypeScript and HTML files, plus parser imports
-          const angularPlugins = ["angular", "@angular-eslint"];
-          const isAngularPlugin = angularPlugins.includes(pluginName);
-
-          if (pluginsWithoutFlatConfig.includes(pluginName) || isAngularPlugin) {
-            // Return empty result - will be handled by adding plugin to plugins object
-            // Rules and globals will need to be manually spread (handled separately)
-            return {
-              result: "", // Empty - plugin will be registered, rules/globals added manually
-              import: `import ${importName} from "${packageName}";`,
-              pluginName: pluginName,
-              pluginImportName: importName,
-              needsManualConversion: true, // Flag to indicate manual conversion needed
-              isAngularPlugin: isAngularPlugin, // Special flag for Angular
-            };
-          }
-
-          // Just register the plugin, don't add configs
-          return {
-            result: "", // No config to spread
-            import: `import ${importName} from "${packageName}";`,
-            pluginName: pluginName, // Name used in plugins object
-            pluginImportName: importName, // Import name for the plugin
-          };
-        } else {
-          // Plugin not in our list - keep in extends with TODO (unknown how to migrate)
-          // Return empty result - will be added to extendsUnknown
-          return {
-            result: `"${extendValue}"`, // Keep original string in extends
-            // No import - user needs to figure it out
-          };
-        }
-      }
-
-      // ============================================
-      // 4. Scoped Package Configs (@scope/package)
-      // ============================================
-      if (extendValue.startsWith("@")) {
-        // Check for known scoped configs
-        const scopedConfigs: Record<string, { import: string; result: string }> = {
-          // TypeScript ESLint - use string format for defineConfig
-          "@typescript-eslint/eslint-recommended": {
-            import: 'import typescriptEslint from "@typescript-eslint/eslint-plugin";',
-            result: '"@typescript-eslint/flat/recommended"',
-          },
-          "@typescript-eslint/recommended": {
-            import: 'import typescriptEslint from "@typescript-eslint/eslint-plugin";',
-            result: '"@typescript-eslint/flat/recommended"',
-          },
-          "@typescript-eslint/recommended-requiring-type-checking": {
-            import: 'import typescriptEslint from "@typescript-eslint/eslint-plugin";',
-            result: '"@typescript-eslint/flat/recommended-type-checked"',
-          },
-          "@typescript-eslint/strict": {
-            import: 'import typescriptEslint from "@typescript-eslint/eslint-plugin";',
-            result: '"@typescript-eslint/flat/strict"',
-          },
-
-          // Next.js - these are config objects, use directly
-          "@next/eslint-config-next": {
-            import: 'import nextConfig from "@next/eslint-config-next";',
-            result: "...nextConfig",
-          },
-        };
-
-        if (scopedConfigs[extendValue]) {
-          return scopedConfigs[extendValue];
-        }
-
-        // Unknown scoped config - keep in extends with TODO (unknown how to migrate)
-        return {
-          result: `"${extendValue}"`, // Keep original string in extends
-          // No import - user needs to figure it out
-        };
-      }
-
-      // ============================================
-      // 5. Configs that changed names in v9
-      // ============================================
-      const renamedConfigs: Record<string, string> = {
-        // Note: Add any configs that were renamed in v9 here
-      };
-
-      if (renamedConfigs[extendValue]) {
-        return {
-          result: renamedConfigs[extendValue],
-        };
-      }
-
-      // ============================================
-      // 6. Configs that need to be converted to plugins
-      // ============================================
-      // Some configs in v8 were actually plugins in disguise
-      // These should be converted to plugin imports
-      const pluginConvertedConfigs: Record<string, { import: string; result: string }> = {
-        // Add any configs that should be converted to plugins here
-      };
-
-      if (pluginConvertedConfigs[extendValue]) {
-        return pluginConvertedConfigs[extendValue];
-      }
-
-      // ============================================
-      // 7. Unknown/Unsupported Configs
-      // ============================================
-      // If we get here, we don't know how to handle this config
-      // Keep it in extends with TODO comment
-      return {
-        result: `"${extendValue}"`, // Keep original string in extends
-        // No import - user needs to figure it out
-      };
-    }
 
     // Extract extends from the sector - preserve exactly as they were
     let extendsRule = sector.find({
@@ -962,8 +589,9 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
           pluginValue = pluginValue.replace(/,\s*$/, "");
 
           // Preserve the plugin exactly as it was
-          imports.push(`import ${pluginName} from "eslint-plugin-${pluginName}";`);
-          sectorData.plugins[pluginName] = pluginValue;
+          const pluginImport = makePluginImport(pluginName);
+          imports.push(`import ${pluginImport.identifier} from "${pluginImport.packageName}";`);
+          sectorData.plugins.push(pluginImport.identifier);
         }
       } else {
         // Plugins might be an array
@@ -988,8 +616,9 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
               pluginText = pluginText.substring(1, pluginText.length - 1);
             }
             // For array plugins, use the plugin name as both key and value
-            imports.push(`import ${pluginText} from "eslint-plugin-${pluginText}";`);
-            sectorData.plugins[pluginText] = pluginText;
+            const pluginImport = makePluginImport(pluginText);
+            imports.push(`import ${pluginImport.identifier} from "${pluginImport.packageName}";`);
+            sectorData.plugins.push(pluginImport.identifier);
           }
         }
       }
@@ -1607,102 +1236,6 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
     sectorData.files = files as string;
     // end files detection
     sectors.push(sectorData);
-  }
-
-  // Add Angular ESLint configurations if needed
-  if (needsAngularConfigs && angularConfigInfo) {
-    const { pluginImportName, hasInlineTemplates } = angularConfigInfo;
-
-    // Add TypeScript config for Angular
-    const tsConfig: SectorData = {
-      rules: {},
-      extends: [],
-      languageOptions: {
-        parser: "typescriptParser",
-        parserOptions: {
-          project: '["tsconfig.json"]',
-          createDefaultProgram: true,
-        },
-      },
-      files: '["**/*.ts"]',
-      plugins: {
-        "@angular-eslint": pluginImportName,
-        "@angular-eslint/template": "angularTemplate",
-      },
-      requireJsdoc: {
-        exists: false,
-        settings: {},
-      },
-    };
-
-    // Add processor if inline templates are needed
-    if (hasInlineTemplates) {
-      // Add processor as a TODO comment - will be handled in make-new-config.ts
-      if (!tsConfig.extendsTodoComments) {
-        tsConfig.extendsTodoComments = [];
-      }
-      tsConfig.extendsTodoComments.push(
-        `processor: "@angular-eslint/template/extract-inline-html",`
-      );
-    }
-
-    // Spread Angular config rules directly into the rules object
-    tsConfig.rules = {
-      [`...${pluginImportName}.configs.recommended.rules`]: "",
-    };
-
-    sectors.push(tsConfig);
-
-    // Add HTML config for Angular templates
-    const htmlConfig: SectorData = {
-      rules: {},
-      extends: [],
-      languageOptions: {
-        parser: "templateParser",
-      },
-      files: '["**/*.html"]',
-      plugins: {
-        "@angular-eslint/template": "angularTemplate",
-      },
-      requireJsdoc: {
-        exists: false,
-        settings: {},
-      },
-    };
-
-    // Spread Angular template config rules directly into the rules object
-    htmlConfig.rules = {
-      [`...angularTemplate.configs.recommended.rules`]: "",
-    };
-
-    sectors.push(htmlConfig);
-  }
-
-  // Add prettier plugin configuration if needed
-  if (needsPrettierPlugin) {
-    sectors.push({
-      rules: { '"prettier/prettier"': '"error"' },
-      extends: [],
-      languageOptions: {},
-      files: "",
-      plugins: { prettier: "prettierPlugin" },
-      requireJsdoc: {
-        exists: false,
-        settings: {},
-      },
-    });
-    // Add eslint-config-prettier at the end
-    sectors.push({
-      rules: {},
-      extends: ["eslintConfigPrettier"],
-      languageOptions: {},
-      files: "",
-      plugins: {},
-      requireJsdoc: {
-        exists: false,
-        settings: {},
-      },
-    });
   }
 
   let directory = path.dirname(root.filename()).replace(/[/\\]/g, "-");
