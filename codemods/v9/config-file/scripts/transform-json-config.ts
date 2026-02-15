@@ -51,7 +51,7 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
       extends: [] as string[], // Preserved extends exactly as they were
       languageOptions: {} as Record<string, any>,
       files: String() as string,
-      plugins: [] as string[],
+      plugins: [] as Array<{ key: string; identifier: string }>,
       requireJsdoc: {
         exists: false,
         settings: {},
@@ -591,7 +591,7 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
           // Preserve the plugin exactly as it was
           const pluginImport = makePluginImport(pluginName);
           imports.push(`import ${pluginImport.identifier} from "${pluginImport.packageName}";`);
-          sectorData.plugins.push(pluginImport.identifier);
+          sectorData.plugins.push({ key: pluginName, identifier: pluginImport.identifier });
         }
       } else {
         // Plugins might be an array
@@ -618,7 +618,7 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
             // For array plugins, use the plugin name as both key and value
             const pluginImport = makePluginImport(pluginText);
             imports.push(`import ${pluginImport.identifier} from "${pluginImport.packageName}";`);
-            sectorData.plugins.push(pluginImport.identifier);
+            sectorData.plugins.push({ key: pluginText, identifier: pluginImport.identifier });
           }
         }
       }

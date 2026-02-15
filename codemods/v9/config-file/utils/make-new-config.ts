@@ -6,7 +6,7 @@ export type SectorData = {
   extends: string[]; // Preserved extends exactly as they were (as strings)
   languageOptions: Record<string, unknown>;
   files: string;
-  plugins?: string[];
+  plugins?: Array<{ key: string; identifier: string }>;
   requireJsdoc: {
     exists: boolean;
     settings: Record<string, string>;
@@ -116,6 +116,17 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
       imports.push(`import js from '@eslint/js';`);
     }
     needsDirname = true;
+  }
+
+  // Check if we need compatibility utilities
+  const hasPlugins = sectors.some((sector) => sector.plugins && sector.plugins.length > 0);
+  const hasExtends = sectors.some((sector) => sector.extends && sector.extends.length > 0);
+
+  if (hasPlugins || hasExtends) {
+    const compatImports: string[] = [];
+    if (hasPlugins) compatImports.push("fixupPluginRules");
+    if (hasExtends) compatImports.push("fixupConfigRules");
+    imports.push(`import { ${compatImports.join(", ")} } from "@eslint/compat";`);
   }
 
   if (needsDirname) {
@@ -245,7 +256,7 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
               : haveEslintAll
                 ? "compatWithAll"
                 : "compat";
-        parts.push(`    extends: ${compatName}.extends(`);
+        parts.push(`    extends: fixupConfigRules(${compatName}.extends(`);
         preservedExtends
           .filter((extend) => !["eslint:recommended", "eslint:all"].includes(extend))
           .forEach((ext, index) => {
@@ -253,7 +264,7 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
             // Preserve the extend value exactly as it was (with quotes if it was a string)
             parts.push(`      "${ext}"${comma}`);
           });
-        parts.push("    ),");
+        parts.push("    )),");
       }
       // TODO comments should be added inside the object
       // Also handle processor property if present in todoComments
@@ -272,7 +283,8 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
         parts.push("    plugins: {");
         sector.plugins?.forEach((plugin, index) => {
           const comma = index < (sector.plugins?.length ?? 0) - 1 ? "," : "";
-          parts.push(`      ${plugin}${comma}`);
+          // Use the original plugin name as the key and wrap the imported identifier with fixupPluginRules
+          parts.push(`      ${plugin.key}: fixupPluginRules(${plugin.identifier})${comma}`);
         });
         parts.push("    },");
       }
