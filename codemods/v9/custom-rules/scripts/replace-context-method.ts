@@ -49,6 +49,14 @@ function getAlreadyTransformedSelector(): RuleConfig<JS> {
 
 // ============ Constants ============
 
+// Context methods that became properties (deprecated in favor of property; use property ?? method())
+const CONTEXT_METHOD_TO_PROPERTY: Record<string, string> = {
+  getSourceCode: "sourceCode",
+  getFilename: "filename",
+  getPhysicalFilename: "physicalFilename",
+  getCwd: "cwd",
+};
+
 // Methods that move from context to sourceCode (with optional rename)
 const CONTEXT_METHOD_MAP: Record<string, string> = {
   getSource: "getText",
@@ -76,10 +84,6 @@ const CONTEXT_METHOD_MAP: Record<string, string> = {
 
 // Methods that STAY on context - do NOT transform these
 const CONTEXT_ONLY_METHODS = [
-  "getFilename",
-  "getPhysicalFilename",
-  "getCwd",
-  "getSourceCode",
   "report",
   "options",
   "settings",
@@ -190,6 +194,16 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
 
     let propertyText = property.text();
 
+    // Leave context-only methods unchanged (no transform)
+    if (CONTEXT_ONLY_METHODS.includes(propertyText)) continue;
+
+    // Transform deprecated context methods to property access (property ?? method())
+    if (propertyText in CONTEXT_METHOD_TO_PROPERTY) {
+      const prop = CONTEXT_METHOD_TO_PROPERTY[propertyText]!;
+      newRootEdits.push(expression.replace(`${context}.${prop} ?? ${context}.${propertyText}()`));
+      continue;
+    }
+
     // Skip sourceCode method transformations if already done
     if (!alreadyHasContextSourceCode) {
       if (propertyText in CONTEXT_METHOD_MAP) {
@@ -199,7 +213,7 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
       } else if (propertyText === "getComments") {
         newRootEdits.push(
           expression.replace(
-            `contextSourceCode.getCommentsBefore() + contextSourceCode.getCommentsInside() + contextSourceCode.getCommentsAfter()`
+            `[...contextSourceCode.getCommentsBefore(), ...contextSourceCode.getCommentsInside(), ...contextSourceCode.getCommentsAfter()]`
           )
         );
         needsContextSourceCode = true;
