@@ -2,12 +2,10 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { jsdoc } from "eslint-plugin-jsdoc";
 import globals from "globals";
-import { jsdoc } from "eslint-plugin-jsdoc";
-import { jsdoc } from "eslint-plugin-jsdoc";
-import { jsdoc } from "eslint-plugin-jsdoc";
 import { defineConfig } from "@eslint/config-helpers";
 import { FlatCompat } from "@eslint/eslintrc";
 import js from "@eslint/js";
+import { fixupConfigRules } from "@eslint/compat";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,7 +24,7 @@ export default defineConfig([
   }),
   {
     files: ["*.test.js", "*.spec.js", "**/__tests__/**/*.js"],
-    extends: compatWithRecommendedAndAll.extends(),
+    extends: fixupConfigRules(compatWithRecommendedAndAll.extends()),
     languageOptions: {
       globals: {
         myCustomGlobal: "readonly",

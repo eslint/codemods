@@ -257,13 +257,14 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
                 ? "compatWithAll"
                 : "compat";
         parts.push(`    extends: fixupConfigRules(${compatName}.extends(`);
-        preservedExtends
-          .filter((extend) => !["eslint:recommended", "eslint:all"].includes(extend))
-          .forEach((ext, index) => {
-            const comma = index < preservedExtends.length - 1 ? "," : "";
-            // Preserve the extend value exactly as it was (with quotes if it was a string)
-            parts.push(`      "${ext}"${comma}`);
-          });
+        const extendsToEmit = preservedExtends.filter(
+          (extend) => !["eslint:recommended", "eslint:all"].includes(extend)
+        );
+        extendsToEmit.forEach((ext, index) => {
+          const comma = index < extendsToEmit.length - 1 ? "," : "";
+          // Preserve the extend value exactly as it was (with quotes if it was a string)
+          parts.push(`      "${ext}"${comma}`);
+        });
         parts.push("    )),");
       }
       // TODO comments should be added inside the object

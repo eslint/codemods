@@ -4,10 +4,7 @@
     "es2021": true,
     "node": true
   },
-  "extends": [
-    "eslint:recommended"
-  ],
-  "parserOptions": {
+  "extends": ["eslint:recommended", "plugin:react/recommended"],  "parserOptions": {
     "ecmaVersion": "latest",
     "sourceType": "module"
   },
@@ -46,6 +43,9 @@
     ]
   },
   "overrides": [
+    {  "extends": ["eslint:recommended", "plugin:react/recommended"],
+    "plugins": ["ember", "node"],
+  },
     {
       "files": ["*.test.js", "*.spec.js"],
       "env": {

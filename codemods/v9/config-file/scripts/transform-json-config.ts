@@ -71,7 +71,12 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
     if (overridesRule) {
       let overrides = overridesRule?.text();
       let newSectorText = sector.text();
+      // Remove the pair and adjacent comma(s) so JSON stays valid
       newSectorText = newSectorText.replace(overrides, "");
+      newSectorText = newSectorText
+        .replace(/,\s*,/g, ",")
+        .replace(/,\s*([}\]])/g, "$1")
+        .replace(/^\s*{\s*,/, "{");
       let newSectorRoot = parse("json", newSectorText) as SgRoot<JSON>;
       sector = newSectorRoot.root();
     }
@@ -464,7 +469,7 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
       }
     }
 
-    // Extract extends from the sector - preserve exactly as they were
+    // Extract extends from the sector - preserve exactly as they were (all entries)
     let extendsRule = sector.find({
       rule: {
         kind: "pair",
@@ -478,21 +483,25 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
     const preservedExtends: string[] = [];
 
     if (extendsRule) {
-      // Check if extends is an array or single string
-      let isArrayRule = extendsRule.findAll({
+      // Get the value of the extends pair (array or string)
+      const extendsValueArray = extendsRule.find({
         rule: {
-          kind: "string",
-          pattern: "$STRING",
-          inside: {
-            kind: "array",
+          kind: "array",
+          has: {
+            kind: "string",
           },
         },
       });
-
-      if (isArrayRule.length) {
-        // Array of extends
-        for (let extendNode of isArrayRule) {
-          let extendText = extendNode.getMatch("STRING")?.text() || "";
+      if (extendsValueArray) {
+        // Multiple extends: collect every string in the array (direct children only)
+        const extendStringNodes = extendsValueArray.findAll({
+          rule: {
+            kind: "string",
+            pattern: "$STRING",
+          },
+        });
+        for (let extendNode of extendStringNodes) {
+          let extendText = extendNode.getMatch("STRING")?.text() || extendNode.text() || "";
           // Remove quotes from JSON string
           if (extendText[0] == '"' && extendText[extendText.length - 1] == '"') {
             extendText = extendText.substring(1, extendText.length - 1);
@@ -504,6 +513,9 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
         let extendsExecute = extendsRule.find({
           rule: {
             kind: "string",
+            not: {
+              regex: '"extends"',
+            },
           },
         });
         let extendText = extendsExecute?.text() || "";
