@@ -1,4 +1,6 @@
-find . -type f \( -name '.eslintrc.js' -o -name '.eslintrc.json' -o -name '.eslintrc.yaml' -o -name '.eslintrc.yml' -o -name '.eslintrc.cjs' -o -name '.eslintrc.mjs' \) | while read file; do
+# Use CODEMOD_TARGET_PATH (set by codemod CLI when using -t/--target), or current directory
+TARGET_DIR="${CODEMOD_TARGET_PATH:-.}"
+find "$TARGET_DIR" -type f \( -name '.eslintrc.js' -o -name '.eslintrc.json' -o -name '.eslintrc.yaml' -o -name '.eslintrc.yml' -o -name '.eslintrc.cjs' -o -name '.eslintrc.mjs' \) | while read file; do
   dir=$(dirname "$file")
   new_path="${dir}/eslint.config.mjs"
   if [[ -e "${new_path}" ]]; then

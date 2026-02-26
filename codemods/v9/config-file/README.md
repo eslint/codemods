@@ -9,6 +9,9 @@ npx codemod@latest run @eslint/v8-to-v9-config
 
 # Or run locally
 npx codemod@latest workflow run -w workflow.yaml
+
+# For projects with multiple configs, use --target to specify the directory:
+npx codemod@latest run @eslint/v8-to-v9-config -t /path/to/project
 ```
 
 After running, the codemod will display a list of packages that need to be installed. Install them:

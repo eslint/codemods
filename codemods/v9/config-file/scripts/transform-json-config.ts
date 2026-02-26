@@ -10,7 +10,9 @@ import makePluginImport from "../utils/make-plugin-import.ts";
 async function transform(root: SgRoot<JSON>): Promise<string | null> {
   const rootNode = root.root();
   const source = rootNode.text();
-  // For JSON, we look for the root object and objects inside overrides array
+  // For JSON, we look for the root object and objects inside overrides array.
+  // Include objects with "extends" so configs that only have extends (e.g. {"extends": ["eslint-config-airbnb"]})
+  // are not dropped.
   let rulesSectorsRule = rootNode.findAll({
     rule: {
       any: [
@@ -21,6 +23,16 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
             has: {
               kind: "string",
               regex: '"rules"',
+            },
+          },
+        },
+        {
+          kind: "object",
+          has: {
+            kind: "pair",
+            has: {
+              kind: "string",
+              regex: '"extends"',
             },
           },
         },

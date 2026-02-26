@@ -131,6 +131,23 @@ function isOldStyleReport(argsNode: SgNode<JS>): boolean {
   return firstArg.kind() !== "object";
 }
 
+function isPartOfCodePathCurrentSegmentsChain(callNode: SgNode<JS>): boolean {
+  // context.getSourceCode().codePath.currentSegments - call is object of .codePath
+  const parent = callNode.parent();
+  if (!parent || parent.kind() !== "member_expression") return false;
+  const codePathProp = parent.find({
+    rule: { kind: "property_identifier", regex: "^codePath$" },
+  });
+  if (!codePathProp) return false;
+  const codePathMember = parent;
+  const grandparent = codePathMember.parent();
+  if (!grandparent || grandparent.kind() !== "member_expression") return false;
+  const currentSegmentsProp = grandparent.find({
+    rule: { kind: "property_identifier", regex: "^currentSegments$" },
+  });
+  return !!currentSegmentsProp;
+}
+
 function transformOldStyleReport(expression: SgNode<JS>, contextName: string): string | null {
   const argsNode = expression.find({ rule: { kind: "arguments" } });
   if (!argsNode) return null;
@@ -199,6 +216,15 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
 
     // Transform deprecated context methods to property access (property ?? method())
     if (propertyText in CONTEXT_METHOD_TO_PROPERTY) {
+      // Skip getSourceCode when part of .codePath.currentSegments - replace-current-statement
+      // will replace the entire chain with newCurrentSegments; we must not prefix with
+      // context.sourceCode ?? or the result would be "context.sourceCode ?? newCurrentSegments"
+      if (
+        propertyText === "getSourceCode" &&
+        isPartOfCodePathCurrentSegmentsChain(expression as unknown as SgNode<JS>)
+      ) {
+        continue;
+      }
       const prop = CONTEXT_METHOD_TO_PROPERTY[propertyText]!;
       newRootEdits.push(expression.replace(`${context}.${prop} ?? ${context}.${propertyText}()`));
       continue;

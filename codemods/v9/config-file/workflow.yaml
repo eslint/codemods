@@ -84,4 +84,4 @@ nodes:
         run: ${{ params.codeFormattingCommand }}
       - id: remove-eslintignore-files
         name: "Remove .eslintignore files"
-        run: 'find . -name "*.eslintignore" -type f -delete'
+        run: 'find "${CODEMOD_TARGET_PATH:-.}" -name "*.eslintignore" -type f -delete'

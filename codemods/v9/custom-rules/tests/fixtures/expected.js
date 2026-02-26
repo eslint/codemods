@@ -38,7 +38,7 @@ module.exports = {
     const physicalFilename = context.physicalFilename ?? context.getPhysicalFilename();
 
     // DEPRECATED: codePath.currentSegments access
-    let currentSegment = context.sourceCode ?? newCurrentSegments;
+    let currentSegment = newCurrentSegments;
 
     return {
       onCodePathStart(codePath) {
