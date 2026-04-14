@@ -3,7 +3,7 @@ import type JSON from "codemod:ast-grep/langs/json";
 import { type SgNode } from "codemod:ast-grep";
 import { getStepOutput } from "codemod:workflow";
 import makeNewConfig from "../utils/make-new-config.ts";
-import type { SectorData } from "../utils/make-new-config.ts";
+import type { LanguageOptions, SectorData } from "../utils/make-new-config.ts";
 import path from "path";
 import makePluginImport from "../utils/make-plugin-import.ts";
 
@@ -61,7 +61,7 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
     let sectorData = {
       rules: {} as Record<string, string>,
       extends: [] as string[], // Preserved extends exactly as they were
-      languageOptions: {} as Record<string, any>,
+      languageOptions: {} as LanguageOptions,
       files: String() as string,
       plugins: [] as Array<{ key: string; identifier: string }>,
       requireJsdoc: {
@@ -655,7 +655,7 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
       type: "nothing",
       options: {
         caughtErrors: "none",
-      } as Record<string, any>,
+      } as Record<string, string | number | boolean>,
     };
     let noUnusedVarsRule = sector.find({
       rule: {
@@ -709,7 +709,7 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
         for (let option of optionsRule) {
           let identifier = option.getMatch("IDENTIFIER")?.text();
           if (!identifier) continue;
-          let value: any = option
+          let value: string | number | boolean = option
             .text()
             .trim()
             .replace(`${identifier}:`, "")
@@ -717,7 +717,7 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
             .replace(/,\s*$/, "");
           if (value == "true" || value == "false") {
             value = value == "true" ? true : false;
-          } else if (!isNaN(value)) {
+          } else if (!isNaN(parseInt(value))) {
             value = parseInt(value);
           }
           // Remove quotes from identifier
@@ -761,7 +761,7 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
       type: "nothing",
       options: {
         enforceForClassMembers: false,
-      } as Record<string, any>,
+      } as Record<string, string | number | boolean>,
     };
     let noUselessComputedVarsRule = sector.find({
       rule: {
@@ -855,7 +855,7 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
     // start camelcase
     let camelcase = {
       type: "nothing",
-      options: {} as Record<string, any>,
+      options: {} as Record<string, string | number | boolean>,
     };
     let camelcaseRule = sector.find({
       rule: {
@@ -909,7 +909,7 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
         for (let option of optionsRule) {
           let identifier = option.getMatch("IDENTIFIER")?.text();
           if (!identifier) continue;
-          let value: any = option
+          let value: string | number | boolean = option
             .text()
             .trim()
             .replace(`${identifier}:`, "")
@@ -917,7 +917,7 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
             .replace(/,\s*$/, "");
           if (value == "true" || value == "false") {
             value = value == "true" ? true : false;
-          } else if (!isNaN(value)) {
+          } else if (!isNaN(parseInt(value))) {
             value = parseInt(value);
           }
           // Remove quotes from identifier
@@ -1100,7 +1100,7 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
     // end detecting no-restricted-imports
 
     // detect globals start
-    const globals: Record<string, any> = {};
+    const globals: Record<string, string | number | boolean> = {};
     const detectGlobalsRule = sector.findAll({
       rule: {
         kind: "pair",
@@ -1125,10 +1125,15 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
     for (let glob of detectGlobalsRule) {
       let identifier = glob.getMatch("IDENTIFIER")?.text();
       if (!identifier) continue;
-      let value: any = glob.text().trim().replace(`${identifier}:`, "").trim().replace(/,\s*$/, "");
+      let value: string | number | boolean = glob
+        .text()
+        .trim()
+        .replace(`${identifier}:`, "")
+        .trim()
+        .replace(/,\s*$/, "");
       if (value == "true" || value == "false") {
         value = value == "true" ? true : false;
-      } else if (!isNaN(value)) {
+      } else if (!isNaN(parseInt(value))) {
         value = parseInt(value);
       }
       if (identifier[0] == '"' && identifier[identifier.length - 1] == '"') {
@@ -1138,7 +1143,8 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
     }
     // detect globals end
     // start language options detection start
-    let languageOptions: Record<string, any> = {
+
+    let languageOptions: LanguageOptions = {
       globals,
       parserOptions: {},
     };
@@ -1166,7 +1172,7 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
     for (let option of detectParserOptions) {
       let identifier = option.getMatch("IDENTIFIER")?.text();
       if (!identifier) continue;
-      let value: any = option
+      let value: string | number | boolean = option
         .text()
         .trim()
         .replace(`${identifier}:`, "")
@@ -1174,7 +1180,7 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
         .replace(/,\s*$/, "");
       if (value == "true" || value == "false") {
         value = value == "true" ? true : false;
-      } else if (!isNaN(value)) {
+      } else if (!isNaN(parseInt(value))) {
         value = parseInt(value);
       }
       // Remove quotes from identifier
@@ -1209,10 +1215,15 @@ async function transform(root: SgRoot<JSON>): Promise<string | null> {
     for (let env of detectingEnvRule) {
       let identifier = env.getMatch("IDENTIFIER")?.text();
       if (!identifier) continue;
-      let value: any = env.text().trim().replace(`${identifier}:`, "").trim().replace(/,\s*$/, "");
+      let value: string | number | boolean = env
+        .text()
+        .trim()
+        .replace(`${identifier}:`, "")
+        .trim()
+        .replace(/,\s*$/, "");
       if (value == "true" || value == "false") {
         value = value == "true" ? true : false;
-      } else if (!isNaN(value)) {
+      } else if (!isNaN(parseInt(value))) {
         value = parseInt(value);
       }
       // Remove quotes from identifier

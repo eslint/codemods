@@ -1,6 +1,17 @@
 import { getStepOutput } from "codemod:workflow";
 import makePluginImport from "./make-plugin-import.ts";
 
+type LanguageOptionsKnownValue =
+  | string
+  | number
+  | boolean
+  | Record<string, string | number | boolean>;
+
+export type LanguageOptions = {
+  globals: Record<string, string | number | boolean>;
+  parserOptions: Record<string, string | number | boolean>;
+} & Record<string, LanguageOptionsKnownValue>;
+
 export type SectorData = {
   rules: Record<string, string>;
   extends: string[]; // Preserved extends exactly as they were (as strings)
