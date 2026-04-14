@@ -44,44 +44,22 @@ nodes:
           include:
             - "**/*.ts"
             - "**/*.js"
-      - id: scan-eslintrc-js-and-cjs
-        name: "Scan .eslintrc.js and .eslintrc.cjs"
+      - id: scan-eslintrc-files
+        name: "Scan .eslintrc.js, .eslintrc.mjs, .eslintrc.cjs, .eslintrc.json, .eslintrc.yaml and .eslintrc.yml"
         depends_on:
           - scan-file-jsdoc
           - scan-ignore-files
         js-ast-grep:
-          js_file: scripts/transform-js-config.ts
+          js_file: scripts/transform-eslintrc-config.ts
           include:
             - "**/*.eslintrc.js"
+            - "**/*.eslintrc.mjs"
             - "**/*.eslintrc.cjs"
-      - id: scan-eslintrc-yaml-and-yml
-        name: "Scan .eslintrc.yaml and .eslintrc.yml"
-        depends_on:
-          - scan-file-jsdoc
-          - scan-ignore-files
-        js-ast-grep:
-          js_file: scripts/transform-yaml-config.ts
-          include:
+            - "**/*.eslintrc.json"
             - "**/*.eslintrc.yaml"
             - "**/*.eslintrc.yml"
-      - id: scan-eslintrc-json
-        name: "Scan .eslintrc.json"
-        depends_on:
-          - scan-file-jsdoc
-          - scan-ignore-files
-        js-ast-grep:
-          js_file: scripts/transform-json-config.ts
-          include:
-            - "**/*.eslintrc.json"
-      - id: move-eslintrc-files
-        name: "move .eslintrc.js, .eslintrc.json, .eslintrc.yaml and .eslintrc.yml to eslint.config.mjs"
-        depends_on: [scan-eslintrc-js-and-cjs, scan-eslintrc-yaml-and-yml, scan-eslintrc-json]
-        run: '"$CODEMOD_PATH/scripts/move.sh"'
       - id: code-formating
         depends_on:
           - move-eslintrc-files
         name: "Code formating"
         run: ${{ params.codeFormattingCommand }}
-      - id: remove-eslintignore-files
-        name: "Remove .eslintignore files"
-        run: 'find "${CODEMOD_TARGET_PATH:-.}" -name "*.eslintignore" -type f -delete'

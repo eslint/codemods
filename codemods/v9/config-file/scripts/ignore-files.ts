@@ -22,6 +22,9 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
     .filter((file, index, self) => self.indexOf(file) === index);
 
   setStepOutput(`ignoreFiles-${directory}`, JSON.stringify(ignoreFiles, null, 2));
+
+  root.rename("../deleted-eslintignore-backup.txt");
+
   return null;
 }
 
