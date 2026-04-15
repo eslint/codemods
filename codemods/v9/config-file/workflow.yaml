@@ -9,7 +9,7 @@ params:
       description: "Should formatting command run or not"
     codeFormattingCommand:
       name: "Code formatting command"
-      default: npm i -g prettier && npx prettier --write "**/eslint.config.mjs" --ignore-path /dev/null --no-config --no-error-on-unmatched-pattern
+      default: npx prettier --write "**/eslint.config.mjs" --ignore-path /dev/null --no-config --no-error-on-unmatched-pattern
       type: string
       description: "Command to format the code"
 

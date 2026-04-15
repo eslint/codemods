@@ -19,7 +19,7 @@ npx codemod@latest run @eslint/v8-to-v9-config -t /path/to/project
 When running `workflow.yaml` directly, you can control the optional formatting step with these params:
 
 - `codeFormattingCommandEnabled` (boolean, default: `false`): Enables/disables the formatting step.
-- `codeFormattingCommand` (string, default: `npm i -g prettier && npx prettier --write "**/eslint.config.mjs" --ignore-path /dev/null --no-config --no-error-on-unmatched-pattern`): Command to run when formatting is enabled.
+- `codeFormattingCommand` (string, default: `npx prettier --write "**/eslint.config.mjs" --ignore-path /dev/null --no-config --no-error-on-unmatched-pattern`): Command to run when formatting is enabled.
 
 Example:
 
