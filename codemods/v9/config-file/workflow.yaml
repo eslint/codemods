@@ -2,9 +2,14 @@ version: "1"
 
 params:
   schema:
+    codeFormattingCommandEnabled:
+      name: "Code formatting command enabled"
+      default: false
+      type: boolean
+      description: "Should formatting command run or not"
     codeFormattingCommand:
       name: "Code formatting command"
-      default: npm i -g prettier && npx prettier --write "**/eslint.config.mjs" --ignore-path /dev/null --no-config
+      default: npm i -g prettier && npx prettier --write "**/eslint.config.mjs" --ignore-path /dev/null --no-config --no-error-on-unmatched-pattern
       type: string
       description: "Command to format the code"
 
@@ -78,6 +83,7 @@ nodes:
             - "**/*.eslintrc.yaml"
             - "**/*.eslintrc.yml"
       - id: code-formating
+        if: params.codeFormattingCommandEnabled == true
         depends_on:
           - move-eslintrc-files
         name: "Code formating"
