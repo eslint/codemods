@@ -4,11 +4,11 @@
   "description": "Migrate custom ESLint rules from v8 to v9 format",
   "type": "module",
   "devDependencies": {
-    "@codemod.com/jssg-types": "^1.0.9",
+    "@codemod.com/jssg-types": "^1.5.1",
     "typescript": "^5.8.3"
   },
   "scripts": {
     "check-types": "npx tsc --noEmit",
-    "test": "echo 'No tests yet'"
+    "test": "npx codemod@latest jssg test -l tsx ./scripts/jssg-test-workflow.ts"
   }
 }
