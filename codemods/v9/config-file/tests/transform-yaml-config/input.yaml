@@ -1,0 +1,46 @@
+env:
+  browser: true
+  es2021: true
+  node: true
+
+extends:
+  - eslint:recommended
+
+parserOptions:
+  ecmaVersion: latest
+  sourceType: module
+
+globals:
+  myCustomGlobal: readonly
+  jQuery: readonly
+
+rules:
+  no-console:
+    - warn
+    - allow:
+        - warn
+        - error
+  no-unused-vars:
+    - error
+    - vars: all
+      args: after-used
+      caughtErrors: all
+  no-sequences:
+    - error
+    - allowInParentheses: false
+  camelcase:
+    - error
+    - properties: always
+      ignoreDestructuring: false
+  no-useless-computed-key:
+    - error
+    - enforceForClassMembers: true
+
+overrides:
+  - files:
+      - "*.test.js"
+      - "*.spec.js"
+    env:
+      jest: true
+    rules:
+      no-console: off
