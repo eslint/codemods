@@ -18,6 +18,16 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
           kind: "object",
           inside: {
             kind: "assignment_expression",
+            has: {
+              kind: "member_expression",
+              regex: "module.exports",
+            },
+          },
+        },
+        {
+          kind: "object",
+          inside: {
+            kind: "export_statement",
           },
         },
         {

@@ -44,18 +44,37 @@ nodes:
           include:
             - "**/*.ts"
             - "**/*.js"
-      - id: scan-eslintrc-files
-        name: "Scan .eslintrc.js, .eslintrc.mjs, .eslintrc.cjs, .eslintrc.json, .eslintrc.yaml and .eslintrc.yml"
+      - id: scan-js-eslintrc-files
+        name: "Scan .eslintrc.js, .eslintrc.mjs, .eslintrc.cjs"
         depends_on:
           - scan-file-jsdoc
           - scan-ignore-files
         js-ast-grep:
+          language: javascript
           js_file: scripts/transform-eslintrc-config.ts
           include:
             - "**/*.eslintrc.js"
             - "**/*.eslintrc.mjs"
             - "**/*.eslintrc.cjs"
+      - id: scan-json-eslintrc-files
+        name: "Scan .eslintrc.json"
+        depends_on:
+          - scan-file-jsdoc
+          - scan-ignore-files
+        js-ast-grep:
+          language: json
+          js_file: scripts/transform-eslintrc-config.ts
+          include:
             - "**/*.eslintrc.json"
+      - id: scan-yaml-eslintrc-files
+        name: "Scan .eslintrc.yaml and .eslintrc.yml"
+        depends_on:
+          - scan-file-jsdoc
+          - scan-ignore-files
+        js-ast-grep:
+          language: yaml
+          js_file: scripts/transform-eslintrc-config.ts
+          include:
             - "**/*.eslintrc.yaml"
             - "**/*.eslintrc.yml"
       - id: code-formating
