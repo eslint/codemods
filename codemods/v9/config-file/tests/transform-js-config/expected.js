@@ -41,6 +41,10 @@ export default defineConfig([
       },
       sourceType: "module"
     },
+    linterOptions: {
+      noInlineConfig: true,
+      reportUnusedDisableDirectives: "warn"
+    },
     rules: {
       camelcase: [
       "error",

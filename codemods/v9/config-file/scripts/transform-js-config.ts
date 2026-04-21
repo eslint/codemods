@@ -75,6 +75,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
         settings: {},
       },
       extendsTodoComments: [] as string[], // TODO comments for extends
+      linterOptions: undefined as Record<string, string> | undefined,
     };
     // start detecting parser
     // In flat config, parser must be an imported object, not a string
@@ -1396,6 +1397,89 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
     }
     sectorData.files = files as string;
     // end files detection
+
+    // start linterOptions detection (noInlineConfig, reportUnusedDisableDirectives)
+    const linterOptions: Record<string, string> = {};
+
+    const noInlineConfigRule = sector.find({
+      rule: {
+        kind: "pair",
+        has: {
+          any: [
+            {
+              kind: "property_identifier",
+              regex: "^noInlineConfig$",
+            },
+            {
+              kind: "string",
+              has: {
+                kind: "string_fragment",
+                regex: "^noInlineConfig$",
+              },
+            },
+          ],
+        },
+        inside: {
+          kind: "object",
+        },
+      },
+    });
+    if (noInlineConfigRule) {
+      let pairText = noInlineConfigRule.text().trim();
+      pairText = pairText
+        .replace(/^["']?noInlineConfig["']?\s*:\s*/, "")
+        .replace(/,\s*$/, "")
+        .trim();
+      if (pairText === "true" || pairText === "false") {
+        linterOptions.noInlineConfig = pairText;
+      }
+    }
+
+    const reportUnusedDisableDirectivesRule = sector.find({
+      rule: {
+        kind: "pair",
+        has: {
+          any: [
+            {
+              kind: "property_identifier",
+              regex: "^reportUnusedDisableDirectives$",
+            },
+            {
+              kind: "string",
+              has: {
+                kind: "string_fragment",
+                regex: "^reportUnusedDisableDirectives$",
+              },
+            },
+          ],
+        },
+        inside: {
+          kind: "object",
+        },
+      },
+    });
+    if (reportUnusedDisableDirectivesRule) {
+      let pairText = reportUnusedDisableDirectivesRule.text().trim();
+      pairText = pairText
+        .replace(/^["']?reportUnusedDisableDirectives["']?\s*:\s*/, "")
+        .replace(/,\s*$/, "")
+        .trim();
+      if (pairText === "true") {
+        // In eslintrc, `true` was equivalent to `"warn"` in flat config
+        linterOptions.reportUnusedDisableDirectives = '"warn"';
+      } else if (pairText === "false") {
+        linterOptions.reportUnusedDisableDirectives = '"off"';
+      } else if (pairText) {
+        // Preserve any quoted severity string ("error", "warn", "off") as-is
+        linterOptions.reportUnusedDisableDirectives = pairText;
+      }
+    }
+
+    if (Object.keys(linterOptions).length > 0) {
+      sectorData.linterOptions = linterOptions;
+    }
+    // end linterOptions detection
+
     sectors.push(sectorData);
   }
 

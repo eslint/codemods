@@ -23,6 +23,7 @@ export type SectorData = {
     settings: Record<string, string>;
   };
   extendsTodoComments?: string[]; // TODO comments for extends
+  linterOptions?: Record<string, string>; // Values already formatted for emission (e.g. `true`, `"warn"`)
 };
 
 const formatValue = (value: unknown, indent: number): string => {
@@ -238,6 +239,7 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
     const hasRules = Object.keys(sector.rules).length > 0;
     const hasPlugins = sector.plugins && sector.plugins.length > 0;
     const hasExtends = preservedExtends.length > 0;
+    const hasLinterOptions = !!sector.linterOptions && Object.keys(sector.linterOptions).length > 0;
 
     // Create an object if we have any properties (files, rules, plugins, languageOptions, extends, TODO comments)
     if (
@@ -246,6 +248,7 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
       hasRules ||
       hasPlugins ||
       hasExtends ||
+      hasLinterOptions ||
       todoComments.length > 0
     ) {
       parts.push("  {");
@@ -351,6 +354,16 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
         // All other properties remain in languageOptions as-is
         const formattedLangOpts = formatValue(langOpts, 2);
         parts.push(`    languageOptions: ${formattedLangOpts},`);
+      }
+
+      if (hasLinterOptions) {
+        parts.push("    linterOptions: {");
+        const linterEntries = Object.entries(sector.linterOptions!);
+        linterEntries.forEach(([key, value], index) => {
+          const comma = index < linterEntries.length - 1 ? "," : "";
+          parts.push(`      ${key}: ${value}${comma}`);
+        });
+        parts.push("    },");
       }
 
       if (hasRules) {

@@ -7,6 +7,9 @@ module.exports = {
     node: true,
   },
 
+  noInlineConfig: true,
+  reportUnusedDisableDirectives: true,
+
   extends: ["eslint:recommended", "eslint:all"],
 
   parserOptions: {

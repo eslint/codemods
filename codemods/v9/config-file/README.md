@@ -56,6 +56,8 @@ Converts `.eslintrc.js`, `.eslintrc.json`, `.eslintrc.yaml`, and `.eslintrc.yml`
 - `globals` → `languageOptions.globals`
 - `parserOptions` → `languageOptions.parserOptions`
 - `overrides` → separate configuration objects in the array
+- `noInlineConfig` → `linterOptions.noInlineConfig`
+- `reportUnusedDisableDirectives` → `linterOptions.reportUnusedDisableDirectives` (boolean `true` becomes `"warn"`, `false` becomes `"off"`; explicit severity strings are preserved)
 
 ### Step 2: Rule Schema Updates
 

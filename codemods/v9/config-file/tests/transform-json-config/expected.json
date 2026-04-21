@@ -36,6 +36,10 @@ export default defineConfig([
       },
       sourceType: "module"
     },
+    linterOptions: {
+      noInlineConfig: true,
+      reportUnusedDisableDirectives: "warn"
+    },
     rules: {
       "no-console": ["warn", { "allow": ["warn", "error"] }],
       "no-sequences": ["error", {"allowInParentheses": false}],
