@@ -85,16 +85,17 @@ nodes:
       - id: scan-packagejson-files
         name: "Scan package.json"
         depends_on:
-          - scan-file-jsdoc
-          - scan-ignore-files
+          - scan-js-eslintrc-files
+          - scan-json-eslintrc-files
+          - scan-yaml-eslintrc-files
         js-ast-grep:
           language: json
           js_file: scripts/transform-packagejson-config.ts
           include:
-            - "**/*.package.json"
+            - "**/*package.json"
       - id: code-formating
         if: params.codeFormattingCommandEnabled == true
         depends_on:
-          - move-eslintrc-files
+          - scan-packagejson-files
         name: "Code formating"
         run: ${{ params.codeFormattingCommand }}
