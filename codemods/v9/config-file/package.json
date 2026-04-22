@@ -9,13 +9,14 @@
   },
   "scripts": {
     "check-types": "npx tsc --noEmit",
-    "test": "npm run test:fix-exported && npm run test:remove-comments && npm run test:file-jsdoc && npm run test:transform-js && npm run test:transform-json && npm run test:transform-yaml",
+    "test": "npm run test:fix-exported && npm run test:remove-comments && npm run test:file-jsdoc && npm run test:transform-js && npm run test:transform-json && npm run test:transform-yaml && npm run test:transform-packagejson",
     "test:fix-exported": "npx codemod@latest jssg test -l javascript ./scripts/fix-exported-comment.ts --filter fix-exported-comment",
     "test:remove-comments": "npx codemod@latest jssg test -l javascript ./scripts/remove-unnecessary-eslint-comments.ts --filter remove-eslint-comments",
     "test:file-jsdoc": "npx codemod@latest jssg test -l javascript ./scripts/file-jsdoc.ts --filter file-jsdoc",
     "test:transform-js": "npx codemod@latest jssg test -l javascript ./scripts/transform-js-config.ts --filter transform-js-config",
     "test:transform-json": "npx codemod@latest jssg test -l json ./scripts/transform-json-config.ts --filter transform-json-config",
-    "test:transform-yaml": "npx codemod@latest jssg test -l json ./scripts/transform-json-config.ts --filter transform-yaml-config"
+    "test:transform-yaml": "npx codemod@latest jssg test -l json ./scripts/transform-json-config.ts --filter transform-yaml-config",
+    "test:transform-packagejson": "npx codemod@latest jssg test -l json ./scripts/transform-packagejson-config.ts --filter transform-packagejson-config --allow-fs"
   },
   "dependencies": {
     "@types/js-yaml": "^4.0.9",

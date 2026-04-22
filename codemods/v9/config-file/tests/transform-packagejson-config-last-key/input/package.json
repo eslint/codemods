@@ -1,0 +1,12 @@
+{
+  "name": "my-package",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "echo ok"
+  },
+  "eslintConfig": {
+    "rules": {
+      "no-console": "warn"
+    }
+  }
+}

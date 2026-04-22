@@ -1,0 +1,16 @@
+{
+  "name": "my-package",
+  "version": "1.0.0",
+  "eslintConfig": {
+    "env": {
+      "browser": true,
+      "node": true
+    },
+    "rules": {
+      "no-console": "warn"
+    }
+  },
+  "scripts": {
+    "test": "echo ok"
+  }
+}

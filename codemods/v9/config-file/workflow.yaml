@@ -82,6 +82,16 @@ nodes:
           include:
             - "**/*.eslintrc.yaml"
             - "**/*.eslintrc.yml"
+      - id: scan-packagejson-files
+        name: "Scan package.json"
+        depends_on:
+          - scan-file-jsdoc
+          - scan-ignore-files
+        js-ast-grep:
+          language: json
+          js_file: scripts/transform-packagejson-config.ts
+          include:
+            - "**/*.package.json"
       - id: code-formating
         if: params.codeFormattingCommandEnabled == true
         depends_on:
