@@ -12,6 +12,18 @@ params:
       default: npx prettier --write "**/eslint.config.mjs" --ignore-path /dev/null --no-config --no-error-on-unmatched-pattern
       type: string
       description: "Command to format the code"
+    eslintConfigCustomName:
+      name: "Custom name of ESLint config file"
+      default: null
+      type: string
+      description: "Name of the custom ESLint config file"
+    eslintConfigLanguage:
+      name: "Language of ESLint config file"
+      default: javascript
+      type: string
+      description: >-
+        ast-grep language for `eslintConfigCustomName` (must match the file extension).
+        Use `javascript` for .js / .mjs / .cjs; `json` for .json; `yaml` for .yaml / .yml.
 
 nodes:
   - id: apply-transforms
@@ -82,12 +94,49 @@ nodes:
           include:
             - "**/*.eslintrc.yaml"
             - "**/*.eslintrc.yml"
+      - id: scan-custom-eslint-config-javascript
+        if: 'params.eslintConfigCustomName != "null" && params.eslintConfigLanguage == "javascript"'
+        name: "Scan ESLint config file with custom name (JavaScript)"
+        depends_on:
+          - scan-file-jsdoc
+          - scan-ignore-files
+        js-ast-grep:
+          language: javascript
+          js_file: scripts/transform-eslintrc-config.ts
+          include:
+            - "**/*${{ params.eslintConfigCustomName }}"
+      - id: scan-custom-eslint-config-json
+        if: 'params.eslintConfigCustomName != "null" && params.eslintConfigLanguage == "json"'
+        name: "Scan ESLint config file with custom name (JSON)"
+        depends_on:
+          - scan-file-jsdoc
+          - scan-ignore-files
+        js-ast-grep:
+          language: json
+          js_file: scripts/transform-eslintrc-config.ts
+          include:
+            - "**/*${{ params.eslintConfigCustomName }}"
+      - id: scan-custom-eslint-config-yaml
+        if: 'params.eslintConfigCustomName != "null" && params.eslintConfigLanguage == "yaml"'
+        name: "Scan ESLint config file with custom name (YAML)"
+        depends_on:
+          - scan-file-jsdoc
+          - scan-ignore-files
+        js-ast-grep:
+          language: yaml
+          js_file: scripts/transform-eslintrc-config.ts
+          include:
+            - "**/*${{ params.eslintConfigCustomName }}"
       - id: scan-packagejson-files
         name: "Scan package.json"
         depends_on:
           - scan-js-eslintrc-files
           - scan-json-eslintrc-files
           - scan-yaml-eslintrc-files
+          - scan-custom-eslint-config-javascript
+          - scan-custom-eslint-config-typescript
+          - scan-custom-eslint-config-json
+          - scan-custom-eslint-config-yaml
         js-ast-grep:
           language: json
           js_file: scripts/transform-packagejson-config.ts
