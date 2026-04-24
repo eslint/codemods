@@ -1,8 +1,8 @@
 {
-  "name": "<SCOPE>-codemods",
+  "name": "eslint-codemods",
   "private": true,
   "version": "0.1.0",
-  "description": "Codemods for <SCOPE>",
+  "description": "Codemods for ESLint",
   "type": "module",
   "scripts": {
     "lint": "eslint .",

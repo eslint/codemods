@@ -1,4 +1,4 @@
-Official Eslint codemods to help users adopt new features and handle breaking changes with ease.
+Official ESLint codemods to help users adopt new features and handle breaking changes with ease.
 
 Community contributions are welcome and appreciated! Check open issues for codemods to build, or open a new one if something’s missing. See the [contribution guide](./CONTRIBUTING.md) for details.
 
@@ -24,7 +24,7 @@ npx codemod@latest @eslint/v8-to-v9-config
 ### From source
 
 ```bash
-npx codemod workflow run -w /path/to/folder/containing/workflow.yaml
+npx codemod workflow run -w ./codemods/v9/config-file/workflow.yaml
 ```
 
 > [!NOTE]

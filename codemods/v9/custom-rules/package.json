@@ -1,5 +1,5 @@
 {
-  "name": "@codemod/eslint-custom-rules-v8-to-v9",
+  "name": "@eslint/v8-to-v9-custom-rules",
   "version": "0.1.0",
   "description": "Migrate custom ESLint rules from v8 to v9 format",
   "type": "module",

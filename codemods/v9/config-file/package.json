@@ -1,5 +1,5 @@
 {
-  "name": "@eslint/v9",
+  "name": "@eslint/v8-to-v9-config",
   "version": "0.1.0",
   "description": "Migratie eslint v8 to v9",
   "type": "module",

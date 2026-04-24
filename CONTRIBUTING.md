@@ -6,7 +6,7 @@ Thanks for helping users adopt the latest features with your codemods!
 
 - **Issue**: Check for an existing issue, or open one first.
 - **Safety**: Codemods must be safe, predictable, and idempotent (running twice should not change code again). Avoid mixing patterns with different safety levels.
-- **Naming**: In `codemod.yaml`, the codemod name must start with `@<scope>`, where `<scope>` is this repo's GitHub org.
+- **Naming**: In `codemod.yaml`, the codemod name must start with `@eslint`, where `eslint` is this repo's GitHub org.
 - **Tests**: Add multiple fixtures (positive and negative).
 - **Docs**: Update the README for your codemod.
 
