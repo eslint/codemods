@@ -169,7 +169,8 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
     }
   }
 
-  parts.push(imports.join("\n"));
+  const uniqueImports = [...new Set(imports)];
+  parts.push(uniqueImports.join("\n"));
   parts.push("");
 
   // Add __dirname definition if needed (before any other code)
