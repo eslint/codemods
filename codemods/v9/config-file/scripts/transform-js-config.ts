@@ -7,9 +7,442 @@ import type { LanguageOptions, SectorData } from "../utils/make-new-config.ts";
 import path from "path";
 import makePluginImport from "../utils/make-plugin-import.ts";
 
+/** Top-level `const x = …` initializer text for same-file spread / identifier resolution in `rules`. */
+function collectBindingsFromProgram(rootNode: SgNode<JS>): Map<string, string> {
+  const bindings = new Map<string, string>();
+  const declarators = rootNode.findAll({
+    rule: {
+      kind: "variable_declarator",
+    },
+  });
+  for (const decl of declarators) {
+    const declText = decl.text().trim();
+    const sp = splitAtFirstTopLevelDelimiter(declText, "=");
+    if (!sp) continue;
+    const name = sp.before.trim();
+    const simple = /^([a-zA-Z_$][\w$]*)/.exec(name);
+    if (!simple?.[1]) continue;
+    bindings.set(simple[1], sp.after.trim());
+  }
+  return bindings;
+}
+
+function findRulesPair(sector: SgNode<JS>): SgNode<JS> | null {
+  return (
+    sector.find({
+      rule: {
+        kind: "pair",
+        has: {
+          kind: "property_identifier",
+          regex: "^rules$",
+        },
+      },
+    }) ??
+    sector.find({
+      rule: {
+        kind: "pair",
+        has: {
+          kind: "string",
+          has: {
+            kind: "string_fragment",
+            regex: "^rules$",
+          },
+        },
+      },
+    })
+  );
+}
+
+function normalizePairKey(rawKey: string): string {
+  const k = rawKey.trim();
+  if (
+    (k.startsWith('"') && k.endsWith('"')) ||
+    (k.startsWith("'") && k.endsWith("'"))
+  ) {
+    return k.slice(1, -1);
+  }
+  return k;
+}
+
+/** Split at first delimiter (`:` for pairs, `=` for declarators) outside strings and nested `()[]{}`. */
+function splitAtFirstTopLevelDelimiter(
+  src: string,
+  delimiterChar: string,
+): { before: string; after: string } | null {
+  let braceDepth = 0;
+  let bracketDepth = 0;
+  let parenDepth = 0;
+  let inString: "'" | '"' | null = null;
+
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i];
+
+    if (inString) {
+      if (c === "\\") {
+        i++;
+        continue;
+      }
+      if (c === inString) inString = null;
+      continue;
+    }
+
+    if (c === '"' || c === "'") {
+      inString = c as "'" | '"';
+      continue;
+    }
+
+    if (c === "{") braceDepth++;
+    else if (c === "}") braceDepth--;
+    else if (c === "[") bracketDepth++;
+    else if (c === "]") bracketDepth--;
+    else if (c === "(") parenDepth++;
+    else if (c === ")") parenDepth--;
+
+    const depth = braceDepth + bracketDepth + parenDepth;
+    if (c === delimiterChar && depth === 0) {
+      return {
+        before: src.slice(0, i).trim(),
+        after: src.slice(i + 1).trim(),
+      };
+    }
+  }
+  return null;
+}
+
+function splitPairAtFirstTopLevelColon(pairText: string): { before: string; after: string } | null {
+  return splitAtFirstTopLevelDelimiter(pairText, ":");
+}
+
+/** Strip outer ASCII quotes from a JS string literal token. */
+function stripQuotes(token: string): string {
+  const t = token.trim();
+  if (
+    (t.startsWith('"') && t.endsWith('"')) ||
+    (t.startsWith("'") && t.endsWith("'"))
+  ) {
+    return t.slice(1, -1);
+  }
+  return t;
+}
+
+/** Replace identifier references that match binding names with initializer source (handles nested uses like `ignorePropertyModificationsFor: ignoredProps`). */
+function substituteBindingsOnce(
+  trimmed: string,
+  bindings: Map<string, string>,
+  skipNames: Set<string>,
+): string {
+  if (!bindings.size) return trimmed;
+  const HEADER = "void (";
+  const FOOTER = ");";
+  const wrappedSrc = `${HEADER}${trimmed}${FOOTER}`;
+  let ast: SgRoot<JS>;
+  try {
+    ast = parse("javascript", wrappedSrc) as SgRoot<JS>;
+  } catch {
+    return trimmed;
+  }
+  const OFFSET = HEADER.length;
+  const replacements: Array<{ start: number; end: number; text: string }> = [];
+
+  const ids = ast.root().findAll({
+    rule: {
+      kind: "identifier",
+    },
+  });
+
+  for (const id of ids) {
+    const name = id.text();
+    if (skipNames.has(name)) continue;
+    const repl = bindings.get(name);
+    if (repl === undefined) continue;
+    const r = id.range();
+    const start = r.start.index - OFFSET;
+    const end = r.end.index - OFFSET;
+    if (start < 0 || end > trimmed.length) continue;
+    if (trimmed.slice(start, end) !== name) continue;
+    replacements.push({ start, end, text: repl.trim() });
+  }
+
+  replacements.sort((a, b) => b.start - a.start);
+  let out = trimmed;
+  for (const rep of replacements) {
+    out = out.slice(0, rep.start) + rep.text + out.slice(rep.end);
+  }
+  return out;
+}
+
+function substituteBindingsInExprSource(
+  trimmed: string,
+  bindings: Map<string, string>,
+  skipNames: Set<string>,
+): string {
+  let current = trimmed;
+  for (let i = 0; i < 8; i++) {
+    const next = substituteBindingsOnce(current, bindings, skipNames);
+    if (next === current) break;
+    current = next;
+  }
+  return current;
+}
+
+function resolveRuleValueRaw(
+  valueAfterColon: string,
+  bindings: Map<string, string>,
+  skipNames: Set<string>,
+): string {
+  const trimmed = valueAfterColon.trim();
+  const simpleId = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.exec(trimmed);
+  if (simpleId && bindings.has(trimmed)) {
+    // Keep a bare `airbnbBase`-style binding as the imported identifier, not `require(...)`.
+    if (skipNames.has(trimmed)) return trimmed;
+    return bindings.get(trimmed)!;
+  }
+  return substituteBindingsInExprSource(trimmed, bindings, skipNames);
+}
+
+/** Top-level `const name = require('pkg')` with a static string specifier → ESM import lines. */
+function parseStaticRequireRhs(rhsTrimmed: string): { specifier: string } | null {
+  try {
+    const wrapped = parse(
+      "javascript",
+      `const __bind_req_probe = ${rhsTrimmed};`,
+    ) as SgRoot<JS>;
+    const decl = wrapped.root().find({
+      rule: {
+        kind: "variable_declarator",
+      },
+    });
+    const call = decl?.find({
+      rule: {
+        kind: "call_expression",
+      },
+    });
+    if (!call) return null;
+    const callee = call.child(0);
+    if (!callee || callee.kind() !== "identifier" || callee.text() !== "require") return null;
+    const argStr = call.find({
+      rule: {
+        kind: "string",
+      },
+    });
+    if (!argStr) return null;
+    return { specifier: stripQuotes(argStr.text()) };
+  } catch {
+    return null;
+  }
+}
+
+function collectRequireImportsFromProgram(rootNode: SgNode<JS>): Array<{ binding: string; specifier: string }> {
+  const raw: Array<{ binding: string; specifier: string }> = [];
+  const declarators = rootNode.findAll({
+    rule: {
+      kind: "variable_declarator",
+    },
+  });
+  for (const decl of declarators) {
+    const sp = splitAtFirstTopLevelDelimiter(decl.text().trim(), "=");
+    if (!sp) continue;
+    const binding = /^([a-zA-Z_$][\w$]*)/.exec(sp.before.trim())?.[1];
+    if (!binding) continue;
+    const req = parseStaticRequireRhs(sp.after.trim());
+    if (!req) continue;
+    raw.push({ binding, specifier: req.specifier });
+  }
+  const seen = new Set<string>();
+  const out: Array<{ binding: string; specifier: string }> = [];
+  for (const row of raw) {
+    const key = `${row.binding}\0${row.specifier}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(row);
+  }
+  return out;
+}
+
+function specifierAlreadyInImports(imports: string[], specifier: string): boolean {
+  const esc = specifier.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`from\\s+["']${esc}["']`);
+  return imports.some((line) => re.test(line));
+}
+
+/** Delete a rule entry whether the key was stored as `name`, `"name"`, or legacy quoted artifacts from the old extractor. */
+function deleteRuleKeys(rules: Record<string, string>, logicalName: string): void {
+  delete rules[logicalName];
+  delete rules[`"${logicalName}"`];
+  delete rules[`'${logicalName}'`];
+  delete rules[`'"${logicalName}"'`];
+  delete rules[`"'${logicalName}'"`];
+}
+
+function pairNodeToRuleEntry(
+  pairNode: SgNode<JS>,
+  bindings: Map<string, string>,
+  skipImportBindings: Set<string>,
+): { key: string; value: string } | null {
+  const split = splitPairAtFirstTopLevelColon(pairNode.text());
+  if (!split) return null;
+  const key = normalizePairKey(split.before);
+  const value = resolveRuleValueRaw(split.after, bindings, skipImportBindings);
+  return { key, value };
+}
+
+function hasSameRange(a: SgNode<JS>, b: SgNode<JS>): boolean {
+  const ra = a.range();
+  const rb = b.range();
+  return ra.start.index === rb.start.index && ra.end.index === rb.end.index;
+}
+
+function orderedDirectObjectMembers(objNode: SgNode<JS>): SgNode<JS>[] {
+  const out: SgNode<JS>[] = [];
+  for (const n of objNode.findAll({ rule: { kind: "pair" } })) {
+    const p = n.parent();
+    if (p && hasSameRange(p as SgNode<JS>, objNode)) out.push(n);
+  }
+  for (const n of objNode.findAll({ rule: { kind: "spread_element" } })) {
+    const p = n.parent();
+    if (p && hasSameRange(p as SgNode<JS>, objNode)) out.push(n);
+  }
+  return out.sort((a, b) => {
+    const ra = a.range().start;
+    const rb = b.range().start;
+    return ra.line !== rb.line ? ra.line - rb.line : ra.column - rb.column;
+  });
+}
+
+function resolveIdentifierInitializerText(
+  idNode: SgNode<JS>,
+  bindings: Map<string, string>,
+): string | null {
+  const name = idNode.text();
+  const fromBindings = bindings.get(name);
+  if (fromBindings !== undefined) return fromBindings;
+
+  if (typeof idNode.definition !== "function") return null;
+  const def = idNode.definition();
+  if (!def || def.kind !== "local") return null;
+  const bindingSite = def.node;
+  const declarator = bindingSite.parent();
+  if (!declarator || declarator.kind() !== "variable_declarator") return null;
+  const declText = declarator.text().trim();
+  const sp = splitAtFirstTopLevelDelimiter(declText, "=");
+  return sp?.after.trim() ?? null;
+}
+
+function resolveInitializerToObjectNode(initText: string, bindings: Map<string, string>, depth: number): SgNode<JS> | null {
+  if (depth > 32) return null;
+  let text = initText.trim();
+  const simpleId = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.exec(text);
+  if (simpleId && bindings.has(text)) {
+    return resolveInitializerToObjectNode(bindings.get(text)!, bindings, depth + 1);
+  }
+
+  const wrapped = parse("javascript", `const __spreadProbe = (${text});`) as SgRoot<JS>;
+  const declarator = wrapped.root().find({
+    rule: {
+      kind: "variable_declarator",
+    },
+  });
+  const obj = declarator?.find({
+    rule: {
+      kind: "object",
+    },
+  });
+  return obj ?? null;
+}
+
+function extractRulesFromObjectExpression(
+  rulesObj: SgNode<JS>,
+  bindings: Map<string, string>,
+  visitedSpreadVars: Set<string>,
+  skipImportBindings: Set<string>,
+): Record<string, string> {
+  const merged: Record<string, string> = {};
+  const members = orderedDirectObjectMembers(rulesObj);
+
+  for (const member of members) {
+    if (member.kind() === "spread_element") {
+      const spreadId = member.find({ rule: { kind: "identifier" } }) as SgNode<JS> | null;
+      const name = spreadId?.text();
+      if (!spreadId || !name) continue;
+      if (visitedSpreadVars.has(name)) continue;
+      visitedSpreadVars.add(name);
+
+      const initText = resolveIdentifierInitializerText(spreadId, bindings);
+      if (initText === null) {
+        merged[`...${name}`] = "";
+        continue;
+      }
+      const spreadObj = resolveInitializerToObjectNode(initText, bindings, 0);
+      if (!spreadObj) {
+        merged[`...${name}`] = "";
+        continue;
+      }
+      const inner = extractRulesFromObjectExpression(
+        spreadObj,
+        bindings,
+        visitedSpreadVars,
+        skipImportBindings,
+      );
+      Object.assign(merged, inner);
+      continue;
+    }
+
+    const parsed = pairNodeToRuleEntry(member, bindings, skipImportBindings);
+    if (!parsed) continue;
+    merged[parsed.key] = parsed.value;
+  }
+
+  return merged;
+}
+
+function getRulesValueExpression(rulesPair: SgNode<JS>): SgNode<JS> | null {
+  const candidates = rulesPair
+    .findAll({
+      rule: {
+        any: [{ kind: "object" }, { kind: "identifier" }],
+      },
+    })
+    .filter((n) => {
+      const p = n.parent();
+      return !!(p && hasSameRange(p as SgNode<JS>, rulesPair));
+    });
+  return candidates[0] ?? null;
+}
+
+function extractSectorRules(
+  sector: SgNode<JS>,
+  bindings: Map<string, string>,
+  skipImportBindings: Set<string>,
+): Record<string, string> {
+  const rulesPair = findRulesPair(sector);
+  if (!rulesPair) return {};
+
+  const valueExpr = getRulesValueExpression(rulesPair);
+  if (!valueExpr) return {};
+
+  if (valueExpr.kind() === "object") {
+    return extractRulesFromObjectExpression(valueExpr, bindings, new Set(), skipImportBindings);
+  }
+
+  if (valueExpr.kind() === "identifier") {
+    const init = resolveIdentifierInitializerText(valueExpr, bindings);
+    if (init === null) return {};
+    const obj = resolveInitializerToObjectNode(init, bindings, 0);
+    if (!obj) return {};
+    return extractRulesFromObjectExpression(obj, bindings, new Set(), skipImportBindings);
+  }
+
+  return {};
+}
+
 async function transform(root: SgRoot<JS>): Promise<string | null> {
   const rootNode = root.root();
   const source = rootNode.text();
+  const fileBindings = collectBindingsFromProgram(rootNode);
+
+  const staticRequireImportBindings = new Set(
+    collectRequireImportsFromProgram(rootNode).map((r) => r.binding),
+  );
 
   let rulesSectorsRule = rootNode.findAll({
     rule: {
@@ -186,57 +619,8 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
       sector = newSectorRoot.root();
     }
 
-    // start detecting rules
-    let rulesRule = sector.findAll({
-      rule: {
-        kind: "pair",
-        any: [
-          {
-            has: {
-              kind: "property_identifier",
-              pattern: "$IDENTIFIER",
-            },
-          },
-          {
-            has: {
-              kind: "string",
-              nthChild: 1,
-              pattern: "$IDENTIFIER",
-            },
-          },
-        ],
-        inside: {
-          kind: "object",
-          inside: {
-            kind: "pair",
-            any: [
-              {
-                has: {
-                  kind: "property_identifier",
-                  regex: "rules",
-                },
-              },
-              {
-                has: {
-                  kind: "string",
-                  nthChild: 1,
-                  has: {
-                    kind: "string_fragment",
-                    regex: "rules",
-                  },
-                },
-              },
-            ],
-          },
-        },
-      },
-    });
-    for (let rule of rulesRule) {
-      let identifer = rule.getMatch("IDENTIFIER")?.text();
-      if (!identifer) continue;
-      let value = rule.text().trim().replace(`${identifer}:`, "").trim();
-      sectorData.rules[identifer] = value;
-    }
+    // start detecting rules (pairs + object spreads + identifier-valued rule entries via bindings / semantic locals)
+    sectorData.rules = extractSectorRules(sector, fileBindings, staticRequireImportBindings);
     // end detecting rules
 
     // start jsDocs section
@@ -352,10 +736,8 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
         }
       }
     }
-    delete sectorData.rules['"require-jsdoc"'];
-    delete sectorData.rules["'require-jsdoc'"];
-    delete sectorData.rules["'valid-jsdoc'"];
-    delete sectorData.rules['"valid-jsdoc"'];
+    deleteRuleKeys(sectorData.rules, "require-jsdoc");
+    deleteRuleKeys(sectorData.rules, "valid-jsdoc");
     if (
       (jsDocs.type != "nothing" && jsDocs.type != "off") ||
       getStepOutput("scan-file-jsdoc", "isJsdoccommentExists") == "true"
@@ -427,9 +809,8 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
       }
     }
     if (noConstructorReturn) {
-      delete sectorData.rules['"no-constructor-return"'];
-      delete sectorData.rules["'no-constructor-return'"];
-      sectorData.rules['"no-constructor-return"'] = `["${noConstructorReturn}"]`;
+      deleteRuleKeys(sectorData.rules, "no-constructor-return");
+      sectorData.rules["no-constructor-return"] = `["${noConstructorReturn}"]`;
     }
 
     let noSequences = {
@@ -531,16 +912,15 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
       }
     }
     if (noSequences.type != "nothing") {
-      delete sectorData.rules['"no-sequences"'];
-      delete sectorData.rules["'no-sequences'"];
+      deleteRuleKeys(sectorData.rules, "no-sequences");
       if (
         typeof noSequences.allowInParentheses == "boolean" &&
         noSequences.allowInParenthesesExists == true
       ) {
-        sectorData.rules['"no-sequences"'] =
+        sectorData.rules["no-sequences"] =
           `["${noSequences.type}", {"allowInParentheses": ${noSequences.allowInParentheses}}]`;
       } else {
-        sectorData.rules['"no-sequences"'] = `["${noSequences.type}"]`;
+        sectorData.rules["no-sequences"] = `["${noSequences.type}"]`;
       }
     }
 
@@ -810,14 +1190,13 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
       }
     }
     if (noUnusedVars.type !== "nothing") {
-      delete sectorData.rules["'no-unused-vars'"];
-      delete sectorData.rules['"no-unused-vars"'];
+      deleteRuleKeys(sectorData.rules, "no-unused-vars");
       if (Object.keys(noUnusedVars.options).length) {
-        sectorData.rules['"no-unused-vars"'] = `["${
+        sectorData.rules["no-unused-vars"] = `["${
           noUnusedVars.type
         }", ${JSON.stringify(noUnusedVars.options)}]`;
       } else {
-        sectorData.rules['"no-unused-vars"'] = `["${noUnusedVars.type}"]`;
+        sectorData.rules["no-unused-vars"] = `["${noUnusedVars.type}"]`;
       }
     }
     // end execute no-unused-vars
@@ -909,9 +1288,8 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
       }
     }
     if (noUselessComputedKeys.type != "nothing") {
-      delete sectorData.rules["'no-useless-computed-key'"];
-      delete sectorData.rules['"no-useless-computed-key"'];
-      sectorData.rules['"no-useless-computed-key"'] =
+      deleteRuleKeys(sectorData.rules, "no-useless-computed-key");
+      sectorData.rules["no-useless-computed-key"] =
         `["${noUselessComputedKeys.type}", {enforceForClassMembers: ${noUselessComputedKeys.options.enforceForClassMembers}}]`;
     }
     // end no-useless-computed-key
@@ -1035,9 +1413,8 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
       }
     }
     if (camelcase.type != "nothing") {
-      delete sectorData.rules['"camelcase"'];
-      delete sectorData.rules["'camelcase'"];
-      sectorData.rules['"camelcase"'] = `["${camelcase.type}", ${JSON.stringify(
+      deleteRuleKeys(sectorData.rules, "camelcase");
+      sectorData.rules["camelcase"] = `["${camelcase.type}", ${JSON.stringify(
         camelcase.options
       )}]`;
     }
@@ -1168,8 +1545,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
           pathsByName.set(path.name, path);
         }
         finalPaths = Array.from(pathsByName.values());
-        delete sectorData.rules['"no-restricted-imports"'];
-        delete sectorData.rules["'no-restricted-imports'"];
+        deleteRuleKeys(sectorData.rules, "no-restricted-imports");
         let pairs = noRestrictedImports.findAll({
           rule: {
             kind: "pair",
@@ -1202,7 +1578,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
           }
           return true;
         });
-        sectorData.rules['"no-restricted-imports"'] =
+        sectorData.rules["no-restricted-imports"] =
           `["${noRestrictedImportsType}", {paths: [${finalPaths.map(
             (path) => path.content
           )}], ${pairs.map((pair) => `${pair.text()},`)}}]`;
@@ -1574,6 +1950,12 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
     // end execution ignorePatterns: {ignorePatterns: ["test", "m"]}
 
     sectors.push(sectorData);
+  }
+
+  for (const req of collectRequireImportsFromProgram(rootNode)) {
+    if (specifierAlreadyInImports(imports, req.specifier)) continue;
+    const line = `import ${req.binding} from "${req.specifier}";`;
+    if (!imports.includes(line)) imports.push(line);
   }
 
   let directory = path.dirname(root.filename()).replace(/[/\\]/g, "-");

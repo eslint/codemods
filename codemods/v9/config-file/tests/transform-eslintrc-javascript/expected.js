@@ -54,16 +54,6 @@ export default defineConfig([
       reportUnusedDisableDirectives: "warn"
     },
     rules: {
-      camelcase: [
-      "error",
-      {
-        properties: "always",
-        ignoreDestructuring: false,
-        ignoreImports: false,
-        ignoreGlobals: false,
-        allow: ["^UNSAFE_", "^DEPRECATED_", "api_key", "user_id"],
-      },
-    ],
       "no-console": ["warn", { allow: ["warn", "error", "info"] }],
       "no-debugger": "error",
       "no-alert": "warn",
@@ -121,7 +111,7 @@ export default defineConfig([
       "no-sequences": ["error", {"allowInParentheses": false}],
       "no-unused-vars": ["error", {"caughtErrors":"\"all\"","vars":"\"all\"","args":"\"after-used\"","ignoreRestSiblings":true,"caughtErrorsIgnorePattern":"\"^_\""}],
       "no-useless-computed-key": ["error", {enforceForClassMembers: false}],
-      "camelcase": ["error", {"properties":"\"always\"","ignoreDestructuring":false,"ignoreImports":false,"ignoreGlobals":false,"allow":"[\"^UNSAFE_\", \"^DEPRECATED_\", \"api_key\", \"user_id\"]"}],
+      camelcase: ["error", {"properties":"\"always\"","ignoreDestructuring":false,"ignoreImports":false,"ignoreGlobals":false,"allow":"[\"^UNSAFE_\", \"^DEPRECATED_\", \"api_key\", \"user_id\"]"}],
       "no-restricted-imports": ["error", {paths: [{
             name: "lodash",
             message: "Please use lodash-es for better tree-shaking.",
