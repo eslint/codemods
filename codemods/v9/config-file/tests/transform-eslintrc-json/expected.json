@@ -21,6 +21,7 @@ const __dirname = path.dirname(__filename);
 export default defineConfig([
   {
     extends: fixupConfigRules(compatWithRecommended.extends(
+      "eslint:recommended",
       "plugin:react/recommended"
     )),
     languageOptions: {
@@ -52,6 +53,7 @@ export default defineConfig([
   },
   {
     extends: fixupConfigRules(compatWithRecommended.extends(
+      "eslint:recommended",
       "plugin:react/recommended"
     )),
     plugins: {

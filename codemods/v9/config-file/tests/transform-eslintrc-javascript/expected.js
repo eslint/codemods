@@ -27,6 +27,8 @@ export default defineConfig([
   {
     files: ["*.test.js", "*.spec.js", "**/__tests__/**/*.js"],
     extends: fixupConfigRules(compatWithRecommendedAndAll.extends(
+      "eslint:recommended",
+      "eslint:all"
     )),
     plugins: {
       "@typescript-eslint": fixupPluginRules(TypescriptEslint),

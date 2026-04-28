@@ -16,10 +16,7 @@ export const formatJsObjectPropertyKey = (key: string): string => {
     return key;
   }
   // Legacy paths store JSON-style keys with quote delimiters already in the string.
-  if (
-    (key.startsWith('"') && key.endsWith('"')) ||
-    (key.startsWith("'") && key.endsWith("'"))
-  ) {
+  if ((key.startsWith('"') && key.endsWith('"')) || (key.startsWith("'") && key.endsWith("'"))) {
     return key;
   }
   if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key)) {
@@ -292,11 +289,8 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
                 ? "compatWithAll"
                 : "compat";
         parts.push(`    extends: fixupConfigRules(${compatName}.extends(`);
-        const extendsToEmit = preservedExtends.filter(
-          (extend) => !["eslint:recommended", "eslint:all"].includes(extend)
-        );
-        extendsToEmit.forEach((ext, index) => {
-          const comma = index < extendsToEmit.length - 1 ? "," : "";
+        preservedExtends.forEach((ext, index) => {
+          const comma = index < preservedExtends.length - 1 ? "," : "";
           // Preserve the extend value exactly as it was (with quotes if it was a string)
           parts.push(`      "${ext}"${comma}`);
         });
