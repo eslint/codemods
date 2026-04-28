@@ -27,6 +27,8 @@ export default defineConfig([
       globals: {
         myCustomGlobal: "readonly",
         jQuery: "readonly",
+        "@typescript-eslint/something": "readonly",
+        "legacy-hyphen-global": "writable",
         ...globals.browser,
         ...globals.es2021,
         ...globals.node

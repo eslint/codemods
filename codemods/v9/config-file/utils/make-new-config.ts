@@ -7,6 +7,27 @@ type LanguageOptionsKnownValue =
   | boolean
   | Record<string, string | number | boolean>;
 
+/**
+ * Emit a JavaScript object literal property key: valid IdentifierNames stay unquoted;
+ * keys starting with `@`, containing `-`, or otherwise invalid as identifiers use JSON quoting.
+ */
+export const formatJsObjectPropertyKey = (key: string): string => {
+  if (key.startsWith("...")) {
+    return key;
+  }
+  // Legacy paths store JSON-style keys with quote delimiters already in the string.
+  if (
+    (key.startsWith('"') && key.endsWith('"')) ||
+    (key.startsWith("'") && key.endsWith("'"))
+  ) {
+    return key;
+  }
+  if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key)) {
+    return key;
+  }
+  return JSON.stringify(key);
+};
+
 export type LanguageOptions = {
   globals: Record<string, string | number | boolean>;
   parserOptions: Record<string, string | number | boolean>;
@@ -58,7 +79,7 @@ const formatValue = (value: unknown, indent: number): string => {
       if (key.startsWith("...")) {
         return `${nextIndentStr}${key}`;
       }
-      const formattedKey = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key) ? key : `"${key}"`;
+      const formattedKey = formatJsObjectPropertyKey(key);
       return `${nextIndentStr}${formattedKey}: ${formatValue(val, indent + 1)}`;
     });
     return `{\n${props.join(",\n")}\n${indentStr}}`;
@@ -220,7 +241,7 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
     const settingsEntries = Object.entries(requireJsdocSettings);
     settingsEntries.forEach(([key, value], index) => {
       const comma = index < settingsEntries.length - 1 ? "," : "";
-      parts.push(`      ${key}: ${value}${comma}`);
+      parts.push(`      ${formatJsObjectPropertyKey(key)}: ${value}${comma}`);
     });
     parts.push("    },");
     parts.push("  }),");
@@ -299,7 +320,9 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
         sector.plugins?.forEach((plugin, index) => {
           const comma = index < (sector.plugins?.length ?? 0) - 1 ? "," : "";
           // Use the original plugin name as the key and wrap the imported identifier with fixupPluginRules
-          parts.push(`      ${plugin.key}: fixupPluginRules(${plugin.identifier})${comma}`);
+          parts.push(
+            `      ${formatJsObjectPropertyKey(plugin.key)}: fixupPluginRules(${plugin.identifier})${comma}`
+          );
         });
         parts.push("    },");
       }
@@ -361,7 +384,7 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
         const linterEntries = Object.entries(sector.linterOptions!);
         linterEntries.forEach(([key, value], index) => {
           const comma = index < linterEntries.length - 1 ? "," : "";
-          parts.push(`      ${key}: ${value}${comma}`);
+          parts.push(`      ${formatJsObjectPropertyKey(key)}: ${value}${comma}`);
         });
         parts.push("    },");
       }
@@ -375,7 +398,7 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
           if (key.startsWith("...")) {
             parts.push(`      ${key}${comma}`);
           } else {
-            parts.push(`      ${key}: ${value}${comma}`);
+            parts.push(`      ${formatJsObjectPropertyKey(key)}: ${value}${comma}`);
           }
         });
         parts.push("    },");

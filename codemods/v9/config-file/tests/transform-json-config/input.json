@@ -12,7 +12,9 @@
   },
   "globals": {
     "myCustomGlobal": "readonly",
-    "jQuery": "readonly"
+    "jQuery": "readonly",
+    "@typescript-eslint/something": "readonly",
+    "legacy-hyphen-global": "writable"
   },
   "rules": {
     "no-console": ["warn", { "allow": ["warn", "error"] }],
@@ -46,7 +48,7 @@
   },
   "overrides": [
     {  "extends": ["eslint:recommended", "plugin:react/recommended"],
-    "plugins": ["ember", "node"],
+    "plugins": ["ember", "node"]
   },
     {
       "files": ["*.test.js", "*.spec.js"],

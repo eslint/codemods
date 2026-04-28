@@ -1,3 +1,6 @@
+const typescriptEslint = require("@typescript-eslint/eslint-plugin");
+const hyphenPack = require("eslint-plugin-hyphen-pack");
+
 module.exports = {
   files: ["*.test.js", "*.spec.js", "**/__tests__/**/*.js"],
 
@@ -22,6 +25,11 @@ module.exports = {
     jQuery: "readonly",
     $: "readonly",
     test: "test",
+  },
+
+  plugins: {
+    "@typescript-eslint": typescriptEslint,
+    "hyphen-pack": hyphenPack,
   },
 
   rules: {
