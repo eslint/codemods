@@ -32,7 +32,7 @@ module.exports = {
     
     const contextSourceCode = context.sourceCode ?? context.getSourceCode();
   // DEPRECATED: Direct context method calls (should use sourceCode)
-  const sourceCode = context.sourceCode ?? context.getSourceCode();
+  const sourceCode = contextSourceCode;
   const cwd = context.cwd ?? context.getCwd();
   const filename = context.filename ?? context.getFilename();
   const physicalFilename = context.physicalFilename ?? context.getPhysicalFilename();
@@ -137,13 +137,13 @@ module.exports = {
       const declaredVariables = contextSourceCode.getDeclaredVariables(node);
 
       // DEPRECATED: context.getAncestors() - should be sourceCode.getAncestors(node)
-      const ancestors = contextSourceCode.getAncestors(node) /* TODO: new node param */;
+      const ancestors = (contextSourceCode.getAncestors ? contextSourceCode.getAncestors(node) : context.getAncestors());
 
       // DEPRECATED: context.getScope() - should be sourceCode.getScope(node)
-      const scope = contextSourceCode.getScope(node) /* TODO: new node param */;
+      const scope = contextSourceCode.getScope(node);
 
       // DEPRECATED: context.markVariableAsUsed() - should be sourceCode.markVariableAsUsed(name, node)
-      contextSourceCode.markVariableAsUsed(name, node) /* TODO: new name, node params */;
+      contextSourceCode.markVariableAsUsed("myVar", node);
     },
 
     Identifier(node) {

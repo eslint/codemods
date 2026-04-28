@@ -29,6 +29,46 @@ function getCreateBlockSelector(): RuleConfig<JS> {
               },
             },
           },
+          // create: hoc(function (context) { … }) — rule fn is inside call arguments
+          {
+            kind: "function_expression",
+            inside: {
+              kind: "arguments",
+              inside: {
+                kind: "call_expression",
+                inside: {
+                  kind: "pair",
+                  has: {
+                    kind: "property_identifier",
+                    regex: "^create$",
+                  },
+                },
+              },
+            },
+          },
+          {
+            kind: "arrow_function",
+            inside: {
+              kind: "arguments",
+              inside: {
+                kind: "call_expression",
+                inside: {
+                  kind: "pair",
+                  has: {
+                    kind: "property_identifier",
+                    regex: "^create$",
+                  },
+                },
+              },
+            },
+          },
+          {
+            kind: "method_definition",
+            has: {
+              kind: "property_identifier",
+              regex: "^create$",
+            },
+          },
         ],
       },
     },
@@ -148,6 +188,77 @@ function isPartOfCodePathCurrentSegmentsChain(callNode: SgNode<JS>): boolean {
   return !!currentSegmentsProp;
 }
 
+/** Chained access: context.getSourceCode().getText() — inner call is object of member_expression. */
+function isChainedOffGetSourceCode(callNode: SgNode<JS>): boolean {
+  const parent = callNode.parent();
+  return parent?.kind() === "member_expression";
+}
+
+function getFirstEnclosingFunctionParam(start: SgNode<JS>): string {
+  let current: SgNode<JS> | null = start.parent();
+  while (current) {
+    const kind = current.kind();
+    if (
+      kind === "arrow_function" ||
+      kind === "function_expression" ||
+      kind === "function_declaration" ||
+      kind === "method_definition"
+    ) {
+      const formalParams = current.find({ rule: { kind: "formal_parameters" } });
+      const firstParam = formalParams?.find({ rule: { kind: "identifier" } });
+      if (firstParam) {
+        return firstParam.text();
+      }
+    }
+    current = current.parent();
+  }
+  return "node";
+}
+
+function getCallExpressionListArgs(argsNode: SgNode<JS> | null | undefined): SgNode<JS>[] {
+  if (!argsNode) return [];
+  const children = argsNode.children();
+  return children.filter(
+    (child) => child.kind() !== "(" && child.kind() !== ")" && child.kind() !== ","
+  );
+}
+
+/** Whether we should inject `const contextSourceCode = ...` (any transform uses that binding). */
+function computeNeedsContextSourceCodeConst(
+  newRoot: SgNode<JS>,
+  context: string,
+  alreadyHasContextSourceCode: boolean
+): boolean {
+  if (alreadyHasContextSourceCode) return false;
+  const expressions = newRoot.findAll({
+    rule: {
+      kind: "call_expression",
+      has: {
+        kind: "member_expression",
+        pattern: "$IDENTIFIER.$PROPERTY",
+      },
+    },
+  });
+  for (const expression of expressions) {
+    const identifier = expression.getMatch("IDENTIFIER");
+    const property = expression.getMatch("PROPERTY");
+    if (!identifier || !property || identifier.text() !== context) continue;
+    const propertyText = property.text();
+    if (CONTEXT_ONLY_METHODS.includes(propertyText)) continue;
+    if (propertyText in CONTEXT_METHOD_TO_PROPERTY) {
+      if (propertyText !== "getSourceCode") continue;
+      if (isPartOfCodePathCurrentSegmentsChain(expression as unknown as SgNode<JS>)) continue;
+      if (isChainedOffGetSourceCode(expression as unknown as SgNode<JS>)) return true;
+      continue;
+    }
+    if (propertyText in CONTEXT_METHOD_MAP) return true;
+    if (propertyText === "getComments") return true;
+    if (propertyText === "getAncestors" || propertyText === "getScope") return true;
+    if (propertyText === "markVariableAsUsed") return true;
+  }
+  return false;
+}
+
 function transformOldStyleReport(expression: SgNode<JS>, contextName: string): string | null {
   const argsNode = expression.find({ rule: { kind: "arguments" } });
   if (!argsNode) return null;
@@ -184,13 +295,46 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
     return null;
   }
 
-  // Check if contextSourceCode is already defined (sourceCode methods already transformed)
   const alreadyHasContextSourceCode = !!createRule.find(getAlreadyTransformedSelector());
 
   let text = createRule.text();
   const context = extractContextName(createRule);
 
   let newRoot = parse("javascript", text).root();
+  const prependContextSourceCodeConst = computeNeedsContextSourceCodeConst(
+    newRoot as unknown as SgNode<JS>,
+    context,
+    alreadyHasContextSourceCode
+  );
+
+  let chainEdits: Edit[] = [];
+  if (!alreadyHasContextSourceCode) {
+    const getSourceCalls = newRoot.findAll({
+      rule: {
+        kind: "call_expression",
+        has: {
+          kind: "member_expression",
+          pattern: "$IDENTIFIER.$PROPERTY",
+        },
+      },
+    });
+    for (const expression of getSourceCalls) {
+      const identifier = expression.getMatch("IDENTIFIER");
+      const property = expression.getMatch("PROPERTY");
+      if (!identifier || !property) continue;
+      if (identifier.text() !== context || property.text() !== "getSourceCode") continue;
+      if (isPartOfCodePathCurrentSegmentsChain(expression as unknown as SgNode<JS>)) continue;
+      if (isChainedOffGetSourceCode(expression as unknown as SgNode<JS>)) {
+        chainEdits.push(expression.replace("contextSourceCode"));
+      }
+    }
+  }
+
+  if (chainEdits.length > 0) {
+    text = newRoot.commitEdits(chainEdits);
+    newRoot = parse("javascript", text).root();
+  }
+
   const expressions = newRoot.findAll({
     rule: {
       kind: "call_expression",
@@ -200,41 +344,65 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
       },
     },
   });
-  let newRootEdits: Edit[] = [];
-  let needsContextSourceCode = false;
+  const newRootEdits: Edit[] = [];
+  let needsContextSourceCode = prependContextSourceCodeConst;
 
-  for (let expression of expressions) {
-    let identifier = expression.getMatch("IDENTIFIER");
-    let property = expression.getMatch("PROPERTY");
+  for (const expression of expressions) {
+    const identifier = expression.getMatch("IDENTIFIER");
+    const property = expression.getMatch("PROPERTY");
     if (!identifier || !property) continue;
     if (identifier.text() !== context) continue;
 
-    let propertyText = property.text();
+    const propertyText = property.text();
 
-    // Leave context-only methods unchanged (no transform)
     if (CONTEXT_ONLY_METHODS.includes(propertyText)) continue;
 
-    // Transform deprecated context methods to property access (property ?? method())
     if (propertyText in CONTEXT_METHOD_TO_PROPERTY) {
-      // Skip getSourceCode when part of .codePath.currentSegments - replace-current-statement
-      // will replace the entire chain with newCurrentSegments; we must not prefix with
-      // context.sourceCode ?? or the result would be "context.sourceCode ?? newCurrentSegments"
       if (
         propertyText === "getSourceCode" &&
         isPartOfCodePathCurrentSegmentsChain(expression as unknown as SgNode<JS>)
       ) {
         continue;
       }
+      if (
+        propertyText === "getSourceCode" &&
+        isChainedOffGetSourceCode(expression as unknown as SgNode<JS>)
+      ) {
+        continue;
+      }
       const prop = CONTEXT_METHOD_TO_PROPERTY[propertyText]!;
-      newRootEdits.push(expression.replace(`${context}.${prop} ?? ${context}.${propertyText}()`));
+      if (propertyText === "getSourceCode") {
+        if (prependContextSourceCodeConst) {
+          newRootEdits.push(expression.replace("contextSourceCode"));
+        } else {
+          newRootEdits.push(
+            expression.replace(`${context}.${prop} ?? ${context}.${propertyText}()`)
+          );
+        }
+      } else {
+        newRootEdits.push(expression.replace(`${context}.${prop} ?? ${context}.${propertyText}()`));
+      }
       continue;
     }
 
-    // Skip sourceCode method transformations if already done
     if (!alreadyHasContextSourceCode) {
       if (propertyText in CONTEXT_METHOD_MAP) {
-        newRootEdits.push(property.replace(CONTEXT_METHOD_MAP[propertyText]!));
-        newRootEdits.push(identifier.replace("contextSourceCode"));
+        if (propertyText === "getDeclaredVariables") {
+          const argsNode = expression.find({ rule: { kind: "arguments" } });
+          const args = getCallExpressionListArgs(argsNode as unknown as SgNode<JS>);
+          const param = getFirstEnclosingFunctionParam(expression as unknown as SgNode<JS>);
+          if (args.length === 0) {
+            newRootEdits.push(
+              expression.replace(`contextSourceCode.getDeclaredVariables(${param})`)
+            );
+          } else {
+            newRootEdits.push(property.replace(CONTEXT_METHOD_MAP[propertyText]!));
+            newRootEdits.push(identifier.replace("contextSourceCode"));
+          }
+        } else {
+          newRootEdits.push(property.replace(CONTEXT_METHOD_MAP[propertyText]!));
+          newRootEdits.push(identifier.replace("contextSourceCode"));
+        }
         needsContextSourceCode = true;
       } else if (propertyText === "getComments") {
         newRootEdits.push(
@@ -243,23 +411,31 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
           )
         );
         needsContextSourceCode = true;
-      } else if (propertyText === "getAncestors" || propertyText === "getScope") {
-        newRootEdits.push(
-          expression.replace(`contextSourceCode.${propertyText}(node) /* TODO: new node param */`)
-        );
-        needsContextSourceCode = true;
-      } else if (propertyText === "markVariableAsUsed") {
+      } else if (propertyText === "getAncestors") {
+        const param = getFirstEnclosingFunctionParam(expression as unknown as SgNode<JS>);
         newRootEdits.push(
           expression.replace(
-            `contextSourceCode.markVariableAsUsed(name, node) /* TODO: new name, node params */`
+            `(contextSourceCode.getAncestors ? contextSourceCode.getAncestors(${param}) : ${context}.getAncestors())`
           )
+        );
+        needsContextSourceCode = true;
+      } else if (propertyText === "getScope") {
+        const param = getFirstEnclosingFunctionParam(expression as unknown as SgNode<JS>);
+        newRootEdits.push(expression.replace(`contextSourceCode.${propertyText}(${param})`));
+        needsContextSourceCode = true;
+      } else if (propertyText === "markVariableAsUsed") {
+        const argsNode = expression.find({ rule: { kind: "arguments" } });
+        const args = getCallExpressionListArgs(argsNode as unknown as SgNode<JS>);
+        const nameArg = args[0]?.text() ?? '"name"';
+        const param = getFirstEnclosingFunctionParam(expression as unknown as SgNode<JS>);
+        newRootEdits.push(
+          expression.replace(`contextSourceCode.markVariableAsUsed(${nameArg}, ${param})`)
         );
         needsContextSourceCode = true;
       }
     }
 
     if (propertyText === "report") {
-      // Transform old-style context.report(node, message, data) to new object format
       const argsNode = expression.find({ rule: { kind: "arguments" } });
       if (argsNode && isOldStyleReport(argsNode as unknown as SgNode<JS>)) {
         const transformed = transformOldStyleReport(expression as unknown as SgNode<JS>, context);
@@ -270,15 +446,16 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
     }
   }
 
-  // Only transform if there are actual changes
-  if (newRootEdits.length === 0) {
+  if (newRootEdits.length === 0 && chainEdits.length === 0) {
     return null;
   }
 
-  text = newRoot.commitEdits(newRootEdits);
+  if (newRootEdits.length > 0) {
+    text = newRoot.commitEdits(newRootEdits);
+  }
 
   let newCreate: string;
-  if (needsContextSourceCode) {
+  if (needsContextSourceCode && !alreadyHasContextSourceCode) {
     newCreate = `{
     const contextSourceCode = ${context}.sourceCode ?? ${context}.getSourceCode();${text.substring(1)}`;
   } else {

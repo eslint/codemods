@@ -124,18 +124,31 @@ function getContextOptionsSelector(contextName: string): RuleConfig<JS> {
   };
 }
 
-// Selector for object with create property (used to find rules missing meta)
+// Selector for object with create (pair, function, or method shorthand: create(ctx) {})
 function getObjectWithCreateSelector(): RuleConfig<JS> {
   return {
     rule: {
       kind: "object",
-      has: {
-        kind: "pair",
-        has: {
-          kind: "property_identifier",
-          regex: "^create$",
+      any: [
+        {
+          has: {
+            kind: "pair",
+            has: {
+              kind: "property_identifier",
+              regex: "^create$",
+            },
+          },
         },
-      },
+        {
+          has: {
+            kind: "method_definition",
+            has: {
+              kind: "property_identifier",
+              regex: "^create$",
+            },
+          },
+        },
+      ],
     },
   };
 }
@@ -295,21 +308,64 @@ function isEslintRule(root: SgRoot<JS>, ruleNode: SgNode<JS>): boolean {
 
 // ============ Extractors ============
 
+function findCommonJSWrappedCallAssignment(root: SgRoot<JS>): SgNode<JS> | null {
+  const rootNode = root.root();
+  const assignments = rootNode.findAll({
+    rule: {
+      kind: "assignment_expression",
+      pattern: "module.exports = $FUNC",
+    },
+  });
+  for (const assignment of assignments) {
+    const rhs = assignment.getMatch("FUNC");
+    if (rhs?.kind() === "call_expression" && isEslintRule(root, assignment)) {
+      return assignment;
+    }
+  }
+  return null;
+}
+
+/** `export default doSomething(function (context) { ... })` (RHS is call_expression). */
+function findESMWrappedCallExport(root: SgRoot<JS>): SgNode<JS> | null {
+  const rootNode = root.root();
+  const stmts = rootNode.findAll({
+    rule: {
+      kind: "export_statement",
+      pattern: "export default $FUNC",
+    },
+  });
+  for (const stmt of stmts) {
+    const rhs = stmt.getMatch("FUNC");
+    if (rhs?.kind() === "call_expression" && isEslintRule(root, stmt)) {
+      return stmt;
+    }
+  }
+  return null;
+}
+
 function getOldFormatRuleDefinition(
   root: SgRoot<JS>
 ): { node: SgNode<JS>; style: ExportStyle } | null {
   const rootNode = root.root();
 
-  // Try CommonJS first
   const commonJSNode = rootNode.find(getCommonJSRuleSelector());
   if (commonJSNode && isEslintRule(root, commonJSNode)) {
     return { node: commonJSNode, style: "commonjs" };
   }
 
-  // Try ESM
+  const commonJSWrappedCall = findCommonJSWrappedCallAssignment(root);
+  if (commonJSWrappedCall) {
+    return { node: commonJSWrappedCall, style: "commonjs" };
+  }
+
   const esmNode = rootNode.find(getESMRuleSelector());
   if (esmNode && isEslintRule(root, esmNode)) {
     return { node: esmNode, style: "esm" };
+  }
+
+  const esmWrappedCall = findESMWrappedCallExport(root);
+  if (esmWrappedCall) {
+    return { node: esmWrappedCall, style: "esm" };
   }
 
   return null;
@@ -467,7 +523,7 @@ function getRuleWithCreateNoMeta(
 }
 
 function getCreateFunctionFromObject(objectNode: SgNode<JS>): SgNode<JS> | null {
-  return objectNode.find({
+  const createPair = objectNode.find({
     rule: {
       kind: "pair",
       has: {
@@ -476,10 +532,27 @@ function getCreateFunctionFromObject(objectNode: SgNode<JS>): SgNode<JS> | null 
       },
     },
   });
+  if (createPair) {
+    return createPair;
+  }
+  return objectNode.find({
+    rule: {
+      kind: "method_definition",
+      has: {
+        kind: "property_identifier",
+        regex: "^create$",
+      },
+    },
+  });
 }
 
-function getContextNameFromCreatePair(createPair: SgNode<JS>): string {
-  const funcNode = createPair.find(getFunctionParamSelector());
+function getContextNameFromCreateNode(createNode: SgNode<JS>): string {
+  if (createNode.kind() === "method_definition") {
+    const formalParams = createNode.find({ rule: { kind: "formal_parameters" } });
+    const firstParam = formalParams?.find({ rule: { kind: "identifier" } });
+    return firstParam?.text() || "context";
+  }
+  const funcNode = createNode.find(getFunctionParamSelector());
   const paramMatch = funcNode?.getMatch("PARAM");
   return paramMatch?.text() || "context";
 }
@@ -565,7 +638,7 @@ async function addMetaToExistingRule(
 
   // Get context name from create function
   const createPair = getCreateFunctionFromObject(objectNode);
-  const contextName = createPair ? getContextNameFromCreatePair(createPair) : "context";
+  const contextName = createPair ? getContextNameFromCreateNode(createPair) : "context";
 
   const isFixable = isRuleFixable(root, contextName);
   const schemaDefinitionNode = getOldFormatSchemaDefinition(root);

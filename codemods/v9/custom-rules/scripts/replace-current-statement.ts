@@ -29,6 +29,45 @@ function getCreateBlockSelector(): RuleConfig<JS> {
               },
             },
           },
+          {
+            kind: "function_expression",
+            inside: {
+              kind: "arguments",
+              inside: {
+                kind: "call_expression",
+                inside: {
+                  kind: "pair",
+                  has: {
+                    kind: "property_identifier",
+                    regex: "^create$",
+                  },
+                },
+              },
+            },
+          },
+          {
+            kind: "arrow_function",
+            inside: {
+              kind: "arguments",
+              inside: {
+                kind: "call_expression",
+                inside: {
+                  kind: "pair",
+                  has: {
+                    kind: "property_identifier",
+                    regex: "^create$",
+                  },
+                },
+              },
+            },
+          },
+          {
+            kind: "method_definition",
+            has: {
+              kind: "property_identifier",
+              regex: "^create$",
+            },
+          },
         ],
       },
     },
