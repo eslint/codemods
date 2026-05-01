@@ -136,7 +136,6 @@ nodes:
           - scan-json-eslintrc-files
           - scan-yaml-eslintrc-files
           - scan-custom-eslint-config-javascript
-          - scan-custom-eslint-config-typescript
           - scan-custom-eslint-config-json
           - scan-custom-eslint-config-yaml
         js-ast-grep:

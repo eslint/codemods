@@ -16,12 +16,21 @@ npx codemod@latest run @eslint/v8-to-v9-config -t /path/to/project
 
 ### Workflow Params
 
-When running `workflow.yaml` directly, you can control the optional formatting step with these params:
+When running [`workflow.yaml`](workflow.yaml) directly:
+
+**Formatting**
 
 - `codeFormattingCommandEnabled` (boolean, default: `false`): Enables/disables the formatting step.
 - `codeFormattingCommand` (string, default: `npx prettier --write "**/eslint.config.mjs" --ignore-path /dev/null --no-config --no-error-on-unmatched-pattern`): Command to run when formatting is enabled.
 
-Example:
+**Config discovery**
+
+By default the workflow scans the usual ESLint filenames (`.eslintrc.{js,mjs,cjs,json,yaml,yml}`). Optional params add an extra ast-grep pass for a differently named legacy config whose path ends with your custom fragment:
+
+- `eslintConfigCustomName` (string, default: unset / `null`): Fragment matched as `**/*<value>` (for example `.eslintrc.local.json` matches any file ending in that suffix). Leave unset unless you rely on a non-standard config filename.
+- `eslintConfigLanguage` (string, default: `javascript`): ast-grep language for that file — use `javascript` for `.js` / `.mjs` / `.cjs`, `json` for `.json`, or `yaml` for `.yaml` / `.yml`. Must align with how the fragment is parsed.
+
+Example (formatting + custom config fragment):
 
 ```bash
 npx codemod@latest workflow run -w workflow.yaml \
@@ -29,13 +38,21 @@ npx codemod@latest workflow run -w workflow.yaml \
   -p 'codeFormattingCommand=npx prettier --write "**/eslint.config.mjs" --ignore-path /dev/null --no-config --no-error-on-unmatched-pattern'
 ```
 
+Example (custom-named legacy JSON config):
+
+```bash
+npx codemod@latest workflow run -w workflow.yaml \
+  -p eslintConfigCustomName=my-eslint-rules.json \
+  -p eslintConfigLanguage=json
+```
+
 After running, the codemod will display a list of packages that need to be installed. Install them:
 
 ```bash
-npm install --save-dev eslint@9 @eslint/js globals @eslint/eslintrc
+npm install --save-dev eslint@9 @eslint/js globals @eslint/eslintrc @eslint/config-helpers @eslint/compat
 ```
 
-> **Note**: If your config uses `extends`, you'll also need `@eslint/eslintrc` for FlatCompat support.
+> **Note**: If your config uses `extends` or plugins, keep `@eslint/eslintrc` (FlatCompat) and `@eslint/compat` (`fixupConfigRules` / `fixupPluginRules`).
 > ⚠️ **Important**: The codemod will display a yellow note reminding you to verify that all packages are not deprecated and still supported for ESLint v9. Please check each package before installing.
 
 Then test your config:
@@ -48,16 +65,18 @@ npx eslint .
 
 ### Step 1: Config File Conversion
 
-Converts `.eslintrc.js`, `.eslintrc.json`, `.eslintrc.yaml`, and `.eslintrc.yml` to the new config format (`eslint.config.mjs`).
+Converts `.eslintrc.js`, `.eslintrc.json`, `.eslintrc.yaml`, `.eslintrc.yml`, optional custom-named configs (via workflow params), and in-repo `package.json` `eslintConfig`, to flat config (`eslint.config.mjs`).
 
 **What gets migrated:**
 
-- `env` settings → `languageOptions.globals`
+- `env` settings → `languageOptions.globals` (including per-override `env`)
 - `globals` → `languageOptions.globals`
 - `parserOptions` → `languageOptions.parserOptions`
-- `overrides` → separate configuration objects in the array
-- `noInlineConfig` → `linterOptions.noInlineConfig`
-- `reportUnusedDisableDirectives` → `linterOptions.reportUnusedDisableDirectives` (boolean `true` becomes `"warn"`, `false` becomes `"off"`; explicit severity strings are preserved)
+- **`files`** (root or overrides) → `files` on the corresponding flat config object
+- **`excludedFiles`** (typically on overrides) → `ignores` on that **same** object (patterns that apply alongside `files`)
+- **`ignorePatterns`** (root or per-sector) plus patterns from scanned ignore-list files → merged into a leading **`globalIgnores([...])`** entry (global ignores shared across configs)
+- `overrides` → separate configuration objects in the array (each keeps its own `files` / `ignores` where present)
+- `linterOptions` for supported settings: **`noInlineConfig`** and **`reportUnusedDisableDirectives`** are collected into **`linterOptions`** on each flat block where they appeared (boolean `true` / `false` for `reportUnusedDisableDirectives` map to **`"warn"`** / **`"off"`**; explicit severity strings are preserved)
 
 ### Step 2: Rule Schema Updates
 
@@ -97,11 +116,14 @@ Fixes ESLint comment syntax that became invalid in v9:
 
 #### Extends Migration
 
-The codemod uses `FlatCompat` from `@eslint/eslintrc` to migrate extends to the flat config format:
+The codemod uses `FlatCompat` from `@eslint/eslintrc` so legacy `extends` become `fixupConfigRules(<compat>.extends(/* original strings preserved */))` in flat config:
 
-- **`eslint:recommended` and `eslint:all`**: These are automatically detected and handled with special FlatCompat instances that include `recommendedConfig` and/or `allConfig` properties
-- **All other extends**: Preserved exactly as they were and converted using `compat.extends()` method
-- **`eslint:recommended` and `eslint:all` are filtered out** from the extends array since they're handled by the FlatCompat configuration
+- When **`eslint:recommended`** appears, a `FlatCompat` is created with `recommendedConfig: js.configs.recommended`
+- When **`eslint:all`** appears, a `FlatCompat` is created with `allConfig: js.configs.all`
+- When **both** appear, a combined compat instance wires both presets
+- **Any other presets** reuse a plain `FlatCompat({ baseDirectory: __dirname })` or the recommended/all instance above, depending on overlap
+
+All `extends` string values from the legacy config are passed through unchanged to `.extends(...)`.
 
 **Example:**
 
@@ -113,11 +135,18 @@ If your original config had:
 }
 ```
 
-The migrated config will be:
+The migrated config will resemble:
 
 ```javascript
+import path from "path";
+import { fileURLToPath } from "url";
 import { FlatCompat } from "@eslint/eslintrc";
 import js from "@eslint/js";
+import { defineConfig } from "@eslint/config-helpers";
+import { fixupConfigRules } from "@eslint/compat";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const compatWithRecommended = new FlatCompat({
   baseDirectory: __dirname,
@@ -126,18 +155,24 @@ const compatWithRecommended = new FlatCompat({
 
 export default defineConfig([
   {
-    extends: compatWithRecommended.extends(["plugin:react/recommended", "airbnb"]),
+    extends: fixupConfigRules(
+      compatWithRecommended.extends(
+        "eslint:recommended",
+        "plugin:react/recommended",
+        "airbnb",
+      ),
+    ),
     // ... other config
   },
 ]);
 ```
 
-Note that `eslint:recommended` is handled by the `recommendedConfig` in FlatCompat, so it's filtered out from the extends array.
+`recommendedConfig` / `allConfig` wire the bundled ESLint presets; the same strings usually remain in `.extends(...)` so shared configs load as before.
 
-**Required dependency:**
+**Required dependencies:**
 
 ```bash
-npm install --save-dev @eslint/eslintrc
+npm install --save-dev @eslint/eslintrc @eslint/config-helpers @eslint/compat
 ```
 
 #### Plugin Migration
@@ -160,13 +195,20 @@ The codemod follows ESLint v9 conventions for plugin package names and import id
 
 The import identifiers are automatically generated to be valid JavaScript identifiers, converting package names to camelCase format.
 
-### Step 6: Ignore File Migration
+### Step 6: Global ignores (`ignorePatterns`, ignore-list files)
 
-ESLint v9 uses the `ignores` property instead of `.eslintignore` files.
+In flat config, global path ignores are expressed with `globalIgnores` from `@eslint/config-helpers` (the codemod emits a leading `globalIgnores([...])` object when needed).
 
-This codemod attempts to migrate `.eslintignore` content to the config file's `ignores` array.
+**Sources merged into `globalIgnores`:**
 
-> ⚠️ **Manual step**: The codemod attempts to delete `.eslintignore` files, but may fail due to permissions. After running, verify and remove manually if needed:
+- Legacy **`ignorePatterns`** from the ESLint config (root or applicable blocks), and
+- Non-comment lines from **`.eslintignore`** and **`.gitignore`** files found by the workflow’s ignore scan (same line-based rules; paths are de-duplicated with config `ignorePatterns`).
+
+**Per-override `excludedFiles`** are **not** global: they become **`ignores`** on the same flat object as that block’s **`files`** (see Step 1).
+
+The workflow renames processed ignore-list files to `deleted-eslintignore-backup.txt` (relative path) to avoid leaving active ignore files behind; if that fails (permissions, etc.), remove or reconcile them manually.
+
+> ⚠️ **Manual step**: If any backup or legacy ignore file remains, delete or merge it after verifying `globalIgnores` in `eslint.config.mjs`.
 >
 > ```bash
 > rm **/.eslintignore
@@ -176,12 +218,15 @@ This codemod attempts to migrate `.eslintignore` content to the config file's `i
 
 ```json
 {
+  "ignorePatterns": ["coverage/**", "dist"],
   "env": {
     "browser": true,
     "es2021": true,
     "node": true
   },
   "extends": ["eslint:recommended"],
+  "noInlineConfig": true,
+  "reportUnusedDisableDirectives": true,
   "parserOptions": {
     "ecmaVersion": "latest",
     "sourceType": "module"
@@ -223,6 +268,7 @@ This codemod attempts to migrate `.eslintignore` content to the config file's `i
   "overrides": [
     {
       "files": ["*.test.js", "*.spec.js"],
+      "excludedFiles": ["*.fixture.js"],
       "env": {
         "jest": true
       },
@@ -242,7 +288,8 @@ import { fileURLToPath } from "url";
 import js from "@eslint/js";
 import globals from "globals";
 import { FlatCompat } from "@eslint/eslintrc";
-import { defineConfig } from "@eslint/config-helpers";
+import { defineConfig, globalIgnores } from "@eslint/config-helpers";
+import { fixupConfigRules } from "@eslint/compat";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -253,8 +300,9 @@ const compatWithRecommended = new FlatCompat({
 });
 
 export default defineConfig([
+  globalIgnores(["coverage/**", "dist"]),
   {
-    extends: compatWithRecommended.extends([]),
+    extends: fixupConfigRules(compatWithRecommended.extends("eslint:recommended")),
     languageOptions: {
       globals: {
         myCustomGlobal: "readonly",
@@ -268,6 +316,10 @@ export default defineConfig([
         sourceType: "module",
       },
     },
+    linterOptions: {
+      noInlineConfig: true,
+      reportUnusedDisableDirectives: "warn",
+    },
     rules: {
       "no-console": ["warn", { allow: ["warn", "error"] }],
       "no-sequences": ["error", { allowInParentheses: false }],
@@ -278,6 +330,7 @@ export default defineConfig([
   },
   {
     files: ["*.test.js", "*.spec.js"],
+    ignores: ["*.fixture.js"],
     languageOptions: {
       globals: {
         ...globals.jest,
@@ -291,7 +344,7 @@ export default defineConfig([
 ]);
 ```
 
-> **Note**: If your config has other extends (e.g., `"plugin:react/recommended"`), they will be included in the `compat.extends()` array, while `eslint:recommended` and `eslint:all` are automatically handled by the FlatCompat configuration.
+> **Note**: Additional `extends` (for example `"plugin:react/recommended"`) remain string entries inside `fixupConfigRules(compatWithRecommended.extends(/* ... */))`. `eslint:recommended` / `eslint:all` continue to use the dedicated `FlatCompat` instances wired to `js.configs.recommended` / `js.configs.all`.
 
 ## Resources
 

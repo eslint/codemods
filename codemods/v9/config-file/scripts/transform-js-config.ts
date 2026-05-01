@@ -55,10 +55,7 @@ function findRulesPair(sector: SgNode<JS>): SgNode<JS> | null {
 
 function normalizePairKey(rawKey: string): string {
   const k = rawKey.trim();
-  if (
-    (k.startsWith('"') && k.endsWith('"')) ||
-    (k.startsWith("'") && k.endsWith("'"))
-  ) {
+  if ((k.startsWith('"') && k.endsWith('"')) || (k.startsWith("'") && k.endsWith("'"))) {
     return k.slice(1, -1);
   }
   return k;
@@ -67,7 +64,7 @@ function normalizePairKey(rawKey: string): string {
 /** Split at first delimiter (`:` for pairs, `=` for declarators) outside strings and nested `()[]{}`. */
 function splitAtFirstTopLevelDelimiter(
   src: string,
-  delimiterChar: string,
+  delimiterChar: string
 ): { before: string; after: string } | null {
   let braceDepth = 0;
   let bracketDepth = 0;
@@ -116,10 +113,7 @@ function splitPairAtFirstTopLevelColon(pairText: string): { before: string; afte
 /** Strip outer ASCII quotes from a JS string literal token. */
 function stripQuotes(token: string): string {
   const t = token.trim();
-  if (
-    (t.startsWith('"') && t.endsWith('"')) ||
-    (t.startsWith("'") && t.endsWith("'"))
-  ) {
+  if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))) {
     return t.slice(1, -1);
   }
   return t;
@@ -129,7 +123,7 @@ function stripQuotes(token: string): string {
 function substituteBindingsOnce(
   trimmed: string,
   bindings: Map<string, string>,
-  skipNames: Set<string>,
+  skipNames: Set<string>
 ): string {
   if (!bindings.size) return trimmed;
   const HEADER = "void (";
@@ -174,7 +168,7 @@ function substituteBindingsOnce(
 function substituteBindingsInExprSource(
   trimmed: string,
   bindings: Map<string, string>,
-  skipNames: Set<string>,
+  skipNames: Set<string>
 ): string {
   let current = trimmed;
   for (let i = 0; i < 8; i++) {
@@ -188,7 +182,7 @@ function substituteBindingsInExprSource(
 function resolveRuleValueRaw(
   valueAfterColon: string,
   bindings: Map<string, string>,
-  skipNames: Set<string>,
+  skipNames: Set<string>
 ): string {
   const trimmed = valueAfterColon.trim();
   const simpleId = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.exec(trimmed);
@@ -203,10 +197,7 @@ function resolveRuleValueRaw(
 /** Top-level `const name = require('pkg')` with a static string specifier → ESM import lines. */
 function parseStaticRequireRhs(rhsTrimmed: string): { specifier: string } | null {
   try {
-    const wrapped = parse(
-      "javascript",
-      `const __bind_req_probe = ${rhsTrimmed};`,
-    ) as SgRoot<JS>;
+    const wrapped = parse("javascript", `const __bind_req_probe = ${rhsTrimmed};`) as SgRoot<JS>;
     const decl = wrapped.root().find({
       rule: {
         kind: "variable_declarator",
@@ -232,7 +223,9 @@ function parseStaticRequireRhs(rhsTrimmed: string): { specifier: string } | null
   }
 }
 
-function collectRequireImportsFromProgram(rootNode: SgNode<JS>): Array<{ binding: string; specifier: string }> {
+function collectRequireImportsFromProgram(
+  rootNode: SgNode<JS>
+): Array<{ binding: string; specifier: string }> {
   const raw: Array<{ binding: string; specifier: string }> = [];
   const declarators = rootNode.findAll({
     rule: {
@@ -277,7 +270,7 @@ function deleteRuleKeys(rules: Record<string, string>, logicalName: string): voi
 function pairNodeToRuleEntry(
   pairNode: SgNode<JS>,
   bindings: Map<string, string>,
-  skipImportBindings: Set<string>,
+  skipImportBindings: Set<string>
 ): { key: string; value: string } | null {
   const split = splitPairAtFirstTopLevelColon(pairNode.text());
   if (!split) return null;
@@ -311,7 +304,7 @@ function orderedDirectObjectMembers(objNode: SgNode<JS>): SgNode<JS>[] {
 
 function resolveIdentifierInitializerText(
   idNode: SgNode<JS>,
-  bindings: Map<string, string>,
+  bindings: Map<string, string>
 ): string | null {
   const name = idNode.text();
   const fromBindings = bindings.get(name);
@@ -328,7 +321,11 @@ function resolveIdentifierInitializerText(
   return sp?.after.trim() ?? null;
 }
 
-function resolveInitializerToObjectNode(initText: string, bindings: Map<string, string>, depth: number): SgNode<JS> | null {
+function resolveInitializerToObjectNode(
+  initText: string,
+  bindings: Map<string, string>,
+  depth: number
+): SgNode<JS> | null {
   if (depth > 32) return null;
   let text = initText.trim();
   const simpleId = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.exec(text);
@@ -354,7 +351,7 @@ function extractRulesFromObjectExpression(
   rulesObj: SgNode<JS>,
   bindings: Map<string, string>,
   visitedSpreadVars: Set<string>,
-  skipImportBindings: Set<string>,
+  skipImportBindings: Set<string>
 ): Record<string, string> {
   const merged: Record<string, string> = {};
   const members = orderedDirectObjectMembers(rulesObj);
@@ -381,7 +378,7 @@ function extractRulesFromObjectExpression(
         spreadObj,
         bindings,
         visitedSpreadVars,
-        skipImportBindings,
+        skipImportBindings
       );
       Object.assign(merged, inner);
       continue;
@@ -412,7 +409,7 @@ function getRulesValueExpression(rulesPair: SgNode<JS>): SgNode<JS> | null {
 function extractSectorRules(
   sector: SgNode<JS>,
   bindings: Map<string, string>,
-  skipImportBindings: Set<string>,
+  skipImportBindings: Set<string>
 ): Record<string, string> {
   const rulesPair = findRulesPair(sector);
   if (!rulesPair) return {};
@@ -441,7 +438,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
   const fileBindings = collectBindingsFromProgram(rootNode);
 
   const staticRequireImportBindings = new Set(
-    collectRequireImportsFromProgram(rootNode).map((r) => r.binding),
+    collectRequireImportsFromProgram(rootNode).map((r) => r.binding)
   );
 
   let rulesSectorsRule = rootNode.findAll({
@@ -1414,9 +1411,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
     }
     if (camelcase.type != "nothing") {
       deleteRuleKeys(sectorData.rules, "camelcase");
-      sectorData.rules["camelcase"] = `["${camelcase.type}", ${JSON.stringify(
-        camelcase.options
-      )}]`;
+      sectorData.rules["camelcase"] = `["${camelcase.type}", ${JSON.stringify(camelcase.options)}]`;
     }
     // end camelcase
 
