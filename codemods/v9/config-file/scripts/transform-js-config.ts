@@ -1,7 +1,7 @@
 import { type SgRoot, parse } from "codemod:ast-grep";
 import type JS from "codemod:ast-grep/langs/javascript";
 import { type SgNode } from "codemod:ast-grep";
-import { getStepOutput } from "codemod:workflow";
+import { getState } from "codemod:workflow";
 import makeNewConfig from "../utils/make-new-config.ts";
 import type { LanguageOptions, SectorData } from "../utils/make-new-config.ts";
 import path from "path";
@@ -737,7 +737,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
     deleteRuleKeys(sectorData.rules, "valid-jsdoc");
     if (
       (jsDocs.type != "nothing" && jsDocs.type != "off") ||
-      getStepOutput("scan-file-jsdoc", "isJsdoccommentExists") == "true"
+      getState<boolean>("isJsdoccommentExists") === true
     ) {
       sectorData.requireJsdoc.exists = true;
       sectorData.requireJsdoc.settings = jsDocs.options;

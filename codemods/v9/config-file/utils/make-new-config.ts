@@ -1,4 +1,4 @@
-import { getStepOutput } from "codemod:workflow";
+import { getState } from "codemod:workflow";
 import makePluginImport from "./make-plugin-import.ts";
 
 type LanguageOptionsKnownValue =
@@ -121,9 +121,7 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
 
   const parts: string[] = [];
 
-  let ignoreFiles = JSON.parse(
-    getStepOutput("scan-ignore-files", `ignoreFiles-${directory}`) || "[]"
-  ) as unknown as string[];
+  let ignoreFiles = getState<string[]>(`ignoreFiles-${directory}`) ?? [];
 
   ignoreFiles = ignoreFiles.concat(...sectors.flatMap((sector) => sector.ignorePatterns || []));
 
