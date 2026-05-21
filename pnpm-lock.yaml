@@ -78,6 +78,9 @@ importers:
       '@codemod.com/jssg-types':
         specifier: 'catalog:'
         version: 1.6.1
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.19.19
       typescript:
         specifier: 'catalog:'
         version: 5.9.2
