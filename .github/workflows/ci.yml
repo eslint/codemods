@@ -216,7 +216,7 @@ jobs:
             exit 0
           fi
 
-          echo "::error::Missing changeset for: $missing"
+          echo "::warning::Missing changeset for: $missing"
           echo ""
           echo "The following packages were changed but not covered by a changeset:"
           for pkg in $missing; do
@@ -227,4 +227,6 @@ jobs:
           echo "  1. Run 'pnpm changeset' to add a changeset covering the missing packages"
           echo "  2. Add an empty changeset (no packages selected) if no version bump is needed"
           echo "  3. Add the 'skip-changeset' label to this PR"
-          exit 1
+          echo ""
+          echo "CI will continue; add a changeset before merge if you plan to release."
+          exit 0

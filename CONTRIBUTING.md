@@ -65,7 +65,7 @@ Three workflows run on every PR and push to `main`:
 
 - **`ci.yml` — Pull request checks:** format, lint, and docs-link checks on changed files; `pnpm test` and `pnpm run check-types` only for codemod packages touched by the diff.
 - **`ci.yml` — Full workspace (main):** on every push to `main`, runs full `pnpm run ci` (all tests + typechecks) and `pnpm run docs:links`.
-- **`ci.yml` — Changeset check:** enforces that every PR touching `codemods/` includes a changeset for each changed package (or has the `skip-changeset` label).
+- **`ci.yml` — Changeset check:** warns when a PR touching `codemods/` is missing a changeset for a changed package (or use the `skip-changeset` label to silence the warning).
 
 Match the local checks (`pnpm run ci`) before you push.
 
