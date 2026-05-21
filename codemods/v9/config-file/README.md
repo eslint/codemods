@@ -5,13 +5,13 @@ Migrate ESLint v8 to v9 format automatically.
 ## Quick Start
 
 ```bash
-npx codemod@latest run @eslint/v8-to-v9-config
+npx codemod run @eslint/v8-to-v9-config
 
 # Or run locally
-npx codemod@latest workflow run -w workflow.yaml
+npx codemod workflow run -w workflow.yaml
 
 # For projects with multiple configs, use --target to specify the directory:
-npx codemod@latest run @eslint/v8-to-v9-config -t /path/to/project
+npx codemod run @eslint/v8-to-v9-config -t /path/to/project
 ```
 
 ### Workflow Params
@@ -33,7 +33,7 @@ By default the workflow scans the usual ESLint filenames (`.eslintrc.{js,mjs,cjs
 Example (formatting + custom config fragment):
 
 ```bash
-npx codemod@latest workflow run -w workflow.yaml \
+npx codemod workflow run -w workflow.yaml \
   -p codeFormattingCommandEnabled=true \
   -p 'codeFormattingCommand=npx prettier --write "**/eslint.config.mjs" --ignore-path /dev/null --no-config --no-error-on-unmatched-pattern'
 ```
@@ -41,7 +41,7 @@ npx codemod@latest workflow run -w workflow.yaml \
 Example (custom-named legacy JSON config):
 
 ```bash
-npx codemod@latest workflow run -w workflow.yaml \
+npx codemod workflow run -w workflow.yaml \
   -p eslintConfigCustomName=my-eslint-rules.json \
   -p eslintConfigLanguage=json
 ```

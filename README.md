@@ -12,13 +12,13 @@ Community contributions are welcome and appreciated! Check open issues for codem
 Recommended for the best UX. This downloads the package from the [Registry](https://app.codemod.com/registry).
 
 ```bash
-npx codemod@latest <codemod-name>
+npx codemod <codemod-name>
 ```
 
 For example:
 
 ```bash
-npx codemod@latest @eslint/v8-to-v9-config
+npx codemod @eslint/v8-to-v9-config
 ```
 
 ### From source

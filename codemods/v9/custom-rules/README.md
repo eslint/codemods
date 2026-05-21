@@ -72,10 +72,10 @@ export default {
 Run the codemod and provide paths to your rule files or directories:
 
 ```bash
-npx codemod@latest @eslint/v8-to-v9-custom-rules
+npx codemod @eslint/v8-to-v9-custom-rules
 
 # Or run locally
-npx codemod@latest workflow run -w workflow.yaml
+npx codemod workflow run -w workflow.yaml
 ```
 
 ## Manual Steps Required

@@ -125,7 +125,7 @@ Do not hand-edit `version` in `package.json` or `codemod.yaml` to simulate a rel
 Scaffold a new codemod with the CLI:
 
 ```bash
-npx codemod@latest init
+npx codemod init
 ```
 
 New packages live under `codemods/`, for example:
