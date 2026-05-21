@@ -72,7 +72,7 @@ export default {
 Run the codemod and provide paths to your rule files or directories:
 
 ```bash
-npx codemod@latest run @eslint/v8-to-v9-custom-rules
+npx codemod@latest @eslint/v8-to-v9-custom-rules
 
 # Or run locally
 npx codemod@latest workflow run -w workflow.yaml
@@ -107,11 +107,15 @@ After running this codemod, you need to:
 
 3. **Update deprecated context methods** - The codemod replaces these automatically, but you need to verify the `node` parameter:
 
-   | **Removed on `context`**           | **Replacement on `SourceCode`**             |
-   | ---------------------------------- | ------------------------------------------- |
-   | `context.getAncestors()`           | `sourceCode.getAncestors(node)`             |
-   | `context.getScope()`               | `sourceCode.getScope(node)`                 |
-   | `context.markVariableAsUsed(name)` | `sourceCode.markVariableAsUsed(name, node)` |
+   | **Removed on `context`**                | **Replacement on `SourceCode`**                     |
+   | --------------------------------------- | --------------------------------------------------- |
+   | `context.getAncestors()`               | `sourceCode.getAncestors(node)`                     |
+   | `context.getScope()`                   | `sourceCode.getScope(node)`                         |
+   | `context.markVariableAsUsed(name)`     | `sourceCode.markVariableAsUsed(name, node)`         |
+   | `context.getDeclaredVariables(node)`   | `sourceCode.getDeclaredVariables(node)`             |
+   | `context.getSource(node)`              | `sourceCode.getText(node)`                          |
+   | `context.getSourceLines()`             | `sourceCode.getLines()`                             |
+   | `context.getAllComments()`             | `sourceCode.getCommentsBefore/Inside/After(node)`   |
 
 4. **Test your custom rules**:
 
