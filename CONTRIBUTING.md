@@ -6,7 +6,7 @@ Using an AI coding agent (Codex, Cursor, Claude Code, Aider, etc.)? See [`AGENTS
 
 ## Development setup
 
-This repository uses **pnpm** (see `packageManager` in the root `package.json`), **git tags** for releases, and **Biome** (not Prettier/ESLint) for formatting and linting.
+This repository uses **pnpm** (see `packageManager` in the root `package.json`), **Changesets** for releases, and **Biome** (not Prettier/ESLint) for formatting and linting.
 
 ```bash
 # Install dependencies (also wires the Husky pre-commit hook)
@@ -61,10 +61,11 @@ The hook only inspects **staged** files. Files you did not touch can still fail 
 
 ## CI
 
-**`.github/workflows/codemod-publish.yaml`** is the only release workflow. It triggers on:
+Three workflows run on every PR and push to `main`:
 
-- **Tag pushes** matching `*@v*` (e.g. `@eslint/v8-to-v9-config@v1.2.0`) — installs dependencies, runs `pnpm test` for the matched codemod package, then publishes to the Codemod registry.
-- **Manual dispatch** — accepts a tag string for emergency re-publishes without re-pushing the tag.
+- **`ci.yml` — Pull request checks:** format, lint, and docs-link checks on changed files; `pnpm test` and `pnpm run check-types` only for codemod packages touched by the diff.
+- **`ci.yml` — Full workspace (main):** on every push to `main`, runs full `pnpm run ci` (all tests + typechecks) and `pnpm run docs:links`.
+- **`ci.yml` — Changeset check:** enforces that every PR touching `codemods/` includes a changeset for each changed package (or has the `skip-changeset` label).
 
 Match the local checks (`pnpm run ci`) before you push.
 
@@ -81,26 +82,42 @@ Match the local checks (`pnpm run ci`) before you push.
 1. Create a branch from `main`.
 2. Make your changes and add or update fixtures under `tests/<case>/`.
 3. Run `pnpm run format`, `pnpm run lint`, and `pnpm run ci` to verify everything passes.
-4. Open a pull request.
+4. Add a changeset for every codemod package you touched (see below).
+5. Open a pull request.
+
+## Adding a changeset
+
+This repo uses [Changesets](https://github.com/changesets/changesets) for versioning and releases. **Every PR that changes a codemod package under `codemods/` should include a changeset**, unless you use the `skip-changeset` label (see CI). Details live in [`.changeset/README.md`](./.changeset/README.md).
+
+```bash
+pnpm changeset
+```
+
+Follow the prompts:
+
+1. Select the affected codemod(s).
+2. Choose the semver bump — **patch** for fixes, **minor** for new features, **major** for breaking changes.
+3. Write a short summary.
+
+Commit the new Markdown file under `.changeset/` with your PR.
+
+`pnpm run version-packages` (run by automation on `main`, not usually by hand) runs `changeset version` and then [`scripts/sync-codemod-versions.sh`](./scripts/sync-codemod-versions.sh) so **`codemod.yaml` `version` stays aligned with `package.json`**. Do not edit `version` in `codemod.yaml` by hand — automation owns that field.
 
 ## Release workflow
 
-Releases are tag-driven. To publish a codemod:
+Releases are fully automated via `.github/workflows/release.yml` on every push to `main`:
 
-1. Bump `version` in the codemod's `package.json` **and** `codemod.yaml` (they must match).
-2. Commit the version bump to `main`.
-3. Create and push the tag — the format is `<name>@v<version>`:
+1. Merge a PR that includes one or more changesets into `main`.
+2. The `release` job detects the pending changesets, runs `pnpm run version-packages` which:
+   - bumps `version` in each affected `package.json` via `changeset version`
+   - syncs the new version into the matching `codemod.yaml` via `scripts/sync-codemod-versions.sh`
+3. The bot commits **Version Packages** and pushes it back to `main`.
+4. `scripts/tag-and-publish.sh` creates a `<name>@v<version>` git tag for every bumped package and pushes the tags.
+5. The `publish` job fans out a parallel matrix over the changed directories and publishes each codemod via [`codemod/publish-action`](https://github.com/codemod/publish-action).
 
-```bash
-git tag @eslint/v8-to-v9-config@v1.2.0
-git push origin @eslint/v8-to-v9-config@v1.2.0
-```
+For emergencies (re-publish a specific codemod without a full release cycle), use the **Publish Codemod (Manual)** workflow (`.github/workflows/publish.yml`) and supply the tag, e.g. `@eslint/v8-to-v9-config@v1.2.0`.
 
-4. `.github/workflows/codemod-publish.yaml` picks up the tag, runs `pnpm test` for that codemod, and publishes it to the registry automatically.
-
-For emergencies (re-publish without re-pushing a tag), trigger **Publish Codemod** manually via `workflow_dispatch` and supply the tag string.
-
-Choose the semver bump: **patch** for fixes, **minor** for new features, **major** for breaking changes.
+Do not hand-edit `version` in `package.json` or `codemod.yaml` to simulate a release — automation owns bumps.
 
 ## Adding a new codemod
 
@@ -116,7 +133,7 @@ New packages live under `codemods/`, for example:
 codemods/v9/<slug>/
   scripts/codemod.ts   # JSSG transform
   tests/               # input / expected fixtures
-  codemod.yaml         # manifest
+  codemod.yaml         # manifest (version synced from package.json on release)
   workflow.yaml
   package.json
   tsconfig.json
@@ -125,8 +142,7 @@ codemods/v9/<slug>/
 
 Conventions:
 
-- The codemod name in `codemod.yaml` must start with `@eslint` (e.g. `@eslint/v8-to-v9-config`).
-- Match the `name` in `package.json` to the registry name.
+- The codemod name in `codemod.yaml` **and** `package.json` must start with `@eslint` (e.g. `@eslint/v8-to-v9-config`).
 - Keep rewrites conservative. If a step requires a human decision, prefer a detector or recipe parameter over an unsafe transform.
 - Use an existing sibling codemod in the same migration folder as a template.
 
@@ -150,15 +166,15 @@ Keep transformations atomic and verifiable with fixtures.
 
 ## Checks
 
-| Command                   | What it does                        |
-| ------------------------- | ----------------------------------- |
-| `pnpm run format`         | Auto-format with Biome              |
-| `pnpm run format:check`   | Check formatting (no writes)        |
-| `pnpm run lint`           | Lint with Biome                     |
-| `pnpm run lint:fix`       | Lint and auto-fix with Biome        |
-| `pnpm run test`           | Run all codemod tests               |
-| `pnpm run check-types`    | Typecheck all codemod packages      |
-| `pnpm run ci`             | Full check (test + typecheck)       |
+| Command                  | What it does                        |
+| ------------------------ | ----------------------------------- |
+| `pnpm run format`        | Auto-format with Biome              |
+| `pnpm run format:check`  | Check formatting (no writes)        |
+| `pnpm run lint`          | Lint with Biome                     |
+| `pnpm run lint:fix`      | Lint and auto-fix with Biome        |
+| `pnpm run test`          | Run all codemod tests               |
+| `pnpm run check-types`   | Typecheck all codemod packages      |
+| `pnpm run ci`            | Full check (test + typecheck)       |
 
 ## Pull requests
 

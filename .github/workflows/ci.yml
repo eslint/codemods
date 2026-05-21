@@ -1,0 +1,214 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+jobs:
+  pull-request:
+    name: Pull request checks
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Get changed files
+        id: changed
+        run: |
+          files=$(git diff --name-only --diff-filter=ACMR origin/main...HEAD | tr '\n' ' ')
+          echo "files=$files" >> "$GITHUB_OUTPUT"
+
+      - name: Get changed codemod package dirs
+        id: codemods
+        run: |
+          roots=""
+          for f in $(git diff --name-only origin/main...HEAD -- 'codemods/' || true); do
+            [ -z "$f" ] && continue
+            d=$(dirname "$f")
+            while [ "$d" != "." ] && [ "$d" != "/" ]; do
+              if [ -f "$d/package.json" ] && [[ "$d" == codemods/* ]]; then
+                roots="${roots}"$'\n'"$d"
+                break
+              fi
+              parent=$(dirname "$d")
+              [ "$parent" = "$d" ] && break
+              d=$parent
+            done
+          done
+          dirs=$(printf '%s\n' "$roots" | sort -u | grep -v '^$' | tr '\n' ' ')
+          echo "dirs=$dirs" >> "$GITHUB_OUTPUT"
+
+      - name: Format check (changed files)
+        if: steps.changed.outputs.files != ''
+        run: pnpm exec biome format ${{ steps.changed.outputs.files }}
+
+      - name: Lint (changed files)
+        if: steps.changed.outputs.files != ''
+        run: pnpm exec biome lint ${{ steps.changed.outputs.files }}
+
+      - name: Markdown link check
+        run: pnpm run docs:links
+
+      - name: Test (changed codemods)
+        if: steps.codemods.outputs.dirs != ''
+        run: |
+          for dir in ${{ steps.codemods.outputs.dirs }}; do
+            (cd "$dir" && pnpm test)
+          done
+
+      - name: Typecheck (changed codemods)
+        if: steps.codemods.outputs.dirs != ''
+        run: |
+          for dir in ${{ steps.codemods.outputs.dirs }}; do
+            (cd "$dir" && pnpm run check-types)
+          done
+
+  push-verify:
+    name: Full workspace (main)
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run docs:links
+      - run: pnpm run ci
+
+  changeset-check:
+    name: Changeset Check
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Check for changeset
+        env:
+          SKIP_LABEL: skip-changeset
+          PR_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+        run: |
+          changed_dirs=""
+          for f in $(git diff --name-only --diff-filter=ACMR origin/main...HEAD -- 'codemods/' | grep -v '/tests/' || true); do
+            [ -z "$f" ] && continue
+            d=$(dirname "$f")
+            while [ "$d" != "." ] && [ "$d" != "/" ]; do
+              if [ -f "$d/package.json" ] && [[ "$d" == codemods/* ]]; then
+                changed_dirs="${changed_dirs}"$'\n'"$d"
+                break
+              fi
+              parent=$(dirname "$d")
+              [ "$parent" = "$d" ] && break
+              d=$parent
+            done
+          done
+          changed_dirs=$(printf '%s\n' "$changed_dirs" | sort -u | grep -v '^$' || true)
+
+          if [ -z "$changed_dirs" ]; then
+            echo "No codemod source files changed. Changeset not required."
+            exit 0
+          fi
+
+          changed_packages=""
+          for dir in $changed_dirs; do
+            if [ -f "$dir/package.json" ]; then
+              pkg=$(node -p "require('./$dir/package.json').name")
+              changed_packages="$changed_packages $pkg"
+            fi
+          done
+          changed_packages=$(echo "$changed_packages" | xargs)
+
+          if [ -z "$changed_packages" ]; then
+            echo "Changed directories have no package.json. Changeset not required."
+            exit 0
+          fi
+
+          echo "Changed packages:"
+          echo "$changed_packages" | tr ' ' '\n'
+
+          if echo "$PR_LABELS" | grep -q "$SKIP_LABEL"; then
+            echo "skip-changeset label found. Skipping changeset requirement."
+            exit 0
+          fi
+
+          changeset_files=$(git diff --name-only --diff-filter=ACMR origin/main...HEAD -- .changeset \
+            | grep '\.md$' \
+            | grep -v 'README.md' \
+            || true)
+
+          covered_packages=""
+          for f in $changeset_files; do
+            pkgs=$(sed -n '/^---$/,/^---$/{ /^---$/d; s/['\''`]//g; s/:.*//; p; }' "$f")
+            covered_packages="$covered_packages $pkgs"
+          done
+          covered_packages=$(echo "$covered_packages" | xargs)
+
+          missing=""
+          for pkg in $changed_packages; do
+            if ! printf '%s\n' $covered_packages | grep -Fxq "$pkg"; then
+              missing="$missing $pkg"
+            fi
+          done
+          missing=$(echo "$missing" | xargs)
+
+          if [ -z "$missing" ]; then
+            echo "All changed packages have changesets."
+            exit 0
+          fi
+
+          echo "::error::Missing changeset for: $missing"
+          echo ""
+          echo "The following packages were changed but not covered by a changeset:"
+          for pkg in $missing; do
+            echo "  - $pkg"
+          done
+          echo ""
+          echo "You have three options:"
+          echo "  1. Run 'pnpm changeset' to add a changeset covering the missing packages"
+          echo "  2. Add an empty changeset (no packages selected) if no version bump is needed"
+          echo "  3. Add the 'skip-changeset' label to this PR"
+          exit 1

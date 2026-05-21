@@ -17,15 +17,16 @@
     "check-types": "pnpm -r check-types",
     "ci": "pnpm run test && pnpm run check-types",
     "docs:links": "markdown-link-check README.md CONTRIBUTING.md",
+    "changeset": "changeset",
+    "version-packages": "changeset version && bash scripts/sync-codemod-versions.sh",
     "prepare": "husky"
   },
   "pnpm": {
-    "onlyBuiltDependencies": [
-      "@biomejs/biome"
-    ]
+    "onlyBuiltDependencies": ["@biomejs/biome"]
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
+    "@changesets/cli": "^2.27.12",
     "codemod": "^1.11.0",
     "husky": "^9.1.7",
     "lint-staged": "^15.3.0",
