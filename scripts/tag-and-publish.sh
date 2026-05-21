@@ -26,9 +26,14 @@ tag_exists_anywhere() {
 changed_dirs="[]"
 new_tags=()
 
-while IFS= read -r pkg_json; do
-  [ -z "$pkg_json" ] && continue
-  dir="$(dirname "$pkg_json")"
+while IFS= read -r codemod_yaml; do
+  [ -z "$codemod_yaml" ] && continue
+  dir="$(dirname "$codemod_yaml")"
+  pkg_json="$dir/package.json"
+  if [ ! -f "$pkg_json" ]; then
+    echo "Skipping $dir: package.json not found" >&2
+    continue
+  fi
   name="$(node -p "require('./$pkg_json').name")"
   version="$(node -p "require('./$pkg_json').version")"
   tag="${name}@v${version}"
@@ -42,7 +47,7 @@ while IFS= read -r pkg_json; do
   git tag "$tag"
   new_tags+=("$tag")
   changed_dirs="$(echo "$changed_dirs" | node -p "JSON.stringify([...JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')), \"$dir\"])")"
-done < <(find codemods -path '*/node_modules/*' -prune -o -name package.json -print | sort)
+done < <(find codemods -path '*/node_modules/*' -prune -o -name codemod.yaml -print | sort)
 
 for tag in "${new_tags[@]}"; do
   git push origin "refs/tags/$tag"

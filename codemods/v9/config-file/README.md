@@ -138,33 +138,29 @@ If your original config had:
 The migrated config will resemble:
 
 ```javascript
-import path from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
-import js from "@eslint/js";
-import { defineConfig } from "@eslint/config-helpers";
-import { fixupConfigRules } from "@eslint/compat";
+import path from 'path'
+import { fileURLToPath } from 'url'
+import { FlatCompat } from '@eslint/eslintrc'
+import js from '@eslint/js'
+import { defineConfig } from '@eslint/config-helpers'
+import { fixupConfigRules } from '@eslint/compat'
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 const compatWithRecommended = new FlatCompat({
   baseDirectory: __dirname,
   recommendedConfig: js.configs.recommended,
-});
+})
 
 export default defineConfig([
   {
     extends: fixupConfigRules(
-      compatWithRecommended.extends(
-        "eslint:recommended",
-        "plugin:react/recommended",
-        "airbnb",
-      ),
+      compatWithRecommended.extends('eslint:recommended', 'plugin:react/recommended', 'airbnb'),
     ),
     // ... other config
   },
-]);
+])
 ```
 
 `recommendedConfig` / `allConfig` wire the bundled ESLint presets; the same strings usually remain in `.extends(...)` so shared configs load as before.
@@ -283,54 +279,54 @@ The workflow renames processed ignore-list files to `deleted-eslintignore-backup
 **After** (`eslint.config.mjs`):
 
 ```javascript
-import path from "path";
-import { fileURLToPath } from "url";
-import js from "@eslint/js";
-import globals from "globals";
-import { FlatCompat } from "@eslint/eslintrc";
-import { defineConfig, globalIgnores } from "@eslint/config-helpers";
-import { fixupConfigRules } from "@eslint/compat";
+import path from 'path'
+import { fileURLToPath } from 'url'
+import js from '@eslint/js'
+import globals from 'globals'
+import { FlatCompat } from '@eslint/eslintrc'
+import { defineConfig, globalIgnores } from '@eslint/config-helpers'
+import { fixupConfigRules } from '@eslint/compat'
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 const compatWithRecommended = new FlatCompat({
   baseDirectory: __dirname,
   recommendedConfig: js.configs.recommended,
-});
+})
 
 export default defineConfig([
-  globalIgnores(["coverage/**", "dist"]),
+  globalIgnores(['coverage/**', 'dist']),
   {
-    extends: fixupConfigRules(compatWithRecommended.extends("eslint:recommended")),
+    extends: fixupConfigRules(compatWithRecommended.extends('eslint:recommended')),
     languageOptions: {
       globals: {
-        myCustomGlobal: "readonly",
-        jQuery: "readonly",
+        myCustomGlobal: 'readonly',
+        jQuery: 'readonly',
         ...globals.browser,
         ...globals.es2021,
         ...globals.node,
       },
       parserOptions: {
-        ecmaVersion: "latest",
-        sourceType: "module",
+        ecmaVersion: 'latest',
+        sourceType: 'module',
       },
     },
     linterOptions: {
       noInlineConfig: true,
-      reportUnusedDisableDirectives: "warn",
+      reportUnusedDisableDirectives: 'warn',
     },
     rules: {
-      "no-console": ["warn", { allow: ["warn", "error"] }],
-      "no-sequences": ["error", { allowInParentheses: false }],
-      "no-unused-vars": ["error", { caughtErrors: "all", vars: "all", args: "after-used" }],
-      "no-useless-computed-key": ["error", { enforceForClassMembers: true }],
-      camelcase: ["error", { properties: "always", ignoreDestructuring: false }],
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
+      'no-sequences': ['error', { allowInParentheses: false }],
+      'no-unused-vars': ['error', { caughtErrors: 'all', vars: 'all', args: 'after-used' }],
+      'no-useless-computed-key': ['error', { enforceForClassMembers: true }],
+      camelcase: ['error', { properties: 'always', ignoreDestructuring: false }],
     },
   },
   {
-    files: ["*.test.js", "*.spec.js"],
-    ignores: ["*.fixture.js"],
+    files: ['*.test.js', '*.spec.js'],
+    ignores: ['*.fixture.js'],
     languageOptions: {
       globals: {
         ...globals.jest,
@@ -338,10 +334,10 @@ export default defineConfig([
       parserOptions: {},
     },
     rules: {
-      "no-console": "off",
+      'no-console': 'off',
     },
   },
-]);
+])
 ```
 
 > **Note**: Additional `extends` (for example `"plugin:react/recommended"`) remain string entries inside `fixupConfigRules(compatWithRecommended.extends(/* ... */))`. `eslint:recommended` / `eslint:all` continue to use the dedicated `FlatCompat` instances wired to `js.configs.recommended` / `js.configs.all`.

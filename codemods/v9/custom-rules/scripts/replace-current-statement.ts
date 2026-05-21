@@ -1,101 +1,101 @@
-import { type Edit, type SgRoot, type RuleConfig, parse } from "codemod:ast-grep";
-import type JS from "codemod:ast-grep/langs/javascript";
+import { type Edit, type SgRoot, type RuleConfig, parse } from 'codemod:ast-grep'
+import type JS from 'codemod:ast-grep/langs/javascript'
 
 // ============ Selectors ============
 
 function getCreateBlockSelector(): RuleConfig<JS> {
   return {
     rule: {
-      kind: "statement_block",
+      kind: 'statement_block',
       inside: {
         any: [
           {
-            kind: "function_expression",
+            kind: 'function_expression',
             inside: {
-              kind: "pair",
+              kind: 'pair',
               has: {
-                kind: "property_identifier",
-                regex: "^create$",
+                kind: 'property_identifier',
+                regex: '^create$',
               },
             },
           },
           {
-            kind: "arrow_function",
+            kind: 'arrow_function',
             inside: {
-              kind: "pair",
+              kind: 'pair',
               has: {
-                kind: "property_identifier",
-                regex: "^create$",
+                kind: 'property_identifier',
+                regex: '^create$',
               },
             },
           },
           {
-            kind: "function_expression",
+            kind: 'function_expression',
             inside: {
-              kind: "arguments",
+              kind: 'arguments',
               inside: {
-                kind: "call_expression",
+                kind: 'call_expression',
                 inside: {
-                  kind: "pair",
+                  kind: 'pair',
                   has: {
-                    kind: "property_identifier",
-                    regex: "^create$",
+                    kind: 'property_identifier',
+                    regex: '^create$',
                   },
                 },
               },
             },
           },
           {
-            kind: "arrow_function",
+            kind: 'arrow_function',
             inside: {
-              kind: "arguments",
+              kind: 'arguments',
               inside: {
-                kind: "call_expression",
+                kind: 'call_expression',
                 inside: {
-                  kind: "pair",
+                  kind: 'pair',
                   has: {
-                    kind: "property_identifier",
-                    regex: "^create$",
+                    kind: 'property_identifier',
+                    regex: '^create$',
                   },
                 },
               },
             },
           },
           {
-            kind: "method_definition",
+            kind: 'method_definition',
             has: {
-              kind: "property_identifier",
-              regex: "^create$",
+              kind: 'property_identifier',
+              regex: '^create$',
             },
           },
         ],
       },
     },
-  };
+  }
 }
 
 function getAlreadyTransformedSelector(): RuleConfig<JS> {
   return {
     rule: {
-      kind: "variable_declarator",
+      kind: 'variable_declarator',
       has: {
-        kind: "identifier",
-        regex: "^newCurrentCodePath$",
+        kind: 'identifier',
+        regex: '^newCurrentCodePath$',
       },
     },
-  };
+  }
 }
 
 function getCurrentSegmentsSelector(): RuleConfig<JS> {
   return {
     rule: {
-      kind: "member_expression",
+      kind: 'member_expression',
       has: {
-        kind: "property_identifier",
-        regex: "^currentSegments$",
+        kind: 'property_identifier',
+        regex: '^currentSegments$',
       },
     },
-  };
+  }
 }
 
 // ============ Constants ============
@@ -120,93 +120,90 @@ const CODE_PATH_HANDLERS = `onCodePathStart(codePath) {
       },
       onUnreachableCodePathSegmentEnd(segment) {
         newCurrentSegments.delete(segment);
-      },`;
+      },`
 
 // ============ Transform ============
 
 export default async function transform(root: SgRoot<JS>): Promise<string | null> {
-  const rootNode = root.root();
-  const edits: Edit[] = [];
+  const rootNode = root.root()
+  const edits: Edit[] = []
 
-  const createRule = rootNode.find(getCreateBlockSelector());
+  const createRule = rootNode.find(getCreateBlockSelector())
 
   if (!createRule) {
-    return null;
+    return null
   }
 
   // Skip if already transformed (newCurrentCodePath already defined)
   if (createRule.find(getAlreadyTransformedSelector())) {
-    return null;
+    return null
   }
 
   // Skip if no currentSegments usage
   if (!createRule.find(getCurrentSegmentsSelector())) {
-    return null;
+    return null
   }
 
-  const text = createRule.text();
-  const newEdits: Edit[] = [];
-  const newRoot = parse("javascript", text).root();
+  const text = createRule.text()
+  const newEdits: Edit[] = []
+  const newRoot = parse('javascript', text).root()
 
   // Replace currentSegments references
   const memberExpressions = newRoot.findAll({
     rule: {
-      kind: "member_expression",
+      kind: 'member_expression',
       has: {
-        kind: "property_identifier",
-        regex: "^currentSegments$",
+        kind: 'property_identifier',
+        regex: '^currentSegments$',
       },
     },
-  });
+  })
   for (const expression of memberExpressions) {
-    newEdits.push(expression.replace("newCurrentSegments"));
+    newEdits.push(expression.replace('newCurrentSegments'))
   }
 
   // Add code path handlers to return objects
   const returnStatements = newRoot.findAll({
     rule: {
-      kind: "object",
+      kind: 'object',
       inside: {
-        kind: "return_statement",
+        kind: 'return_statement',
       },
     },
-  });
+  })
   for (const returnStatement of returnStatements) {
-    const returnStatementText = returnStatement.text();
+    const returnStatementText = returnStatement.text()
 
-    if (
-      returnStatementText[0] === "{" &&
-      returnStatementText[returnStatementText.length - 1] === "}"
-    ) {
-      const innerContent = returnStatementText.slice(1, -1);
+    if (returnStatementText.startsWith('{') && returnStatementText.at(-1) === '}') {
+      const innerContent = returnStatementText.slice(1, -1)
       newEdits.push(
         returnStatement.replace(`{
       ${CODE_PATH_HANDLERS}
       ${innerContent}
-    }`)
-      );
+    }`),
+      )
     } else {
       newEdits.push(
         returnStatement.replace(`{
       ${returnStatementText},
       ${CODE_PATH_HANDLERS}
-    }`)
-      );
+    }`),
+      )
     }
   }
 
   // Only transform if there are actual changes
   if (newEdits.length === 0) {
-    return null;
+    return null
   }
 
-  const newText = newRoot.commitEdits(newEdits);
+  const newText = newRoot.commitEdits(newEdits)
   const newCreate = `{
     let newCurrentCodePath;
     let newCurrentSegments;
     const allCurrentSegments = [];
-    ${newText.slice(1)}`;
-  edits.push(createRule.replace(newCreate));
+    ${newText.slice(1)}`
+  edits.push(createRule.replace(newCreate))
 
-  return rootNode.commitEdits(edits);
+  return rootNode.commitEdits(edits)
 }

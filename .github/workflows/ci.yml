@@ -60,11 +60,11 @@ jobs:
 
       - name: Format check (changed files)
         if: steps.changed.outputs.files != ''
-        run: pnpm exec biome format ${{ steps.changed.outputs.files }}
+        run: pnpm run format:check ${{ steps.changed.outputs.files }}
 
       - name: Lint (changed files)
         if: steps.changed.outputs.files != ''
-        run: pnpm exec biome lint ${{ steps.changed.outputs.files }}
+        run: pnpm run lint ${{ steps.changed.outputs.files }}
 
       - name: Markdown link check
         run: pnpm run docs:links

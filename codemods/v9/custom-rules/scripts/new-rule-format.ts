@@ -1,362 +1,378 @@
-import type { SgRoot, RuleConfig } from "codemod:ast-grep";
-import type JS from "codemod:ast-grep/langs/javascript";
-import type { SgNode } from "codemod:ast-grep";
+import type { SgRoot, RuleConfig } from 'codemod:ast-grep'
+import type { SgNode } from 'codemod:ast-grep'
+import type JS from 'codemod:ast-grep/langs/javascript'
 
-type ExportStyle = "commonjs" | "esm";
+type ExportStyle = 'commonjs' | 'esm'
 
 function getCommonJSRuleSelector(): RuleConfig<JS> {
   return {
     rule: {
-      kind: "assignment_expression",
+      kind: 'assignment_expression',
       any: [
-        { pattern: "module.exports = function($$$PARAMS) { $$$BODY }" },
-        { pattern: "module.exports = ($$$PARAMS) => { $$$BODY }" },
-        { pattern: "module.exports = ($$$PARAMS) => $BODY" },
-        { pattern: "module.exports = $PARAM => { $$$BODY }" },
-        { pattern: "module.exports = $PARAM => $BODY" },
+        { pattern: 'module.exports = function($$$PARAMS) { $$$BODY }' },
+        { pattern: 'module.exports = ($$$PARAMS) => { $$$BODY }' },
+        { pattern: 'module.exports = ($$$PARAMS) => $BODY' },
+        { pattern: 'module.exports = $PARAM => { $$$BODY }' },
+        { pattern: 'module.exports = $PARAM => $BODY' },
       ],
     },
-  };
+  }
 }
 
 function getESMRuleSelector(): RuleConfig<JS> {
   return {
     rule: {
-      kind: "export_statement",
+      kind: 'export_statement',
       any: [
-        { pattern: "export default function($$$PARAMS) { $$$BODY }" },
-        { pattern: "export default function $NAME($$$PARAMS) { $$$BODY }" },
-        { pattern: "export default ($$$PARAMS) => { $$$BODY }" },
-        { pattern: "export default ($$$PARAMS) => $BODY" },
-        { pattern: "export default $PARAM => { $$$BODY }" },
-        { pattern: "export default $PARAM => $BODY" },
+        { pattern: 'export default function($$$PARAMS) { $$$BODY }' },
+        { pattern: 'export default function $NAME($$$PARAMS) { $$$BODY }' },
+        { pattern: 'export default ($$$PARAMS) => { $$$BODY }' },
+        { pattern: 'export default ($$$PARAMS) => $BODY' },
+        { pattern: 'export default $PARAM => { $$$BODY }' },
+        { pattern: 'export default $PARAM => $BODY' },
       ],
     },
-  };
+  }
 }
 
 function getCommonJSSchemaSelector(): RuleConfig<JS> {
   return {
     rule: {
-      kind: "assignment_expression",
-      pattern: "module.exports.schema = $SCHEMA",
+      kind: 'assignment_expression',
+      pattern: 'module.exports.schema = $SCHEMA',
     },
-  };
+  }
 }
 
 function getContextReportSelector(): RuleConfig<JS> {
   return {
     rule: {
-      kind: "call_expression",
-      pattern: "$CTX.report($$$ARGS)",
+      kind: 'call_expression',
+      pattern: '$CTX.report($$$ARGS)',
     },
-  };
+  }
 }
 
 function getReturnObjectSelector(): RuleConfig<JS> {
   return {
     rule: {
-      kind: "return_statement",
+      kind: 'return_statement',
       has: {
-        kind: "object",
+        kind: 'object',
       },
     },
-  };
+  }
 }
 
 function getFunctionParamSelector(): RuleConfig<JS> {
   return {
     rule: {
       any: [
-        { pattern: "function($PARAM, $$$REST) { $$$BODY }" },
-        { pattern: "function($PARAM) { $$$BODY }" },
-        { pattern: "function $NAME($PARAM, $$$REST) { $$$BODY }" },
-        { pattern: "function $NAME($PARAM) { $$$BODY }" },
-        { pattern: "($PARAM, $$$REST) => { $$$BODY }" },
-        { pattern: "($PARAM) => { $$$BODY }" },
-        { pattern: "$PARAM => { $$$BODY }" },
-        { pattern: "$PARAM => $BODY" },
+        { pattern: 'function($PARAM, $$$REST) { $$$BODY }' },
+        { pattern: 'function($PARAM) { $$$BODY }' },
+        { pattern: 'function $NAME($PARAM, $$$REST) { $$$BODY }' },
+        { pattern: 'function $NAME($PARAM) { $$$BODY }' },
+        { pattern: '($PARAM, $$$REST) => { $$$BODY }' },
+        { pattern: '($PARAM) => { $$$BODY }' },
+        { pattern: '$PARAM => { $$$BODY }' },
+        { pattern: '$PARAM => $BODY' },
       ],
     },
-  };
+  }
 }
 
 function getFixableReportSelector(contextName: string): RuleConfig<JS> {
   return {
     rule: {
-      kind: "call_expression",
+      kind: 'call_expression',
       pattern: `${contextName}.report({ $$$PROPS })`,
       has: {
-        kind: "pair",
+        kind: 'pair',
         has: {
-          kind: "property_identifier",
-          regex: "^fix$",
+          kind: 'property_identifier',
+          regex: '^fix$',
         },
       },
     },
-  };
+  }
 }
 
 function getCommonJSFuncSelector(): RuleConfig<JS> {
   return {
     rule: {
-      kind: "assignment_expression",
-      pattern: "module.exports = $FUNC",
+      kind: 'assignment_expression',
+      pattern: 'module.exports = $FUNC',
     },
-  };
+  }
 }
 
 /** Returns true when the first argument of a call expression is a function/arrow. */
 function isFirstArgFunction(callExpr: SgNode<JS>): boolean {
-  const argsNode = callExpr.find({ rule: { kind: "arguments" } });
-  if (!argsNode) return false;
-  const args = argsNode
-    .children()
-    .filter((c) => c.kind() !== "(" && c.kind() !== ")" && c.kind() !== ",");
-  if (args.length === 0) return false;
-  const firstArg = args[0];
-  return firstArg?.kind() === "function_expression" || firstArg?.kind() === "arrow_function";
+  const argsNode = callExpr.find({ rule: { kind: 'arguments' } })
+  if (!argsNode) {
+    return false
+  }
+  const args = argsNode.children().filter((c) => c.kind() !== '(' && c.kind() !== ')' && c.kind() !== ',')
+  if (args.length === 0) {
+    return false
+  }
+  const firstArg = args[0]
+  return firstArg?.kind() === 'function_expression' || firstArg?.kind() === 'arrow_function'
 }
 
 function getESMFuncSelector(): RuleConfig<JS> {
   return {
     rule: {
-      kind: "export_statement",
-      pattern: "export default $FUNC",
+      kind: 'export_statement',
+      pattern: 'export default $FUNC',
     },
-  };
+  }
 }
 
 function getContextOptionsSelector(contextName: string): RuleConfig<JS> {
   return {
     rule: {
-      kind: "member_expression",
+      kind: 'member_expression',
       any: [{ pattern: `${contextName}.options` }, { pattern: `${contextName}.options[$$$]` }],
     },
-  };
+  }
 }
 
 // Selector for object with create (pair, function, or method shorthand: create(ctx) {})
 function getObjectWithCreateSelector(): RuleConfig<JS> {
   return {
     rule: {
-      kind: "object",
+      kind: 'object',
       any: [
         {
           has: {
-            kind: "pair",
+            kind: 'pair',
             has: {
-              kind: "property_identifier",
-              regex: "^create$",
+              kind: 'property_identifier',
+              regex: '^create$',
             },
           },
         },
         {
           has: {
-            kind: "method_definition",
+            kind: 'method_definition',
             has: {
-              kind: "property_identifier",
-              regex: "^create$",
+              kind: 'property_identifier',
+              regex: '^create$',
             },
           },
         },
       ],
     },
-  };
+  }
 }
 
 function hasMetaProperty(node: SgNode<JS>): boolean {
   const metaProp = node.find({
     rule: {
-      kind: "pair",
+      kind: 'pair',
       has: {
-        kind: "property_identifier",
-        regex: "^meta$",
+        kind: 'property_identifier',
+        regex: '^meta$',
       },
     },
-  });
-  return metaProp !== null;
+  })
+  return metaProp !== null
 }
 
 // Check if a call expression is a RuleCreator call
 function isRuleCreatorCall(callExpr: SgNode<JS>, root: SgRoot<JS>): boolean {
-  const rootNode = root.root();
+  const rootNode = root.root()
 
   // Get the callee - could be identifier or member_expression
-  const callee = callExpr.find({ rule: { kind: "identifier" } });
-  if (!callee) return false;
+  const callee = callExpr.find({ rule: { kind: 'identifier' } })
+  if (!callee) {
+    return false
+  }
 
-  const calleeName = callee.text();
+  const calleeName = callee.text()
 
   // Find variable declaration: const createRule = ESLintUtils.RuleCreator(...)
   const variableDeclarator = rootNode.find({
     rule: {
-      kind: "variable_declarator",
+      kind: 'variable_declarator',
       has: {
-        kind: "identifier",
+        kind: 'identifier',
         regex: `^${calleeName}$`,
       },
     },
-  });
+  })
 
-  if (!variableDeclarator) return false;
+  if (!variableDeclarator) {
+    return false
+  }
 
   // Check if the value is a call to RuleCreator
   // Pattern: ESLintUtils.RuleCreator(...) or SomeImport.RuleCreator(...)
   const ruleCreatorCall = variableDeclarator.find({
     rule: {
-      kind: "call_expression",
+      kind: 'call_expression',
       has: {
-        kind: "member_expression",
+        kind: 'member_expression',
         has: {
-          kind: "property_identifier",
-          regex: "^RuleCreator$",
+          kind: 'property_identifier',
+          regex: '^RuleCreator$',
         },
       },
     },
-  });
+  })
 
-  if (!ruleCreatorCall) return false;
+  if (!ruleCreatorCall) {
+    return false
+  }
 
   // Get the object part (ESLintUtils or whatever name it's imported as)
-  const memberExpr = ruleCreatorCall.find({ rule: { kind: "member_expression" } });
-  if (!memberExpr) return false;
+  const memberExpr = ruleCreatorCall.find({ rule: { kind: 'member_expression' } })
+  if (!memberExpr) {
+    return false
+  }
 
-  const objectIdentifier = memberExpr.find({ rule: { kind: "identifier" } });
-  if (!objectIdentifier) return false;
+  const objectIdentifier = memberExpr.find({ rule: { kind: 'identifier' } })
+  if (!objectIdentifier) {
+    return false
+  }
 
-  const importedName = objectIdentifier.text();
+  const importedName = objectIdentifier.text()
 
   // Verify it's imported from @typescript-eslint/utils
   const importDecl = rootNode.find({
     rule: {
-      kind: "import_statement",
+      kind: 'import_statement',
       pattern: `import { $$$IMPORTS } from "@typescript-eslint/utils"`,
     },
-  });
+  })
 
   if (importDecl) {
     // Check if ESLintUtils (or the used name) is in the imports
     const hasCorrectImport = importDecl.find({
       rule: {
-        kind: "import_specifier",
+        kind: 'import_specifier',
         has: {
-          kind: "identifier",
+          kind: 'identifier',
           regex: `^${importedName}$`,
         },
       },
-    });
-    if (hasCorrectImport) return true;
+    })
+    if (hasCorrectImport) {
+      return true
+    }
   }
 
   // Also check for: import { ESLintUtils as SomeName } from "@typescript-eslint/utils"
   const aliasedImport = rootNode.find({
     rule: {
-      kind: "import_statement",
+      kind: 'import_statement',
       has: {
-        kind: "import_specifier",
+        kind: 'import_specifier',
         has: {
-          kind: "identifier",
+          kind: 'identifier',
           regex: `^${importedName}$`,
         },
       },
     },
-  });
+  })
 
   if (aliasedImport) {
-    const importSource = aliasedImport.find({ rule: { kind: "string" } });
-    if (importSource?.text().includes("@typescript-eslint/utils")) {
-      return true;
+    const importSource = aliasedImport.find({ rule: { kind: 'string' } })
+    if (importSource?.text().includes('@typescript-eslint/utils')) {
+      return true
     }
   }
 
-  return false;
+  return false
 }
 
 // ============ Validation ============
 
 const VISITOR_METHODS = [
-  "Program",
-  "FunctionDeclaration",
-  "FunctionExpression",
-  "ArrowFunctionExpression",
-  "Identifier",
-  "CallExpression",
-  "MemberExpression",
-  "VariableDeclaration",
-  "IfStatement",
-  "ForStatement",
-  "WhileStatement",
-  "ClassDeclaration",
-  "ImportDeclaration",
-  "ExportDefaultDeclaration",
-];
+  'Program',
+  'FunctionDeclaration',
+  'FunctionExpression',
+  'ArrowFunctionExpression',
+  'Identifier',
+  'CallExpression',
+  'MemberExpression',
+  'VariableDeclaration',
+  'IfStatement',
+  'ForStatement',
+  'WhileStatement',
+  'ClassDeclaration',
+  'ImportDeclaration',
+  'ExportDefaultDeclaration',
+]
 
 function isEslintRule(root: SgRoot<JS>, ruleNode: SgNode<JS>): boolean {
-  const rootNode = root.root();
+  const rootNode = root.root()
 
   // Check if module.exports.schema exists (strong indicator of ESLint rule - CommonJS only)
-  if (rootNode.find(getCommonJSSchemaSelector())) return true;
+  if (rootNode.find(getCommonJSSchemaSelector())) {
+    return true
+  }
 
   // Check if context.report() is called inside the function
-  if (ruleNode.find(getContextReportSelector())) return true;
+  if (ruleNode.find(getContextReportSelector())) {
+    return true
+  }
 
   // Check if function returns an object with AST visitor methods
-  const returnStatement = ruleNode.find(getReturnObjectSelector());
+  const returnStatement = ruleNode.find(getReturnObjectSelector())
   if (returnStatement) {
     for (const method of VISITOR_METHODS) {
       const hasVisitor = returnStatement.find({
         rule: {
-          kind: "property_identifier",
+          kind: 'property_identifier',
           regex: `^${method}$`,
         },
-      });
-      if (hasVisitor) return true;
+      })
+      if (hasVisitor) {
+        return true
+      }
     }
   }
 
-  return false;
+  return false
 }
 
 // ============ Extractors ============
 
 function findCommonJSWrappedCallAssignment(root: SgRoot<JS>): SgNode<JS> | null {
-  const rootNode = root.root();
+  const rootNode = root.root()
   const assignments = rootNode.findAll({
     rule: {
-      kind: "assignment_expression",
-      pattern: "module.exports = $FUNC",
+      kind: 'assignment_expression',
+      pattern: 'module.exports = $FUNC',
     },
-  });
+  })
   for (const assignment of assignments) {
-    const rhs = assignment.getMatch("FUNC");
-    if (
-      rhs?.kind() === "call_expression" &&
-      isFirstArgFunction(rhs) &&
-      isEslintRule(root, assignment)
-    ) {
-      return assignment;
+    const rhs = assignment.getMatch('FUNC')
+    if (rhs?.kind() === 'call_expression' && isFirstArgFunction(rhs) && isEslintRule(root, assignment)) {
+      return assignment
     }
   }
-  return null;
+  return null
 }
 
 /** `export default doSomething(function (context) { ... })` (RHS is call_expression). */
 function findESMWrappedCallExport(root: SgRoot<JS>): SgNode<JS> | null {
-  const rootNode = root.root();
+  const rootNode = root.root()
   const stmts = rootNode.findAll({
     rule: {
-      kind: "export_statement",
-      pattern: "export default $FUNC",
+      kind: 'export_statement',
+      pattern: 'export default $FUNC',
     },
-  });
+  })
   for (const stmt of stmts) {
-    const rhs = stmt.getMatch("FUNC");
-    if (rhs?.kind() === "call_expression" && isFirstArgFunction(rhs) && isEslintRule(root, stmt)) {
-      return stmt;
+    const rhs = stmt.getMatch('FUNC')
+    if (rhs?.kind() === 'call_expression' && isFirstArgFunction(rhs) && isEslintRule(root, stmt)) {
+      return stmt
     }
   }
-  return null;
+  return null
 }
 
 /**
@@ -366,126 +382,126 @@ function findESMWrappedCallExport(root: SgRoot<JS>): SgNode<JS> | null {
  * transforms (replace-context-method) can still inspect its body.
  */
 function findIndirectCommonJSExport(root: SgRoot<JS>): {
-  assignmentNode: SgNode<JS>;
-  funcDecl: SgNode<JS>;
-  contextName: string;
+  assignmentNode: SgNode<JS>
+  funcDecl: SgNode<JS>
+  contextName: string
 } | null {
-  const rootNode = root.root();
+  const rootNode = root.root()
 
   const assignments = rootNode.findAll({
     rule: {
-      kind: "assignment_expression",
-      pattern: "module.exports = $FUNC",
+      kind: 'assignment_expression',
+      pattern: 'module.exports = $FUNC',
     },
-  });
+  })
 
   for (const assignment of assignments) {
-    const rhs = assignment.getMatch("FUNC");
-    if (!rhs || rhs.kind() !== "identifier") continue;
+    const rhs = assignment.getMatch('FUNC')
+    if (rhs?.kind() !== 'identifier') {
+      continue
+    }
 
-    const funcName = rhs.text();
+    const funcName = rhs.text()
 
     // Look for `function rule(context) { … }`
     const funcDecl = rootNode.find({
       rule: {
-        kind: "function_declaration",
-        has: { kind: "identifier", regex: `^${funcName}$` },
+        kind: 'function_declaration',
+        has: { kind: 'identifier', regex: `^${funcName}$` },
       },
-    });
+    })
 
     if (funcDecl && isEslintRule(root, funcDecl)) {
-      const formalParams = funcDecl.find({ rule: { kind: "formal_parameters" } });
-      const firstParam = formalParams?.find({ rule: { kind: "identifier" } });
-      const contextName = firstParam?.text() || "context";
-      return { assignmentNode: assignment, funcDecl, contextName };
+      const formalParams = funcDecl.find({ rule: { kind: 'formal_parameters' } })
+      const firstParam = formalParams?.find({ rule: { kind: 'identifier' } })
+      const contextName = firstParam?.text() ?? 'context'
+      return { assignmentNode: assignment, funcDecl, contextName }
     }
   }
 
-  return null;
+  return null
 }
 
-function getOldFormatRuleDefinition(
-  root: SgRoot<JS>
-): {
-  node: SgNode<JS>;
-  style: ExportStyle;
-  indirectFuncDecl?: SgNode<JS>;
-  indirectContextName?: string;
+function getOldFormatRuleDefinition(root: SgRoot<JS>): {
+  node: SgNode<JS>
+  style: ExportStyle
+  indirectFuncDecl?: SgNode<JS>
+  indirectContextName?: string
 } | null {
-  const rootNode = root.root();
+  const rootNode = root.root()
 
-  const commonJSNode = rootNode.find(getCommonJSRuleSelector());
+  const commonJSNode = rootNode.find(getCommonJSRuleSelector())
   if (commonJSNode && isEslintRule(root, commonJSNode)) {
-    return { node: commonJSNode, style: "commonjs" };
+    return { node: commonJSNode, style: 'commonjs' }
   }
 
-  const commonJSWrappedCall = findCommonJSWrappedCallAssignment(root);
+  const commonJSWrappedCall = findCommonJSWrappedCallAssignment(root)
   if (commonJSWrappedCall) {
-    return { node: commonJSWrappedCall, style: "commonjs" };
+    return { node: commonJSWrappedCall, style: 'commonjs' }
   }
 
-  const esmNode = rootNode.find(getESMRuleSelector());
+  const esmNode = rootNode.find(getESMRuleSelector())
   if (esmNode && isEslintRule(root, esmNode)) {
-    return { node: esmNode, style: "esm" };
+    return { node: esmNode, style: 'esm' }
   }
 
-  const esmWrappedCall = findESMWrappedCallExport(root);
+  const esmWrappedCall = findESMWrappedCallExport(root)
   if (esmWrappedCall) {
-    return { node: esmWrappedCall, style: "esm" };
+    return { node: esmWrappedCall, style: 'esm' }
   }
 
-  const indirectExport = findIndirectCommonJSExport(root);
+  const indirectExport = findIndirectCommonJSExport(root)
   if (indirectExport) {
     return {
       node: indirectExport.assignmentNode,
-      style: "commonjs",
+      style: 'commonjs',
       indirectFuncDecl: indirectExport.funcDecl,
       indirectContextName: indirectExport.contextName,
-    };
+    }
   }
 
-  return null;
+  return null
 }
 
 function getOldFormatSchemaDefinition(root: SgRoot<JS>): SgNode<JS> | null {
-  return root.root().find(getCommonJSSchemaSelector());
+  return root.root().find(getCommonJSSchemaSelector())
 }
 
 function getContextParameterName(ruleNode: SgNode<JS>): string {
-  const functionNode = ruleNode.find(getFunctionParamSelector());
-  const paramMatch = functionNode?.getMatch("PARAM");
-  return paramMatch?.text() || "context";
+  const functionNode = ruleNode.find(getFunctionParamSelector())
+  const paramMatch = functionNode?.getMatch('PARAM')
+  return paramMatch?.text() ?? 'context'
 }
 
 function isRuleFixable(root: SgRoot<JS>, contextName: string): boolean {
-  return root.root().find(getFixableReportSelector(contextName)) !== null;
+  return root.root().find(getFixableReportSelector(contextName)) !== null
 }
 
 function usesContextOptions(root: SgRoot<JS>, contextName: string): boolean {
-  return root.root().find(getContextOptionsSelector(contextName)) !== null;
+  return root.root().find(getContextOptionsSelector(contextName)) !== null
 }
 
 function getSchemaValue(schemaNode: SgNode<JS>): string {
-  const schemaValue = schemaNode.find(getCommonJSSchemaSelector());
-  const schema = schemaValue?.getMatch("SCHEMA");
-  return schema?.text() || "[]";
+  const schemaValue = schemaNode.find(getCommonJSSchemaSelector())
+  const schema = schemaValue?.getMatch('SCHEMA')
+  return schema?.text() ?? '[]'
 }
 
 function getRuleFunction(ruleNode: SgNode<JS>, style: ExportStyle, contextName: string): string {
-  if (style === "commonjs") {
-    const assignmentNode = ruleNode.find(getCommonJSFuncSelector());
-    const func = assignmentNode?.getMatch("FUNC");
+  if (style === 'commonjs') {
+    const assignmentNode = ruleNode.find(getCommonJSFuncSelector())
+    const func = assignmentNode?.getMatch('FUNC')
     if (func) {
-      return func.text();
+      return func.text()
     }
   } else {
-    const exportNode = ruleNode.find(getESMFuncSelector());
-    const func = exportNode?.getMatch("FUNC");
+    const exportNode = ruleNode.find(getESMFuncSelector())
+    const func = exportNode?.getMatch('FUNC')
     if (func) {
-      return func.text();
+      return func.text()
     }
   }
-  return `function(${contextName}) { return {}; }`;
+  return `function(${contextName}) { return {}; }`
 }
 
 function generateNewFormat(
@@ -493,16 +509,16 @@ function generateNewFormat(
   fixableProperty: string,
   schemaValue: string,
   schemaComment: string,
-  ruleFunction: string
+  ruleFunction: string,
 ): string {
-  if (style === "commonjs") {
+  if (style === 'commonjs') {
     return `module.exports = {
   meta: {
     docs: {},${fixableProperty}
     schema: ${schemaValue}${schemaComment}
   },
   create: ${ruleFunction}
-};`;
+};`
   }
   return `export default {
   meta: {
@@ -510,200 +526,183 @@ function generateNewFormat(
     schema: ${schemaValue}${schemaComment}
   },
   create: ${ruleFunction}
-};`;
+};`
 }
 
-function generateMetaObject(
-  fixableProperty: string,
-  schemaValue: string,
-  schemaComment: string
-): string {
+function generateMetaObject(fixableProperty: string, schemaValue: string, schemaComment: string): string {
   return `meta: {
     docs: {},${fixableProperty}
     schema: ${schemaValue}${schemaComment}
-  },`;
+  },`
 }
 
 // Check if object is directly exported as ESLint rule
 function isObjectExported(
   objectNode: SgNode<JS>,
-  root: SgRoot<JS>
+  root: SgRoot<JS>,
 ): {
-  exported: boolean;
-  style: ExportStyle;
-  isCreateRule: boolean;
+  exported: boolean
+  style: ExportStyle
+  isCreateRule: boolean
 } {
-  const parent = objectNode.parent();
+  const parent = objectNode.parent()
   if (!parent) {
-    return { exported: false, style: "commonjs", isCreateRule: false };
+    return { exported: false, style: 'commonjs', isCreateRule: false }
   }
 
-  const parentKind = parent.kind();
+  const parentKind = parent.kind()
 
   // Direct: module.exports = { create: ... }
   // The object's parent should be assignment_expression with module.exports
-  if (parentKind === "assignment_expression") {
-    const assignmentText = parent.text();
-    if (
-      assignmentText.startsWith("module.exports =") ||
-      assignmentText.startsWith("module.exports=")
-    ) {
-      return { exported: true, style: "commonjs", isCreateRule: false };
+  if (parentKind === 'assignment_expression') {
+    const assignmentText = parent.text()
+    if (assignmentText.startsWith('module.exports =') || assignmentText.startsWith('module.exports=')) {
+      return { exported: true, style: 'commonjs', isCreateRule: false }
     }
   }
 
   // Direct: export default { create: ... }
   // The object's parent should be export_statement
-  if (parentKind === "export_statement") {
-    return { exported: true, style: "esm", isCreateRule: false };
+  if (parentKind === 'export_statement') {
+    return { exported: true, style: 'esm', isCreateRule: false }
   }
 
   // createRule({ create: ... }) - object is direct child of arguments
-  if (parentKind === "arguments") {
-    const callExpr = parent.parent();
-    if (callExpr?.kind() === "call_expression") {
+  if (parentKind === 'arguments') {
+    const callExpr = parent.parent()
+    if (callExpr?.kind() === 'call_expression') {
       // Use proper AST analysis to verify it's a RuleCreator call
       if (isRuleCreatorCall(callExpr, root)) {
         // Only match when the object is the first (or only) argument.
         // Wrappers like wrapStylisticOrCoreRule('name', { create: ... }) pass the
         // rule config as the second argument — those must not be treated as exports.
-        const args = parent
-          .children()
-          .filter((c) => c.kind() !== "(" && c.kind() !== ")" && c.kind() !== ",");
+        const args = parent.children().filter((c) => c.kind() !== '(' && c.kind() !== ')' && c.kind() !== ',')
         if (args[0]?.text() === objectNode.text()) {
-          return { exported: true, style: "esm", isCreateRule: true };
+          return { exported: true, style: 'esm', isCreateRule: true }
         }
       }
     }
   }
 
-  return { exported: false, style: "commonjs", isCreateRule: false };
+  return { exported: false, style: 'commonjs', isCreateRule: false }
 }
 
 // Find rules with create but no meta
 function getRuleWithCreateNoMeta(
-  root: SgRoot<JS>
+  root: SgRoot<JS>,
 ): { node: SgNode<JS>; style: ExportStyle; isCreateRule: boolean } | null {
-  const rootNode = root.root();
+  const rootNode = root.root()
 
   // Find any object with a create property
-  const objectsWithCreate = rootNode.findAll(getObjectWithCreateSelector());
+  const objectsWithCreate = rootNode.findAll(getObjectWithCreateSelector())
 
   for (const objectNode of objectsWithCreate) {
     // Skip if it already has meta
     if (hasMetaProperty(objectNode)) {
-      continue;
+      continue
     }
 
     // Check if this object is actually being exported
-    const exportInfo = isObjectExported(objectNode, root);
+    const exportInfo = isObjectExported(objectNode, root)
     if (exportInfo.exported) {
-      return { node: objectNode, style: exportInfo.style, isCreateRule: exportInfo.isCreateRule };
+      return { node: objectNode, style: exportInfo.style, isCreateRule: exportInfo.isCreateRule }
     }
   }
 
-  return null;
+  return null
 }
 
 function getCreateFunctionFromObject(objectNode: SgNode<JS>): SgNode<JS> | null {
   const createPair = objectNode.find({
     rule: {
-      kind: "pair",
+      kind: 'pair',
       has: {
-        kind: "property_identifier",
-        regex: "^create$",
+        kind: 'property_identifier',
+        regex: '^create$',
       },
     },
-  });
+  })
   if (createPair) {
-    return createPair;
+    return createPair
   }
   return objectNode.find({
     rule: {
-      kind: "method_definition",
+      kind: 'method_definition',
       has: {
-        kind: "property_identifier",
-        regex: "^create$",
+        kind: 'property_identifier',
+        regex: '^create$',
       },
     },
-  });
+  })
 }
 
 function getContextNameFromCreateNode(createNode: SgNode<JS>): string {
-  if (createNode.kind() === "method_definition") {
-    const formalParams = createNode.find({ rule: { kind: "formal_parameters" } });
-    const firstParam = formalParams?.find({ rule: { kind: "identifier" } });
-    return firstParam?.text() || "context";
+  if (createNode.kind() === 'method_definition') {
+    const formalParams = createNode.find({ rule: { kind: 'formal_parameters' } })
+    const firstParam = formalParams?.find({ rule: { kind: 'identifier' } })
+    return firstParam?.text() ?? 'context'
   }
-  const funcNode = createNode.find(getFunctionParamSelector());
-  const paramMatch = funcNode?.getMatch("PARAM");
-  return paramMatch?.text() || "context";
+  const funcNode = createNode.find(getFunctionParamSelector())
+  const paramMatch = funcNode?.getMatch('PARAM')
+  return paramMatch?.text() ?? 'context'
 }
 
 // ============ Transform ============
 
 async function transform(root: SgRoot<JS>): Promise<string | null> {
   // First, try to handle old format (direct function export)
-  const ruleDefinition = getOldFormatRuleDefinition(root);
+  const ruleDefinition = getOldFormatRuleDefinition(root)
   if (ruleDefinition) {
-    return transformOldFormat(root, ruleDefinition);
+    return transformOldFormat(root, ruleDefinition)
   }
 
   // Then, check if it has create but no meta
-  const ruleWithCreateNoMeta = getRuleWithCreateNoMeta(root);
+  const ruleWithCreateNoMeta = getRuleWithCreateNoMeta(root)
   if (ruleWithCreateNoMeta) {
-    return addMetaToExistingRule(root, ruleWithCreateNoMeta);
+    return addMetaToExistingRule(root, ruleWithCreateNoMeta)
   }
 
-  return null;
+  return null
 }
 
 async function transformOldFormat(
   root: SgRoot<JS>,
   ruleDefinition: {
-    node: SgNode<JS>;
-    style: ExportStyle;
-    indirectFuncDecl?: SgNode<JS>;
-    indirectContextName?: string;
-  }
+    node: SgNode<JS>
+    style: ExportStyle
+    indirectFuncDecl?: SgNode<JS>
+    indirectContextName?: string
+  },
 ): Promise<string> {
-  const { node: ruleDefinitionNode, style, indirectFuncDecl, indirectContextName } = ruleDefinition;
+  const { node: ruleDefinitionNode, style, indirectFuncDecl, indirectContextName } = ruleDefinition
 
   // For indirect exports, resolve contextName from the declared function.
-  const contextName = indirectContextName ?? getContextParameterName(ruleDefinitionNode);
-  const isFixable = isRuleFixable(root, contextName);
-  const schemaDefinitionNode = getOldFormatSchemaDefinition(root);
-  const schemaValue = schemaDefinitionNode ? getSchemaValue(schemaDefinitionNode) : "[]";
+  const contextName = indirectContextName ?? getContextParameterName(ruleDefinitionNode)
+  const isFixable = isRuleFixable(root, contextName)
+  const schemaDefinitionNode = getOldFormatSchemaDefinition(root)
+  const schemaValue = schemaDefinitionNode ? getSchemaValue(schemaDefinitionNode) : '[]'
 
   // Check if rule uses context.options but has no schema defined
-  const hasOptions = usesContextOptions(root, contextName);
-  const needsSchemaWarning = hasOptions && !schemaDefinitionNode;
+  const hasOptions = usesContextOptions(root, contextName)
+  const needsSchemaWarning = hasOptions && !schemaDefinitionNode
 
   // For indirect exports, use the function declaration text directly as the create value
   // and remove the standalone declaration so downstream scripts see the body inside create.
   const ruleFunction = indirectFuncDecl
     ? indirectFuncDecl.text()
-    : getRuleFunction(ruleDefinitionNode, style, contextName);
-  const fixableProperty = isFixable ? '\n    fixable: "code",' : "";
-  const schemaComment = needsSchemaWarning
-    ? " // TODO: Define schema - this rule uses context.options"
-    : "";
+    : getRuleFunction(ruleDefinitionNode, style, contextName)
+  const fixableProperty = isFixable ? '\n    fixable: "code",' : ''
+  const schemaComment = needsSchemaWarning ? ' // TODO: Define schema - this rule uses context.options' : ''
 
-  const newFormat = generateNewFormat(
-    style,
-    fixableProperty,
-    schemaValue,
-    schemaComment,
-    ruleFunction
-  );
+  const newFormat = generateNewFormat(style, fixableProperty, schemaValue, schemaComment, ruleFunction)
 
-  let sourceText = root.root().text();
+  let sourceText = root.root().text()
 
   // Remove schema definition (CommonJS only)
   if (schemaDefinitionNode) {
-    const schemaStatement = schemaDefinitionNode.parent();
+    const schemaStatement = schemaDefinitionNode.parent()
     if (schemaStatement) {
-      sourceText = sourceText.replace(schemaStatement.text(), "");
+      sourceText = sourceText.replace(schemaStatement.text(), '')
     }
   }
 
@@ -711,68 +710,66 @@ async function transformOldFormat(
   // function_declaration at the top level is a direct child of program, so
   // we remove its text directly rather than using .parent().
   if (indirectFuncDecl) {
-    sourceText = sourceText.replace(indirectFuncDecl.text(), "");
+    sourceText = sourceText.replace(indirectFuncDecl.text(), '')
   }
 
   // Replace rule definition
-  if (style === "commonjs") {
-    const ruleStatement = ruleDefinitionNode.parent();
+  if (style === 'commonjs') {
+    const ruleStatement = ruleDefinitionNode.parent()
     if (ruleStatement) {
-      sourceText = sourceText.replace(ruleStatement.text(), newFormat);
+      sourceText = sourceText.replace(ruleStatement.text(), newFormat)
     }
   } else {
     // For ESM, the export_statement is the full statement
-    sourceText = sourceText.replace(ruleDefinitionNode.text(), newFormat);
+    sourceText = sourceText.replace(ruleDefinitionNode.text(), newFormat)
   }
 
-  sourceText = sourceText.replace(/\n\n\n+/g, "\n\n");
+  sourceText = sourceText.replaceAll(/\n\n\n+/g, '\n\n')
 
-  return sourceText;
+  return sourceText
 }
 
 async function addMetaToExistingRule(
   root: SgRoot<JS>,
-  ruleInfo: { node: SgNode<JS>; style: ExportStyle; isCreateRule: boolean }
+  ruleInfo: { node: SgNode<JS>; style: ExportStyle; isCreateRule: boolean },
 ): Promise<string> {
-  const { node: objectNode } = ruleInfo;
+  const { node: objectNode } = ruleInfo
 
   // Get context name from create function
-  const createPair = getCreateFunctionFromObject(objectNode);
-  const contextName = createPair ? getContextNameFromCreateNode(createPair) : "context";
+  const createPair = getCreateFunctionFromObject(objectNode)
+  const contextName = createPair ? getContextNameFromCreateNode(createPair) : 'context'
 
-  const isFixable = isRuleFixable(root, contextName);
-  const schemaDefinitionNode = getOldFormatSchemaDefinition(root);
-  const schemaValue = schemaDefinitionNode ? getSchemaValue(schemaDefinitionNode) : "[]";
+  const isFixable = isRuleFixable(root, contextName)
+  const schemaDefinitionNode = getOldFormatSchemaDefinition(root)
+  const schemaValue = schemaDefinitionNode ? getSchemaValue(schemaDefinitionNode) : '[]'
 
   // Check if rule uses context.options but has no schema defined
-  const hasOptions = usesContextOptions(root, contextName);
-  const needsSchemaWarning = hasOptions && !schemaDefinitionNode;
+  const hasOptions = usesContextOptions(root, contextName)
+  const needsSchemaWarning = hasOptions && !schemaDefinitionNode
 
-  const fixableProperty = isFixable ? '\n    fixable: "code",' : "";
-  const schemaComment = needsSchemaWarning
-    ? " // TODO: Define schema - this rule uses context.options"
-    : "";
+  const fixableProperty = isFixable ? '\n    fixable: "code",' : ''
+  const schemaComment = needsSchemaWarning ? ' // TODO: Define schema - this rule uses context.options' : ''
 
-  const metaObject = generateMetaObject(fixableProperty, schemaValue, schemaComment);
+  const metaObject = generateMetaObject(fixableProperty, schemaValue, schemaComment)
 
-  let sourceText = root.root().text();
+  let sourceText = root.root().text()
 
   // Remove schema definition (CommonJS only)
   if (schemaDefinitionNode) {
-    const schemaStatement = schemaDefinitionNode.parent();
+    const schemaStatement = schemaDefinitionNode.parent()
     if (schemaStatement) {
-      sourceText = sourceText.replace(schemaStatement.text(), "");
+      sourceText = sourceText.replace(schemaStatement.text(), '')
     }
   }
 
   // Insert meta at the beginning of the object (after opening brace)
-  const objectText = objectNode.text();
-  const newObjectText = objectText.replace(/^\{/, `{\n  ${metaObject}\n `);
-  sourceText = sourceText.replace(objectText, newObjectText);
+  const objectText = objectNode.text()
+  const newObjectText = objectText.replace(/^\{/, `{\n  ${metaObject}\n `)
+  sourceText = sourceText.replace(objectText, newObjectText)
 
-  sourceText = sourceText.replace(/\n\n\n+/g, "\n\n");
+  sourceText = sourceText.replaceAll(/\n\n\n+/g, '\n\n')
 
-  return sourceText;
+  return sourceText
 }
 
-export default transform;
+export default transform

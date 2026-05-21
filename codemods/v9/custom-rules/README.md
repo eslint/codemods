@@ -94,28 +94,28 @@ After running this codemod, you need to:
 
    ```javascript
    // Before (generated with TODO)
-   schema: []; // TODO: Define schema - this rule uses context.options
+   schema: [] // TODO: Define schema - this rule uses context.options
 
    // After (manually fixed)
    schema: [
      {
-       type: "integer",
+       type: 'integer',
        minimum: 1,
      },
-   ];
+   ]
    ```
 
 3. **Update deprecated context methods** - The codemod replaces these automatically, but you need to verify the `node` parameter:
 
-   | **Removed on `context`**                | **Replacement on `SourceCode`**                     |
-   | --------------------------------------- | --------------------------------------------------- |
-   | `context.getAncestors()`               | `sourceCode.getAncestors(node)`                     |
-   | `context.getScope()`                   | `sourceCode.getScope(node)`                         |
-   | `context.markVariableAsUsed(name)`     | `sourceCode.markVariableAsUsed(name, node)`         |
-   | `context.getDeclaredVariables(node)`   | `sourceCode.getDeclaredVariables(node)`             |
-   | `context.getSource(node)`              | `sourceCode.getText(node)`                          |
-   | `context.getSourceLines()`             | `sourceCode.getLines()`                             |
-   | `context.getAllComments()`             | `sourceCode.getCommentsBefore/Inside/After(node)`   |
+   | **Removed on `context`**             | **Replacement on `SourceCode`**                   |
+   | ------------------------------------ | ------------------------------------------------- |
+   | `context.getAncestors()`             | `sourceCode.getAncestors(node)`                   |
+   | `context.getScope()`                 | `sourceCode.getScope(node)`                       |
+   | `context.markVariableAsUsed(name)`   | `sourceCode.markVariableAsUsed(name, node)`       |
+   | `context.getDeclaredVariables(node)` | `sourceCode.getDeclaredVariables(node)`           |
+   | `context.getSource(node)`            | `sourceCode.getText(node)`                        |
+   | `context.getSourceLines()`           | `sourceCode.getLines()`                           |
+   | `context.getAllComments()`           | `sourceCode.getCommentsBefore/Inside/After(node)` |
 
 4. **Test your custom rules**:
 

@@ -1,24 +1,24 @@
-version: "1"
+version: '1'
 
 params:
   schema:
     codeFormattingCommandEnabled:
-      name: "Code formatting command enabled"
+      name: 'Code formatting command enabled'
       default: false
       type: boolean
-      description: "Should formatting command run or not"
+      description: 'Should formatting command run or not'
     codeFormattingCommand:
-      name: "Code formatting command"
+      name: 'Code formatting command'
       default: npx prettier --write "**/eslint.config.mjs" --ignore-path /dev/null --no-config --no-error-on-unmatched-pattern
       type: string
-      description: "Command to format the code"
+      description: 'Command to format the code'
     eslintConfigCustomName:
-      name: "Custom name of ESLint config file"
+      name: 'Custom name of ESLint config file'
       default: null
       type: string
-      description: "Name of the custom ESLint config file"
+      description: 'Name of the custom ESLint config file'
     eslintConfigLanguage:
-      name: "Language of ESLint config file"
+      name: 'Language of ESLint config file'
       default: javascript
       type: string
       description: >-
@@ -31,38 +31,38 @@ nodes:
     type: automatic
     steps:
       - id: scan-ignore-files
-        name: "Scan ignore files"
+        name: 'Scan ignore files'
         js-ast-grep:
           js_file: scripts/ignore-files.ts
           max_threads: 1
           include:
-            - "**/.gitignore"
-            - "**/.eslintignore"
+            - '**/.gitignore'
+            - '**/.eslintignore'
       - id: fix-exported-comments
-        name: "Fix exported comments"
+        name: 'Fix exported comments'
         js-ast-grep:
           js_file: scripts/fix-exported-comment.ts
           include:
-            - "**/*.ts"
-            - "**/*.js"
+            - '**/*.ts'
+            - '**/*.js'
       - id: remove-unnecessary-eslint-comments
-        name: "Remove unnecessary eslint comments"
+        name: 'Remove unnecessary eslint comments'
         js-ast-grep:
           js_file: scripts/remove-unnecessary-eslint-comments.ts
           include:
-            - "**/*.ts"
-            - "**/*.js"
+            - '**/*.ts'
+            - '**/*.js'
       - id: scan-file-jsdoc
-        name: "Scan file-jsdoc.ts"
+        name: 'Scan file-jsdoc.ts'
         depends_on:
           - remove-unnecessary-eslint-comments
         js-ast-grep:
           js_file: scripts/file-jsdoc.ts
           include:
-            - "**/*.ts"
-            - "**/*.js"
+            - '**/*.ts'
+            - '**/*.js'
       - id: scan-js-eslintrc-files
-        name: "Scan .eslintrc.js, .eslintrc.mjs, .eslintrc.cjs"
+        name: 'Scan .eslintrc.js, .eslintrc.mjs, .eslintrc.cjs'
         depends_on:
           - scan-file-jsdoc
           - scan-ignore-files
@@ -71,11 +71,11 @@ nodes:
           js_file: scripts/transform-eslintrc-config.ts
           semantic_analysis: file
           include:
-            - "**/*.eslintrc.js"
-            - "**/*.eslintrc.mjs"
-            - "**/*.eslintrc.cjs"
+            - '**/*.eslintrc.js'
+            - '**/*.eslintrc.mjs'
+            - '**/*.eslintrc.cjs'
       - id: scan-json-eslintrc-files
-        name: "Scan .eslintrc.json"
+        name: 'Scan .eslintrc.json'
         depends_on:
           - scan-file-jsdoc
           - scan-ignore-files
@@ -83,9 +83,9 @@ nodes:
           language: json
           js_file: scripts/transform-eslintrc-config.ts
           include:
-            - "**/*.eslintrc.json"
+            - '**/*.eslintrc.json'
       - id: scan-yaml-eslintrc-files
-        name: "Scan .eslintrc.yaml and .eslintrc.yml"
+        name: 'Scan .eslintrc.yaml and .eslintrc.yml'
         depends_on:
           - scan-file-jsdoc
           - scan-ignore-files
@@ -93,11 +93,11 @@ nodes:
           language: yaml
           js_file: scripts/transform-eslintrc-config.ts
           include:
-            - "**/*.eslintrc.yaml"
-            - "**/*.eslintrc.yml"
+            - '**/*.eslintrc.yaml'
+            - '**/*.eslintrc.yml'
       - id: scan-custom-eslint-config-javascript
         if: 'params.eslintConfigCustomName != "null" && params.eslintConfigLanguage == "javascript"'
-        name: "Scan ESLint config file with custom name (JavaScript)"
+        name: 'Scan ESLint config file with custom name (JavaScript)'
         depends_on:
           - scan-file-jsdoc
           - scan-ignore-files
@@ -106,10 +106,10 @@ nodes:
           js_file: scripts/transform-eslintrc-config.ts
           semantic_analysis: file
           include:
-            - "**/*${{ params.eslintConfigCustomName }}"
+            - '**/*${{ params.eslintConfigCustomName }}'
       - id: scan-custom-eslint-config-json
         if: 'params.eslintConfigCustomName != "null" && params.eslintConfigLanguage == "json"'
-        name: "Scan ESLint config file with custom name (JSON)"
+        name: 'Scan ESLint config file with custom name (JSON)'
         depends_on:
           - scan-file-jsdoc
           - scan-ignore-files
@@ -117,10 +117,10 @@ nodes:
           language: json
           js_file: scripts/transform-eslintrc-config.ts
           include:
-            - "**/*${{ params.eslintConfigCustomName }}"
+            - '**/*${{ params.eslintConfigCustomName }}'
       - id: scan-custom-eslint-config-yaml
         if: 'params.eslintConfigCustomName != "null" && params.eslintConfigLanguage == "yaml"'
-        name: "Scan ESLint config file with custom name (YAML)"
+        name: 'Scan ESLint config file with custom name (YAML)'
         depends_on:
           - scan-file-jsdoc
           - scan-ignore-files
@@ -128,9 +128,9 @@ nodes:
           language: yaml
           js_file: scripts/transform-eslintrc-config.ts
           include:
-            - "**/*${{ params.eslintConfigCustomName }}"
+            - '**/*${{ params.eslintConfigCustomName }}'
       - id: scan-packagejson-files
-        name: "Scan package.json"
+        name: 'Scan package.json'
         depends_on:
           - scan-js-eslintrc-files
           - scan-json-eslintrc-files
@@ -142,10 +142,10 @@ nodes:
           language: json
           js_file: scripts/transform-packagejson-config.ts
           include:
-            - "**/*package.json"
+            - '**/*package.json'
       - id: code-formating
         if: params.codeFormattingCommandEnabled == true
         depends_on:
           - scan-packagejson-files
-        name: "Code formating"
+        name: 'Code formating'
         run: ${{ params.codeFormattingCommand }}

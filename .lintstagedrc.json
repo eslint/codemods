@@ -1,7 +1,0 @@
-{
-  "*.{ts,tsx,js,jsx,json}": [
-    "biome format --write --no-errors-on-unmatched",
-    "biome lint --write --no-errors-on-unmatched"
-  ],
-  "codemods/**/scripts/*.ts": ["bash -c 'pnpm run test'"]
-}

@@ -3,12 +3,13 @@
   "version": "1.0.9",
   "description": "Migrate custom ESLint rules from v8 to v9 format",
   "type": "module",
-  "devDependencies": {
-    "@codemod.com/jssg-types": "catalog:",
-    "typescript": "catalog:"
-  },
   "scripts": {
     "check-types": "tsc --noEmit",
     "test": "codemod jssg test -l tsx ./scripts/jssg-test-workflow.ts"
+  },
+  "devDependencies": {
+    "@codemod.com/jssg-types": "catalog:",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
   }
 }

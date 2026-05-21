@@ -3,10 +3,6 @@
   "version": "1.9.36",
   "description": "Migrate eslint v8 to v9",
   "type": "module",
-  "devDependencies": {
-    "@codemod.com/jssg-types": "catalog:",
-    "typescript": "catalog:"
-  },
   "scripts": {
     "check-types": "tsc --noEmit",
     "test": "pnpm run test:fix-exported && pnpm run test:remove-comments && pnpm run test:file-jsdoc && pnpm run test:transform-eslintrc && pnpm run test:transform-packagejson",
@@ -19,5 +15,10 @@
   "dependencies": {
     "@types/js-yaml": "catalog:",
     "js-yaml": "catalog:"
+  },
+  "devDependencies": {
+    "@codemod.com/jssg-types": "catalog:",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
   }
 }

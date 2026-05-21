@@ -1,18 +1,20 @@
 {
   "compilerOptions": {
+    "target": "ESNext",
+    "lib": ["ESNext"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "types": ["@codemod.com/jssg-types"],
+    "types": ["@codemod.com/jssg-types", "node"],
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "verbatimModuleSyntax": true,
-    "erasableSyntaxOnly": true,
+    "skipLibCheck": true,
     "strict": true,
     "strictNullChecks": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
-    "skipLibCheck": true
+    "esModuleInterop": true
   },
-  "exclude": ["tests", "node_modules", "tmp"]
+  "include": ["scripts/**/*.ts", "utils/**/*.ts"],
+  "exclude": ["tests", "node_modules"]
 }
