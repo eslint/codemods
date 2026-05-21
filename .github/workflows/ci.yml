@@ -175,11 +175,33 @@ jobs:
             || true)
 
           covered_packages=""
+          has_empty_changeset=false
           for f in $changeset_files; do
             pkgs=$(sed -n '/^---$/,/^---$/{ /^---$/d; s/['\''`]//g; s/:.*//; p; }' "$f")
-            covered_packages="$covered_packages $pkgs"
+            pkgs=$(echo "$pkgs" | xargs)
+            if [ -z "$pkgs" ]; then
+              has_empty_changeset=true
+            else
+              covered_packages="$covered_packages $pkgs"
+            fi
           done
           covered_packages=$(echo "$covered_packages" | xargs)
+
+          # Empty changeset: package.json-only edits do not need a named bump.
+          if [ "$has_empty_changeset" = true ]; then
+            filtered=""
+            for dir in $changed_dirs; do
+              [ -f "$dir/package.json" ] || continue
+              pkg=$(node -p "require('./$dir/package.json').name")
+              other=$(git diff --name-only origin/main...HEAD -- "$dir/" | grep -v 'package.json$' || true)
+              if [ -n "$other" ]; then
+                filtered="$filtered $pkg"
+              else
+                echo "Empty changeset waives changeset for $pkg (package.json only)."
+              fi
+            done
+            changed_packages=$(echo "$filtered" | xargs)
+          fi
 
           missing=""
           for pkg in $changed_packages; do
