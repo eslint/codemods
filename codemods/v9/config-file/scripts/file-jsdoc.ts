@@ -1,4 +1,4 @@
-import { type Edit, type SgNode, type SgRoot } from "codemod:ast-grep";
+import type { Edit, SgNode, SgRoot } from "codemod:ast-grep";
 import type JS from "codemod:ast-grep/langs/javascript";
 import { setState } from "codemod:workflow";
 
@@ -24,7 +24,7 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
 
   let doesJsDocCommentExist = false;
 
-  for (let fileJsdoc of fileJsdocs) {
+  for (const fileJsdoc of fileJsdocs) {
     doesJsDocCommentExist = true;
     edits.push(fileJsdoc.replace(""));
   }
@@ -33,7 +33,7 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
     setState("doesJsDocCommentExist", true);
   }
 
-  let newSource = rootNode.commitEdits(edits);
+  const newSource = rootNode.commitEdits(edits);
 
   // if not changes return null
   if (newSource === rootNode.text()) {

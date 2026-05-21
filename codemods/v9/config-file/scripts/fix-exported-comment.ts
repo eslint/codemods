@@ -1,23 +1,23 @@
-import { type Edit, type SgNode, type SgRoot } from "codemod:ast-grep";
+import type { Edit, SgNode, SgRoot } from "codemod:ast-grep";
 import type JS from "codemod:ast-grep/langs/javascript";
 
 export default async function transform(root: SgRoot<JS>): Promise<string | null> {
   const rootNode = root.root();
   const edits: Edit[] = [];
 
-  let exportedComments: SgNode<JS>[] = rootNode.findAll({
+  const exportedComments: SgNode<JS>[] = rootNode.findAll({
     rule: {
       kind: "comment",
       regex: String.raw`^\/\*\s*exported\s+.*\*\/`,
     },
   });
 
-  for (let comment of exportedComments) {
+  for (const comment of exportedComments) {
     const commentText = comment.text();
     const match = commentText.match(/^\/\*\s*exported\s+(.*?)\s*\*\/$/);
     if (!match || !match[1]) continue;
     const content = match[1];
-    let cleaned = content.replace(/:\s*(true|false)/g, "");
+    const cleaned = content.replace(/:\s*(true|false)/g, "");
     const variables = cleaned
       .split(/[,\s]+/)
       .map((v) => v.trim())
@@ -29,7 +29,7 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
     }
   }
 
-  let newSource = rootNode.commitEdits(edits);
+  const newSource = rootNode.commitEdits(edits);
 
   // if not changes return null
   if (newSource === rootNode.text()) {

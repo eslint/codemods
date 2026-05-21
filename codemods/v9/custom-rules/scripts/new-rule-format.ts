@@ -1,6 +1,6 @@
-import { type SgRoot, type RuleConfig } from "codemod:ast-grep";
+import type { SgRoot, RuleConfig } from "codemod:ast-grep";
 import type JS from "codemod:ast-grep/langs/javascript";
-import { type SgNode } from "codemod:ast-grep";
+import type { SgNode } from "codemod:ast-grep";
 
 type ExportStyle = "commonjs" | "esm";
 
@@ -406,7 +406,12 @@ function findIndirectCommonJSExport(root: SgRoot<JS>): {
 
 function getOldFormatRuleDefinition(
   root: SgRoot<JS>
-): { node: SgNode<JS>; style: ExportStyle; indirectFuncDecl?: SgNode<JS>; indirectContextName?: string } | null {
+): {
+  node: SgNode<JS>;
+  style: ExportStyle;
+  indirectFuncDecl?: SgNode<JS>;
+  indirectContextName?: string;
+} | null {
   const rootNode = root.root();
 
   const commonJSNode = rootNode.find(getCommonJSRuleSelector());
@@ -498,15 +503,14 @@ function generateNewFormat(
   },
   create: ${ruleFunction}
 };`;
-  } else {
-    return `export default {
+  }
+  return `export default {
   meta: {
     docs: {},${fixableProperty}
     schema: ${schemaValue}${schemaComment}
   },
   create: ${ruleFunction}
 };`;
-  }
 }
 
 function generateMetaObject(

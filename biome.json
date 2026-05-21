@@ -9,7 +9,13 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "recommended": true,
+      "performance": {
+        "noDelete": "off"
+      },
+      "style": {
+        "useNodejsImportProtocol": "off"
+      }
     }
   },
   "javascript": {
@@ -21,6 +27,12 @@
     }
   },
   "files": {
-    "ignore": ["**/node_modules/**", "**/dist/**", "**/build/**", "codemods/**/tests/**"]
+    "ignore": [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/build/**",
+      "codemods/**/tests/**",
+      "**/tmp/**"
+    ]
   }
 }

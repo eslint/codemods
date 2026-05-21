@@ -1,6 +1,6 @@
 const makePluginImport = (pluginName: string): { identifier: string; packageName: string } => {
   let packageName: string;
-  let splitted = pluginName.split("/");
+  const splitted = pluginName.split("/");
 
   if (pluginName.startsWith("@")) {
     packageName = `${splitted[0]}/eslint-plugin${splitted.length > 1 ? `-${splitted[1]}` : ""}`;

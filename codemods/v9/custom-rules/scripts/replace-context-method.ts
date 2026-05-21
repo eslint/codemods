@@ -306,9 +306,8 @@ function transformOldStyleReport(expression: SgNode<JS>, contextName: string): s
 
   if (dataArg) {
     return `${contextName}.report({ node: ${nodeArg}, message: ${messageArg}, data: ${dataArg} })`;
-  } else {
-    return `${contextName}.report({ node: ${nodeArg}, message: ${messageArg} })`;
   }
+  return `${contextName}.report({ node: ${nodeArg}, message: ${messageArg} })`;
 }
 
 // ============ Transform ============
@@ -335,7 +334,7 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
     alreadyHasContextSourceCode
   );
 
-  let chainEdits: Edit[] = [];
+  const chainEdits: Edit[] = [];
   if (!alreadyHasContextSourceCode) {
     const getSourceCalls = newRoot.findAll({
       rule: {
@@ -405,7 +404,7 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
       ) {
         continue;
       }
-      const prop = CONTEXT_METHOD_TO_PROPERTY[propertyText]!;
+      const prop = CONTEXT_METHOD_TO_PROPERTY[propertyText] as string;
       if (propertyText === "getSourceCode") {
         if (prependContextSourceCodeConst) {
           newRootEdits.push(expression.replace("contextSourceCode"));
@@ -437,18 +436,18 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
               expression.replace(`contextSourceCode.getDeclaredVariables(${enclosing.param})`)
             );
           } else {
-            newRootEdits.push(property.replace(CONTEXT_METHOD_MAP[propertyText]!));
+            newRootEdits.push(property.replace(CONTEXT_METHOD_MAP[propertyText] as string));
             newRootEdits.push(identifier.replace("contextSourceCode"));
           }
         } else {
-          newRootEdits.push(property.replace(CONTEXT_METHOD_MAP[propertyText]!));
+          newRootEdits.push(property.replace(CONTEXT_METHOD_MAP[propertyText] as string));
           newRootEdits.push(identifier.replace("contextSourceCode"));
         }
         needsContextSourceCode = true;
       } else if (propertyText === "getComments") {
         newRootEdits.push(
           expression.replace(
-            `[...contextSourceCode.getCommentsBefore(), ...contextSourceCode.getCommentsInside(), ...contextSourceCode.getCommentsAfter()]`
+            "[...contextSourceCode.getCommentsBefore(), ...contextSourceCode.getCommentsInside(), ...contextSourceCode.getCommentsAfter()]"
           )
         );
         needsContextSourceCode = true;

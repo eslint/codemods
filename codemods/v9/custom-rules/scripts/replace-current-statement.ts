@@ -145,8 +145,8 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
   }
 
   const text = createRule.text();
-  let newEdits: Edit[] = [];
-  let newRoot = parse("javascript", text).root();
+  const newEdits: Edit[] = [];
+  const newRoot = parse("javascript", text).root();
 
   // Replace currentSegments references
   const memberExpressions = newRoot.findAll({
@@ -158,7 +158,7 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
       },
     },
   });
-  for (let expression of memberExpressions) {
+  for (const expression of memberExpressions) {
     newEdits.push(expression.replace("newCurrentSegments"));
   }
 
@@ -171,8 +171,8 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
       },
     },
   });
-  for (let returnStatement of returnStatements) {
-    let returnStatementText = returnStatement.text();
+  for (const returnStatement of returnStatements) {
+    const returnStatementText = returnStatement.text();
 
     if (
       returnStatementText[0] === "{" &&
@@ -200,8 +200,8 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
     return null;
   }
 
-  let newText = newRoot.commitEdits(newEdits);
-  let newCreate = `{
+  const newText = newRoot.commitEdits(newEdits);
+  const newCreate = `{
     let newCurrentCodePath;
     let newCurrentSegments;
     const allCurrentSegments = [];

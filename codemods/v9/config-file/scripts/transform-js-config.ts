@@ -1,6 +1,6 @@
 import { type SgRoot, parse } from "codemod:ast-grep";
 import type JS from "codemod:ast-grep/langs/javascript";
-import { type SgNode } from "codemod:ast-grep";
+import type { SgNode } from "codemod:ast-grep";
 import { getState } from "codemod:workflow";
 import makeNewConfig from "../utils/make-new-config.ts";
 import type { LanguageOptions, SectorData } from "../utils/make-new-config.ts";
@@ -189,7 +189,7 @@ function resolveRuleValueRaw(
   if (simpleId && bindings.has(trimmed)) {
     // Keep a bare `airbnbBase`-style binding as the imported identifier, not `require(...)`.
     if (skipNames.has(trimmed)) return trimmed;
-    return bindings.get(trimmed)!;
+    return bindings.get(trimmed) as string;
   }
   return substituteBindingsInExprSource(trimmed, bindings, skipNames);
 }
@@ -327,10 +327,10 @@ function resolveInitializerToObjectNode(
   depth: number
 ): SgNode<JS> | null {
   if (depth > 32) return null;
-  let text = initText.trim();
+  const text = initText.trim();
   const simpleId = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.exec(text);
   if (simpleId && bindings.has(text)) {
-    return resolveInitializerToObjectNode(bindings.get(text)!, bindings, depth + 1);
+    return resolveInitializerToObjectNode(bindings.get(text) as string, bindings, depth + 1);
   }
 
   const wrapped = parse("javascript", `const __spreadProbe = (${text});`) as SgRoot<JS>;
@@ -441,7 +441,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
     collectRequireImportsFromProgram(rootNode).map((r) => r.binding)
   );
 
-  let rulesSectorsRule = rootNode.findAll({
+  const rulesSectorsRule = rootNode.findAll({
     rule: {
       any: [
         {
@@ -489,12 +489,12 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
     },
   });
 
-  let imports: string[] = [];
+  const imports: string[] = [];
 
-  let sectors: SectorData[] = [];
+  const sectors: SectorData[] = [];
 
   for (let sector of rulesSectorsRule) {
-    let sectorData: SectorData = {
+    const sectorData: SectorData = {
       rules: {} as Record<string, string>,
       extends: [] as string[], // Preserved extends exactly as they were
       languageOptions: {} as LanguageOptions,
@@ -586,7 +586,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
     }
     // end detecting parser
     // remove sector overrides
-    let overridesRule = sector.find({
+    const overridesRule = sector.find({
       rule: {
         kind: "pair",
         any: [
@@ -609,10 +609,10 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
       },
     });
     if (overridesRule) {
-      let overrides = overridesRule?.text();
+      const overrides = overridesRule?.text();
       let newSectorText = sector.text();
       newSectorText = newSectorText.replace(overrides, "");
-      let newSectorRoot = parse("javascript", newSectorText) as SgRoot<JS>;
+      const newSectorRoot = parse("javascript", newSectorText) as SgRoot<JS>;
       sector = newSectorRoot.root();
     }
 
@@ -658,10 +658,10 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
         },
       },
     });
-    for (let jsdoc of requireJsdocRule) {
-      let identifier = jsdoc.getMatch("IDENTIFIER")?.text();
-      if (identifier == "rules") {
-        let pair = jsdoc
+    for (const jsdoc of requireJsdocRule) {
+      const identifier = jsdoc.getMatch("IDENTIFIER")?.text();
+      if (identifier === "rules") {
+        const pair = jsdoc
           ?.getMatch("PAIR")
           ?.text()
           .trim()
@@ -669,13 +669,13 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
           .replace('"require-jsdoc":', "")
           .trim();
         if (
-          (pair?.[0] == '"' && pair?.[pair.length - 1] == '"') ||
-          (pair?.[0] == "'" && pair?.[pair.length - 1] == "'")
+          (pair?.[0] === '"' && pair?.[pair.length - 1] === '"') ||
+          (pair?.[0] === "'" && pair?.[pair.length - 1] === "'")
         ) {
           jsDocs.type = pair.substring(1, pair.length - 1);
           continue;
         }
-        let jsdocTypeRule = jsdoc.find({
+        const jsdocTypeRule = jsdoc.find({
           rule: {
             kind: "string_fragment",
             pattern: "$TYPE",
@@ -687,7 +687,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
             },
           },
         });
-        let jsdocOptionsRule = jsdoc.findAll({
+        const jsdocOptionsRule = jsdoc.findAll({
           rule: {
             kind: "pair",
             pattern: "$PAIR",
@@ -714,13 +714,13 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
           },
         });
         if (jsdocTypeRule) {
-          let jsdocType = jsdocTypeRule.getMatch("TYPE")?.text() || "";
-          let jsdocOptions: Record<string, string> = {};
+          const jsdocType = jsdocTypeRule.getMatch("TYPE")?.text() || "";
+          const jsdocOptions: Record<string, string> = {};
           if (jsdocOptionsRule.length) {
-            let optionsIdentifier = jsdocOptionsRule[0]?.getMatch("SETTING_IDENTIFIER")?.text();
-            if (optionsIdentifier == "require") {
-              for (let option of jsdocOptionsRule) {
-                let identifier = option.getMatch("IDENTIFIER")?.text();
+            const optionsIdentifier = jsdocOptionsRule[0]?.getMatch("SETTING_IDENTIFIER")?.text();
+            if (optionsIdentifier === "require") {
+              for (const option of jsdocOptionsRule) {
+                const identifier = option.getMatch("IDENTIFIER")?.text();
                 if (identifier) {
                   let value = option.text().replace(`${identifier}:`, "");
                   value = value.trim();
@@ -736,7 +736,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
     deleteRuleKeys(sectorData.rules, "require-jsdoc");
     deleteRuleKeys(sectorData.rules, "valid-jsdoc");
     if (
-      (jsDocs.type != "nothing" && jsDocs.type != "off") ||
+      (jsDocs.type !== "nothing" && jsDocs.type !== "off") ||
       getState<boolean>("doesJsDocCommentExist") === true
     ) {
       sectorData.requireJsdoc.exists = true;
@@ -746,7 +746,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
     // end jsDocs section
     // start no-constructor-return and no-sequences section
     let noConstructorReturn = "";
-    let noConstructorReturnRule = sector.find({
+    const noConstructorReturnRule = sector.find({
       rule: {
         kind: "pair",
         has: {
@@ -773,7 +773,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
       },
     });
     if (noConstructorReturnRule) {
-      let isArrayRule = noConstructorReturnRule.findAll({
+      const isArrayRule = noConstructorReturnRule.findAll({
         rule: {
           kind: "string_fragment",
           pattern: "$TYPE",
@@ -798,7 +798,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
           },
         });
         typeRule = typeRule.filter(
-          (rule) => rule.getMatch("TYPE")?.text() != "no-constructor-return"
+          (rule) => rule.getMatch("TYPE")?.text() !== "no-constructor-return"
         );
         if (typeRule.length) {
           noConstructorReturn = typeRule[0]?.getMatch("TYPE")?.text() || "";
@@ -810,12 +810,12 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
       sectorData.rules["no-constructor-return"] = `["${noConstructorReturn}"]`;
     }
 
-    let noSequences = {
+    const noSequences = {
       type: "nothing",
       allowInParenthesesExists: false,
       allowInParentheses: false,
     };
-    let noSequencesRule = sector.find({
+    const noSequencesRule = sector.find({
       rule: {
         kind: "pair",
         has: {
@@ -842,7 +842,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
       },
     });
     if (noSequencesRule) {
-      let isArrayRule = noSequencesRule.findAll({
+      const isArrayRule = noSequencesRule.findAll({
         rule: {
           kind: "string_fragment",
           pattern: "$TYPE",
@@ -857,18 +857,18 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
       });
       if (isArrayRule.length) {
         let array: SgNode<JS> | undefined;
-        let noSequencesRuleTypeObject = isArrayRule.filter((rule) => {
-          let noSequencesRuleType = rule.getMatch("TYPE")?.text() || "";
-          let arrayRule = rule.getMatch("ARRAY");
+        const noSequencesRuleTypeObject = isArrayRule.filter((rule) => {
+          const noSequencesRuleType = rule.getMatch("TYPE")?.text() || "";
+          const arrayRule = rule.getMatch("ARRAY");
           if (arrayRule) {
             array = arrayRule;
           }
-          return ["error", "warn"].includes(noSequencesRuleType) ? true : false;
+          return !!["error", "warn"].includes(noSequencesRuleType);
         });
         if (noSequencesRuleTypeObject) {
-          let noSequencesRuleType = noSequencesRuleTypeObject[0]?.text()!;
+          const noSequencesRuleType = noSequencesRuleTypeObject[0]?.text() ?? "";
           noSequences.type = noSequencesRuleType;
-          let allowInParenthesesOptionRule = array?.find({
+          const allowInParenthesesOptionRule = array?.find({
             rule: {
               kind: "property_identifier",
               regex: "^allowInParentheses$",
@@ -888,7 +888,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
               .trim()
               .replace("allowInParentheses:", "")
               .trim();
-            noSequences.allowInParentheses = allowInParenthesesOption == "true" ? true : false;
+            noSequences.allowInParentheses = allowInParenthesesOption === "true";
             noSequences.allowInParenthesesExists = true;
           }
         }
@@ -902,17 +902,17 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
             },
           },
         });
-        typeRule = typeRule.filter((rule) => rule.getMatch("TYPE")?.text() != "no-sequences");
+        typeRule = typeRule.filter((rule) => rule.getMatch("TYPE")?.text() !== "no-sequences");
         if (typeRule.length) {
-          noSequences.type = typeRule[0]?.getMatch("TYPE")?.text()!;
+          noSequences.type = typeRule[0]?.getMatch("TYPE")?.text() ?? "";
         }
       }
     }
-    if (noSequences.type != "nothing") {
+    if (noSequences.type !== "nothing") {
       deleteRuleKeys(sectorData.rules, "no-sequences");
       if (
-        typeof noSequences.allowInParentheses == "boolean" &&
-        noSequences.allowInParenthesesExists == true
+        typeof noSequences.allowInParentheses === "boolean" &&
+        noSequences.allowInParenthesesExists === true
       ) {
         sectorData.rules["no-sequences"] =
           `["${noSequences.type}", {"allowInParentheses": ${noSequences.allowInParentheses}}]`;
@@ -922,7 +922,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
     }
 
     // Extract extends from the sector - preserve exactly as they were
-    let extendsRule = sector.find({
+    const extendsRule = sector.find({
       rule: {
         kind: "pair",
         has: {
@@ -936,7 +936,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
 
     if (extendsRule) {
       // Check if extends is an array or single string
-      let isArrayRule = extendsRule.findAll({
+      const isArrayRule = extendsRule.findAll({
         rule: {
           kind: "string_fragment",
           pattern: "$STRING",
@@ -951,13 +951,13 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
 
       if (isArrayRule.length) {
         // Array of extends
-        for (let extendNode of isArrayRule) {
+        for (const extendNode of isArrayRule) {
           const extendText = extendNode.getMatch("STRING")?.text() || "";
           preservedExtends.push(extendText);
         }
       } else {
         // Single string extends
-        let extendsExecute = extendsRule.find({
+        const extendsExecute = extendsRule.find({
           rule: {
             kind: "string_fragment",
             inside: {
@@ -976,7 +976,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
     sectorData.extends = preservedExtends;
 
     // Extract plugins from the sector - preserve exactly as they were
-    let pluginsRule = sector.find({
+    const pluginsRule = sector.find({
       rule: {
         kind: "pair",
         inside: {
@@ -1010,7 +1010,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
 
     if (pluginsRule) {
       // Check if plugins is an object or array
-      let pluginsObject = pluginsRule.find({
+      const pluginsObject = pluginsRule.find({
         rule: {
           kind: "object",
         },
@@ -1018,7 +1018,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
 
       if (pluginsObject) {
         // Extract all plugin pairs from the object
-        let pluginPairs = pluginsObject.findAll({
+        const pluginPairs = pluginsObject.findAll({
           rule: {
             kind: "pair",
             pattern: "$PAIR",
@@ -1038,7 +1038,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
           },
         });
 
-        for (let pluginPair of pluginPairs) {
+        for (const pluginPair of pluginPairs) {
           let pluginName = pluginPair.getMatch("PLUGIN_NAME")?.text() || "";
           // Remove quotes if present
           if (
@@ -1062,14 +1062,14 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
         }
       } else {
         // Plugins might be an array
-        let pluginsArray = pluginsRule.find({
+        const pluginsArray = pluginsRule.find({
           rule: {
             kind: "array",
           },
         });
 
         if (pluginsArray) {
-          let pluginStrings = pluginsArray.findAll({
+          const pluginStrings = pluginsArray.findAll({
             rule: {
               kind: "string_fragment",
               pattern: "$PLUGIN",
@@ -1079,8 +1079,8 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
             },
           });
 
-          for (let pluginString of pluginStrings) {
-            let pluginText = pluginString.getMatch("PLUGIN")?.text() || "";
+          for (const pluginString of pluginStrings) {
+            const pluginText = pluginString.getMatch("PLUGIN")?.text() || "";
             // For array plugins, use the plugin name as both key and value
             const pluginImport = makePluginImport(pluginText);
             imports.push(`import ${pluginImport.identifier} from "${pluginImport.packageName}";`);
@@ -1093,13 +1093,13 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
     // END COMPREHENSIVE EXTENDS MIGRATION
     // ============================================
     // start execute no-unused-vars
-    let noUnusedVars = {
+    const noUnusedVars = {
       type: "nothing",
       options: {
         caughtErrors: "none",
       } as Record<string, string | number | boolean>,
     };
-    let noUnusedVarsRule = sector.find({
+    const noUnusedVarsRule = sector.find({
       rule: {
         kind: "pair",
         has: {
@@ -1126,7 +1126,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
       },
     });
     if (noUnusedVarsRule) {
-      let isArrayRule = noUnusedVarsRule.findAll({
+      const isArrayRule = noUnusedVarsRule.findAll({
         rule: {
           kind: "string_fragment",
           pattern: "$TYPE",
@@ -1140,7 +1140,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
       });
       if (isArrayRule.length) {
         noUnusedVars.type = isArrayRule[0]?.getMatch("TYPE")?.text() || "";
-        let optionsRule = noUnusedVarsRule.findAll({
+        const optionsRule = noUnusedVarsRule.findAll({
           rule: {
             kind: "pair",
             has: {
@@ -1155,18 +1155,18 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
             },
           },
         });
-        for (let option of optionsRule) {
-          let identifier = option.getMatch("IDENTIFIER")?.text();
+        for (const option of optionsRule) {
+          const identifier = option.getMatch("IDENTIFIER")?.text();
           let value: string | number | boolean = option
             .text()
             .trim()
             .replace(`${identifier}:`, "")
             .trim();
           if (!identifier) continue;
-          if (value == "true" || value == "false") {
-            value = value == "true" ? true : false;
-          } else if (!isNaN(parseInt(value))) {
-            value = parseInt(value);
+          if (value === "true" || value === "false") {
+            value = value === "true";
+          } else if (!Number.isNaN(Number.parseInt(value))) {
+            value = Number.parseInt(value);
           }
           noUnusedVars.options[identifier] = value;
         }
@@ -1180,7 +1180,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
             },
           },
         });
-        typeRule = typeRule.filter((rule) => rule.getMatch("TYPE")?.text() != "no-unused-vars");
+        typeRule = typeRule.filter((rule) => rule.getMatch("TYPE")?.text() !== "no-unused-vars");
         if (typeRule.length) {
           noUnusedVars.type = typeRule[0]?.getMatch("TYPE")?.text() || "";
         }
@@ -1198,13 +1198,13 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
     }
     // end execute no-unused-vars
     // start no-useless-computed-key
-    let noUselessComputedKeys = {
+    const noUselessComputedKeys = {
       type: "nothing",
       options: {
         enforceForClassMembers: false,
       } as Record<string, string | number | boolean>,
     };
-    let noUselessComputedVarsRule = sector.find({
+    const noUselessComputedVarsRule = sector.find({
       rule: {
         kind: "pair",
         has: {
@@ -1231,7 +1231,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
       },
     });
     if (noUselessComputedVarsRule) {
-      let isArrayRule = noUselessComputedVarsRule.findAll({
+      const isArrayRule = noUselessComputedVarsRule.findAll({
         rule: {
           kind: "string_fragment",
           pattern: "$TYPE",
@@ -1245,7 +1245,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
       });
       if (isArrayRule.length) {
         noUselessComputedKeys.type = isArrayRule[0]?.getMatch("TYPE")?.text() || "";
-        let optionsRule = noUselessComputedVarsRule.findAll({
+        const optionsRule = noUselessComputedVarsRule.findAll({
           rule: {
             kind: "pair",
             has: {
@@ -1260,10 +1260,10 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
             },
           },
         });
-        for (let option of optionsRule) {
-          let identifier = option.getMatch("IDENTIFIER")?.text();
+        for (const option of optionsRule) {
+          const identifier = option.getMatch("IDENTIFIER")?.text();
           if (!identifier) continue;
-          let value = option.text().trim().replace(`${identifier}:`, "").trim();
+          const value = option.text().trim().replace(`${identifier}:`, "").trim();
           noUselessComputedKeys.options[identifier] = value;
         }
       } else {
@@ -1277,25 +1277,25 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
           },
         });
         typeRule = typeRule.filter(
-          (rule) => rule.getMatch("TYPE")?.text() != "no-useless-computed-key"
+          (rule) => rule.getMatch("TYPE")?.text() !== "no-useless-computed-key"
         );
         if (typeRule.length) {
           noUselessComputedKeys.type = typeRule[0]?.getMatch("TYPE")?.text() || "";
         }
       }
     }
-    if (noUselessComputedKeys.type != "nothing") {
+    if (noUselessComputedKeys.type !== "nothing") {
       deleteRuleKeys(sectorData.rules, "no-useless-computed-key");
       sectorData.rules["no-useless-computed-key"] =
         `["${noUselessComputedKeys.type}", {enforceForClassMembers: ${noUselessComputedKeys.options.enforceForClassMembers}}]`;
     }
     // end no-useless-computed-key
     // start camelcase
-    let camelcase = {
+    const camelcase = {
       type: "nothing",
-      options: {} as Record<string, string>,
+      options: {} as Record<string, string | boolean | number>,
     };
-    let camelcaseRule = sector.find({
+    const camelcaseRule = sector.find({
       rule: {
         kind: "pair",
         has: {
@@ -1330,7 +1330,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
       },
     });
     if (camelcaseRule) {
-      let isArrayRule = camelcaseRule.findAll({
+      const isArrayRule = camelcaseRule.findAll({
         rule: {
           kind: "string_fragment",
           pattern: "$TYPE",
@@ -1344,7 +1344,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
       });
       if (isArrayRule.length) {
         camelcase.type = isArrayRule[0]?.getMatch("TYPE")?.text() || "";
-        let optionsRule = camelcaseRule.findAll({
+        const optionsRule = camelcaseRule.findAll({
           rule: {
             kind: "pair",
             has: {
@@ -1359,17 +1359,22 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
             },
           },
         });
-        for (let option of optionsRule) {
-          let identifier = option.getMatch("IDENTIFIER")?.text();
+        for (const option of optionsRule) {
+          const identifier = option.getMatch("IDENTIFIER")?.text();
           if (!identifier) continue;
-          let value: any = option.text().trim().replace(`${identifier}:`, "").trim();
-          if (value == "true" || value == "false") {
-            value = value == "true" ? true : false;
-          } else if (!isNaN(value)) {
-            value = parseInt(value);
+          let value: string | boolean | number = option
+            .text()
+            .trim()
+            .replace(`${identifier}:`, "")
+            .trim();
+          if (value === "true" || value === "false") {
+            value = value === "true";
+            // biome-ignore lint/suspicious/noGlobalIsNan: string coercion is intentional — detects numeric option values like "ecmaVersion: 2020"
+          } else if (!isNaN(value as unknown as number)) {
+            value = Number.parseInt(value as string);
           }
-          if (identifier == "allow") {
-            let isUsingArray = option.find({
+          if (identifier === "allow") {
+            const isUsingArray = option.find({
               rule: {
                 kind: "array",
                 pattern: "[$$$ITEMS]",
@@ -1378,11 +1383,11 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
                 },
               },
             });
-            let items = isUsingArray?.getMultipleMatches("ITEMS");
+            const items = isUsingArray?.getMultipleMatches("ITEMS");
             if (
               !items?.filter((item) => {
-                let text = item.text();
-                return text[0] != "'" && text[0] != '"' && text[0] != "`" && text != ",";
+                const text = item.text();
+                return text[0] !== "'" && text[0] !== '"' && text[0] !== "`" && text !== ",";
               }).length
             ) {
               camelcase.options[identifier] = value;
@@ -1402,16 +1407,16 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
           },
         });
         typeRule = typeRule.filter(
-          (rule) => rule.getMatch("TYPE")?.text() != "no-useless-computed-key"
+          (rule) => rule.getMatch("TYPE")?.text() !== "no-useless-computed-key"
         );
         if (typeRule.length) {
           noUselessComputedKeys.type = typeRule[0]?.getMatch("TYPE")?.text() || "";
         }
       }
     }
-    if (camelcase.type != "nothing") {
+    if (camelcase.type !== "nothing") {
       deleteRuleKeys(sectorData.rules, "camelcase");
-      sectorData.rules["camelcase"] = `["${camelcase.type}", ${JSON.stringify(camelcase.options)}]`;
+      sectorData.rules.camelcase = `["${camelcase.type}", ${JSON.stringify(camelcase.options)}]`;
     }
     // end camelcase
 
@@ -1450,8 +1455,8 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
         },
       },
     });
-    for (let noRestrictedImports of noRestrictedImportsRule) {
-      let paths = noRestrictedImports.findAll({
+    for (const noRestrictedImports of noRestrictedImportsRule) {
+      const paths = noRestrictedImports.findAll({
         rule: {
           kind: "object",
           has: {
@@ -1510,11 +1515,11 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
         },
       });
       if (paths.length) {
-        let noRestrictedImportsType = paths[0]?.getMatch("TYPE")?.text();
+        const noRestrictedImportsType = paths[0]?.getMatch("TYPE")?.text();
         let finalPaths: { name: string; content: string }[] = [];
-        for (let [_index, path] of paths.entries()) {
-          let pair = path.getMatch("PAIR");
-          let nameRule = pair?.find({
+        for (const [_index, path] of paths.entries()) {
+          const pair = path.getMatch("PAIR");
+          const nameRule = pair?.find({
             rule: {
               kind: "string",
               has: {
@@ -1527,7 +1532,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
             },
           });
           if (nameRule) {
-            let name = nameRule.getMatch("NAME")?.text();
+            const name = nameRule.getMatch("NAME")?.text();
             if (!name) continue;
             finalPaths.push({
               name,
@@ -1563,7 +1568,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
           },
         });
         pairs = pairs.filter((pair) => {
-          let pairText = pair.text().trim().replaceAll(" ", "");
+          const pairText = pair.text().trim().replaceAll(" ", "");
           if (
             pairText.startsWith("paths:") ||
             pairText.startsWith("'paths':") ||
@@ -1612,7 +1617,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
         },
       },
     });
-    for (let glob of detectGlobalsRule) {
+    for (const glob of detectGlobalsRule) {
       let identifier = glob.getMatch("IDENTIFIER")?.text();
       if (!identifier) continue;
       let value: string | number | boolean = glob
@@ -1620,14 +1625,14 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
         .trim()
         .replace(`${identifier}:`, "")
         .trim();
-      if (value == "true" || value == "false") {
-        value = value == "true" ? true : false;
-      } else if (!isNaN(parseInt(value))) {
-        value = parseInt(value);
+      if (value === "true" || value === "false") {
+        value = value === "true";
+      } else if (!Number.isNaN(Number.parseInt(value))) {
+        value = Number.parseInt(value);
       }
       if (
-        (identifier[0] == "'" && identifier[identifier.length - 1] == "'") ||
-        (identifier[0] == '"' && identifier[identifier.length - 1] == '"')
+        (identifier[0] === "'" && identifier[identifier.length - 1] === "'") ||
+        (identifier[0] === '"' && identifier[identifier.length - 1] === '"')
       ) {
         identifier = identifier.slice(1, identifier.length - 1);
       }
@@ -1635,7 +1640,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
     }
     // detect globals end
     // start language options detection start
-    let languageOptions: LanguageOptions = {
+    const languageOptions: LanguageOptions = {
       globals,
       parserOptions: {},
     };
@@ -1668,18 +1673,18 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
         },
       },
     });
-    for (let option of detectParserOptions) {
-      let identifier = option.getMatch("IDENTIFIER")?.text();
+    for (const option of detectParserOptions) {
+      const identifier = option.getMatch("IDENTIFIER")?.text();
       if (!identifier) continue;
       let value: string | number | boolean = option
         .text()
         .trim()
         .replace(`${identifier}:`, "")
         .trim();
-      if (value == "true" || value == "false") {
-        value = value == "true" ? true : false;
-      } else if (!isNaN(parseInt(value))) {
-        value = parseInt(value);
+      if (value === "true" || value === "false") {
+        value = value === "true";
+      } else if (!Number.isNaN(Number.parseInt(value))) {
+        value = Number.parseInt(value);
       }
       languageOptions[identifier] = value;
     }
@@ -1714,14 +1719,14 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
         },
       },
     });
-    for (let env of detectingEnvRule) {
-      let identifier = env.getMatch("IDENTIFIER")?.text();
+    for (const env of detectingEnvRule) {
+      const identifier = env.getMatch("IDENTIFIER")?.text();
       if (!identifier) continue;
       let value: string | number | boolean = env.text().trim().replace(`${identifier}:`, "").trim();
-      if (value == "true" || value == "false") {
-        value = value == "true" ? true : false;
-      } else if (!isNaN(parseInt(value))) {
-        value = parseInt(value);
+      if (value === "true" || value === "false") {
+        value = value === "true";
+      } else if (!Number.isNaN(Number.parseInt(value))) {
+        value = Number.parseInt(value);
       }
       if (value === true) {
         if (!imports.includes(`import globals from "globals";`)) {
@@ -1953,7 +1958,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
     if (!imports.includes(line)) imports.push(line);
   }
 
-  let directory = path.dirname(root.filename()).replace(/[/\\]/g, "-");
+  const directory = path.dirname(root.filename()).replace(/[/\\]/g, "-");
   const newSource = makeNewConfig(sectors, imports, directory);
 
   // if not changes return null

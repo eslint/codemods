@@ -102,8 +102,7 @@ const formatValue = (value: unknown, indent: number): string => {
     if (entries.length === 0) return "{}";
     const props = entries.map(([key, val]) => {
       if (key.startsWith("...")) {
-        const spread =
-          key.startsWith("...globals.") ? formatGlobalsSpreadExpression(key) : key;
+        const spread = key.startsWith("...globals.") ? formatGlobalsSpreadExpression(key) : key;
         return `${nextIndentStr}${spread}`;
       }
       const formattedKey = formatJsObjectPropertyKey(key);
@@ -116,7 +115,7 @@ const formatValue = (value: unknown, indent: number): string => {
 };
 
 const makeNewConfig = (sectors: SectorData[], imports: string[], directory: string): string => {
-  let requireJsdocSettings = sectors.find((sector) => sector.requireJsdoc.exists)?.requireJsdoc
+  const requireJsdocSettings = sectors.find((sector) => sector.requireJsdoc.exists)?.requireJsdoc
     .settings;
 
   const parts: string[] = [];
@@ -153,12 +152,12 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
       return true;
 
     // Check if any value in languageOptions contains __dirname
-    const checkForDirname = (obj: Record<string, any>): boolean => {
+    const checkForDirname = (obj: Record<string, unknown>): boolean => {
       for (const value of Object.values(obj)) {
         if (value === "__dirname") return true;
         if (typeof value === "string" && value.includes("__dirname")) return true;
         if (typeof value === "object" && value !== null) {
-          if (checkForDirname(value)) return true;
+          if (checkForDirname(value as Record<string, unknown>)) return true;
         }
       }
       return false;
@@ -298,8 +297,7 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
     const hasPlugins = sector.plugins && sector.plugins.length > 0;
     const hasExtends = preservedExtends.length > 0;
     const hasLinterOptions = !!sector.linterOptions && Object.keys(sector.linterOptions).length > 0;
-    const hasExcludedFiles =
-      !!sector.excludedFiles && sector.excludedFiles !== "[]";
+    const hasExcludedFiles = !!sector.excludedFiles && sector.excludedFiles !== "[]";
 
     // Create an object if we have any properties (files, rules, plugins, languageOptions, extends, TODO comments)
     if (
@@ -325,8 +323,8 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
       // Preserved extends - keep in extends property exactly as they were
       // Note: In flat config, extends is not supported, but we preserve them for reference
       if (hasExtends) {
-        let haveEslintRecommended = preservedExtends.includes("eslint:recommended");
-        let haveEslintAll = preservedExtends.includes("eslint:all");
+        const haveEslintRecommended = preservedExtends.includes("eslint:recommended");
+        const haveEslintAll = preservedExtends.includes("eslint:all");
         const compatName =
           haveEslintRecommended && haveEslintAll
             ? "compatWithRecommendedAndAll"
@@ -346,14 +344,14 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
       // TODO comments should be added inside the object
       // Also handle processor property if present in todoComments
       if (todoComments.length > 0) {
-        todoComments.forEach((comment: string) => {
+        for (const comment of todoComments) {
           // Check if this is a processor property (not a comment)
           if (comment.includes("processor:") && !comment.trim().startsWith("//")) {
             parts.push(`    ${comment}`);
           } else {
             parts.push(`    ${comment}`);
           }
-        });
+        }
       }
 
       if (hasPlugins) {
@@ -373,8 +371,8 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
 
         // Clean globals if they exist (remove whitespace from keys)
         if (langOpts.globals && typeof langOpts.globals === "object") {
-          const cleanedGlobals: Record<string, any> = {};
-          Object.entries(langOpts.globals).forEach(([key, value]) => {
+          const cleanedGlobals: Record<string, unknown> = {};
+          for (const [key, value] of Object.entries(langOpts.globals)) {
             // Check if this is a spread operator (starts with ...)
             if (key.startsWith("...")) {
               cleanedGlobals[key] = value;
@@ -382,7 +380,7 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
               // Regular globals - just trim the key
               cleanedGlobals[key.trim()] = value;
             }
-          });
+          }
           langOpts.globals = cleanedGlobals;
         }
 
@@ -410,10 +408,10 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
             langOpts.parserOptions = {};
           }
           const parserOptions = langOpts.parserOptions as Record<string, unknown>;
-          propsToMove.forEach((prop) => {
+          for (const prop of propsToMove) {
             parserOptions[prop] = langOpts[prop];
             delete langOpts[prop];
-          });
+          }
         }
         // All other properties remain in languageOptions as-is
         const formattedLangOpts = formatValue(langOpts, 2);
@@ -422,11 +420,11 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
 
       if (hasLinterOptions) {
         parts.push("    linterOptions: {");
-        const linterEntries = Object.entries(sector.linterOptions!);
-        linterEntries.forEach(([key, value], index) => {
+        const linterEntries = Object.entries(sector.linterOptions ?? {});
+        for (const [index, [key, value]] of linterEntries.entries()) {
           const comma = index < linterEntries.length - 1 ? "," : "";
           parts.push(`      ${formatJsObjectPropertyKey(key)}: ${value}${comma}`);
-        });
+        }
         parts.push("    },");
       }
 
@@ -461,13 +459,13 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
     return packageName || importStatement;
   });
 
-  for (let extend of sectors.map((sector) => sector.extends).flat()) {
+  for (let extend of sectors.flatMap((sector) => sector.extends)) {
     if (extend.startsWith("eslint:")) {
-      importNames.push(`@eslint/js`);
+      importNames.push("@eslint/js");
     } else if (extend.startsWith("plugin:")) {
       extend = extend.replace("plugin:", "");
-      let splitted = extend.split("/");
-      let packageDate;
+      const splitted = extend.split("/");
+      let packageDate: { identifier: string; packageName: string };
       if (splitted.length > 1) {
         splitted.pop();
         packageDate = makePluginImport(splitted.join("/"));
@@ -479,7 +477,7 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
       extend = extend.replace("config:", "");
       importNames.push(`eslint-config-${extend.split(":")[1]}`);
     } else if (extend.startsWith("@")) {
-      let splitted = extend.split("/");
+      const splitted = extend.split("/");
       if (splitted.length > 2) {
         splitted.pop();
       } else if (splitted.length === 2) {
