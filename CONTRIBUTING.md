@@ -111,9 +111,10 @@ Releases are fully automated via `.github/workflows/release.yml` on every push t
 2. The `release` job detects the pending changesets, runs `pnpm run version-packages` which:
    - bumps `version` in each affected `package.json` via `changeset version`
    - syncs the new version into the matching `codemod.yaml` via `scripts/sync-codemod-versions.sh`
-3. The bot commits **Version Packages** and pushes it back to `main`.
-4. `scripts/tag-and-publish.sh` creates a `<name>@v<version>` git tag for every bumped package and pushes the tags.
-5. The `publish` job fans out a parallel matrix over the changed directories and publishes each codemod via [`codemod/publish-action`](https://github.com/codemod/publish-action).
+3. The bot opens (or updates) a **Version Packages** pull request on branch `changeset-release/version-packages` — it does not push directly to `main`.
+4. Merge that PR (EasyCLA and other required checks apply like any other PR).
+5. On the next push to `main`, `scripts/tag-and-publish.sh` creates a `<name>@v<version>` git tag for every bumped package and pushes the tags.
+6. The `publish` job fans out a parallel matrix over the changed directories and publishes each codemod via [`codemod/publish-action`](https://github.com/codemod/publish-action).
 
 For emergencies (re-publish a specific codemod without a full release cycle), use the **Publish Codemod (Manual)** workflow (`.github/workflows/publish.yml`) and supply the tag, e.g. `@eslint/v8-to-v9-config@v1.2.0`.
 

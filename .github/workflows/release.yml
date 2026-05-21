@@ -10,6 +10,7 @@ concurrency: release
 permissions:
   id-token: write
   contents: write
+  pull-requests: write
 
 jobs:
   release:
@@ -69,14 +70,34 @@ jobs:
           git add -A
           git commit -m "Version Packages"
 
-      - name: Push to main
+      - name: Open Version Packages pull request
         if: steps.diff.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git pull --rebase origin main
-          git push origin main
+          BRANCH="changeset-release/version-packages"
+
+          git push origin HEAD:"refs/heads/${BRANCH}" --force
+
+          if gh pr list --base main --head "${BRANCH}" --state open --json number -q '.[0].number' | grep -q .; then
+            echo "Updated existing Version Packages pull request on branch ${BRANCH}"
+          else
+            gh pr create \
+              --base main \
+              --head "${BRANCH}" \
+              --title "Version Packages" \
+              --body "$(cat <<'EOF'
+          This PR was opened automatically by the Release workflow.
+
+          It applies pending changesets: version bumps in `package.json`, synced `codemod.yaml` versions, and changelog updates.
+
+          **After this PR is merged**, the Release workflow will create git tags and publish the affected codemods to the registry.
+          EOF
+          )"
+          fi
 
       - name: Tag released versions
-        if: steps.diff.outputs.has_changes == 'true'
+        if: steps.check.outputs.has_changesets != 'true'
         id: tag
         run: bash scripts/tag-and-publish.sh
 
