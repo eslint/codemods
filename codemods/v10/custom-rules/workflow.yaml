@@ -1,0 +1,31 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/codemod/codemod/refs/heads/main/schemas/workflow.json
+
+version: '1'
+
+nodes:
+  - id: apply-transforms
+    name: Apply ESLint v9 to v10 Custom Rules Migration
+    type: automatic
+    steps:
+      - id: replace-context-methods
+        name: 'Replace removed context methods'
+        js-ast-grep:
+          js_file: scripts/replace-context-methods.ts
+          include:
+            - '**/*.ts'
+            - '**/*.js'
+            - '**/*.jsx'
+            - '**/*.cjs'
+            - '**/*.mjs'
+      - id: replace-sourcecode-methods
+        name: 'Replace removed SourceCode methods'
+        depends_on:
+          - replace-context-methods
+        js-ast-grep:
+          js_file: scripts/replace-sourcecode-methods.ts
+          include:
+            - '**/*.ts'
+            - '**/*.js'
+            - '**/*.jsx'
+            - '**/*.cjs'
+            - '**/*.mjs'
