@@ -54,6 +54,18 @@ importers:
         specifier: ^5.8.3
         version: 5.9.2
 
+  codemods/v10/ruletester:
+    devDependencies:
+      '@codemod.com/jssg-types':
+        specifier: 'catalog:'
+        version: 1.6.1
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.19.19
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.2
+
   codemods/v9/config-file:
     dependencies:
       '@types/js-yaml':

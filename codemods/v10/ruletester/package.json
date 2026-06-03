@@ -1,0 +1,17 @@
+{
+  "name": "@eslint/v9-to-v10-ruletester",
+  "version": "1.0.0",
+  "description": "Fix RuleTester test case structure for ESLint v10",
+  "type": "module",
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "test": "pnpm run test:valid && pnpm run test:invalid",
+    "test:valid": "codemod jssg test -l javascript ./scripts/cleanup-valid-cases.ts --filter cleanup-valid",
+    "test:invalid": "codemod jssg test -l javascript ./scripts/cleanup-invalid-cases.ts --filter cleanup-invalid"
+  },
+  "devDependencies": {
+    "@codemod.com/jssg-types": "catalog:",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}
