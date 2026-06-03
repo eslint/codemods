@@ -4,9 +4,6 @@ Fix RuleTester test case structure for ESLint v10.
 
 ## Overview
 
-> [!CAUTION]
-> Run this codemod only in directories containing ESLint rule test files. It removes properties from `RuleTester` test case objects — running it on unrelated code risks false positives if those properties appear inside `valid` or `invalid` arrays in other contexts.
-
 ESLint v10 throws an error when `RuleTester` test case objects contain properties that were silently ignored in v9. This codemod removes those properties automatically.
 
 ## What This Codemod Does

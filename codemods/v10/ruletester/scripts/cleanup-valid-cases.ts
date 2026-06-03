@@ -22,6 +22,22 @@ function getSelector(): RuleConfig<JS> {
               kind: 'property_identifier',
               regex: '^valid$',
             },
+            inside: {
+              kind: 'object',
+              inside: {
+                kind: 'arguments',
+                inside: {
+                  kind: 'call_expression',
+                  has: {
+                    kind: 'member_expression',
+                    has: {
+                      kind: 'property_identifier',
+                      regex: '^run$',
+                    },
+                  },
+                },
+              },
+            },
           },
         },
       },
