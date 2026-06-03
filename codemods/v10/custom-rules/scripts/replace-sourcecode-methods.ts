@@ -38,10 +38,17 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
   const edits: Edit[] = []
 
   for (const call of rootNode.findAll(getSelector())) {
-    const memberExpr = call.find({ rule: { kind: 'member_expression' } })
+    // Use children() to get the direct callee member_expression.
+    // find() uses DFS and returns the innermost nested member_expression first,
+    // so for a double-level callee like ctx.sourceCode.deprecated() it would
+    // return ctx.sourceCode and extract 'sourceCode' as the method name — skipping
+    // the transform entirely. children() returns only direct children of the call.
+    const memberExpr = call.children().find((c: SgNode<JS>) => c.kind() === 'member_expression') ?? null
     if (!memberExpr) continue
 
-    const propNode = memberExpr.find({ rule: { kind: 'property_identifier' } })
+    // Same reason: use children() to get the direct property identifier of the callee,
+    // not a property identifier nested inside the object part of the member expression.
+    const propNode = memberExpr.children().find((c: SgNode<JS>) => c.kind() === 'property_identifier') ?? null
     if (!propNode) continue
 
     const method = propNode.text()
