@@ -3,10 +3,10 @@ schema_version: '1.0'
 name: '@eslint/v9-to-v10-custom-rules'
 version: '1.0.0'
 description: 'Migrate custom ESLint rules from v9 to v10 format'
-author: 'ESLint Team'
+author: 'Rohit Khadatkar <khadatkarrohit@gmail.com>'
 license: 'MIT'
 workflow: 'workflow.yaml'
-repository: 'https://github.com/eslint/codemods/tree/main/codemods/v10/custom-rules'
+repository: 'https://github.com/eslint/codemods'
 
 targets:
   languages: ['typescript', 'javascript']
