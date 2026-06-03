@@ -13,9 +13,9 @@ ESLint v10 removes context methods and SourceCode methods that were deprecated i
 
 - ✅ **Removed context methods** — replaces `context.getFilename()`, `context.getPhysicalFilename()`, `context.getCwd()`, `context.getSourceCode()` with their property equivalents
 - ✅ **`context.parserOptions`** — replaces with `context.languageOptions.parserOptions`
-- ✅ **`context.parserPath`** — inserts a `// TODO` comment (no replacement exists)
+- ✅ **`context.parserPath`** — inserts a `/* TODO */` block comment (no replacement exists)
 - ✅ **v8→v9 fallback patterns** — collapses `context.filename ?? context.getFilename()` to `context.filename`
-- ✅ **Removed SourceCode methods** — replaces `getTokenOrCommentBefore`, `getTokenOrCommentAfter`, `isSpaceBetweenTokens`; inserts `// TODO` for `getJSDocComment`
+- ✅ **Removed SourceCode methods** — replaces `getTokenOrCommentBefore`, `getTokenOrCommentAfter`, `isSpaceBetweenTokens`; inserts `/* TODO */` block comment for `getJSDocComment`
 - ✅ **Optional `skip` argument** — correctly migrates `getTokenOrCommentBefore(node, skip)` to `getTokenBefore(node, { includeComments: true, skip })`
 
 ### Transformations

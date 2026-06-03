@@ -46,13 +46,18 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
 
     const method = propNode.text()
     const memberText = memberExpr.text()
-    const src = memberText.slice(0, memberText.lastIndexOf(`.${  method}`))
+    const src = memberText.slice(0, memberText.lastIndexOf(`.${method}`))
     const args = getCallArgs(call)
 
     if (method in RENAME) {
       const newMethod = RENAME[method] as string
       const skipPart = args[1] !== undefined ? `, skip: ${args[1]}` : ''
-      edits.push(call.replace(`${src}.${newMethod}(${args[0] ?? ''}, { includeComments: true${skipPart} })`))
+      const firstArg = args[0]
+      const replacement =
+        firstArg !== undefined
+          ? `${src}.${newMethod}(${firstArg}, { includeComments: true${skipPart} })`
+          : `${src}.${newMethod}({ includeComments: true${skipPart} })`
+      edits.push(call.replace(replacement))
     } else if (method === 'isSpaceBetweenTokens') {
       edits.push(call.replace(`${src}.isSpaceBetween(${args.join(', ')})`))
     } else if (method === 'getJSDocComment') {

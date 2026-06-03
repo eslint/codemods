@@ -92,7 +92,7 @@ function getPropertyName(memberExpr: SgNode<JS>): string {
 function getSourceObject(memberExpr: SgNode<JS>): string {
   const text = memberExpr.text()
   const prop = getPropertyName(memberExpr)
-  return text.slice(0, text.lastIndexOf(`.${  prop}`))
+  return text.slice(0, text.lastIndexOf(`.${prop}`))
 }
 
 function isNullishCoalescing(expr: SgNode<JS>): boolean {
@@ -110,9 +110,17 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
   const fallbackEdits: Edit[] = []
   for (const expr of rootNode.findAll(getFallbackPatternSelector())) {
     if (!isNullishCoalescing(expr)) continue
+
     const children = expr.children().filter((c: SgNode<JS>) => c.text() !== '??')
     const left = children[0]
-    if (!left) continue
+    const right = children[1]
+    if (!left || !right) continue
+
+    // skip if the deprecated call is the left operand — pass 2 handles it
+    const rightText = right.text()
+    const rightHasDeprecatedCall = Object.keys(METHOD_TO_PROP).some((m) => rightText.includes(`.${m}(`))
+    if (!rightHasDeprecatedCall) continue
+
     fallbackEdits.push(expr.replace(left.text()))
   }
 
@@ -122,7 +130,7 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
   }
 
   // Re-parse after pass 1 so subsequent selectors operate on updated AST
-  const updatedRoot = (parse('javascript', text)).root()
+  const updatedRoot = parse('javascript', text).root() as unknown as SgNode<JS>
   const mainEdits: Edit[] = []
 
   // ── Pass 2: method call → property access ─────────────────────────────
