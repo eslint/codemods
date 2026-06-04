@@ -1,0 +1,36 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/codemod/codemod/refs/heads/main/schemas/workflow.json
+
+version: '1'
+
+nodes:
+  - id: apply-transforms
+    name: Apply ESLint v9 to v10 Config Migration
+    type: automatic
+    steps:
+      - id: remove-eslint-env-comments
+        name: 'Remove eslint-env inline comments'
+        js-ast-grep:
+          js_file: scripts/remove-eslint-env-comments.ts
+          include:
+            - '**/*.ts'
+            - '**/*.tsx'
+            - '**/*.js'
+            - '**/*.jsx'
+            - '**/*.cjs'
+            - '**/*.mjs'
+      - id: remove-legacy-flags
+        name: 'Remove legacy env vars and CLI flags'
+        depends_on:
+          - remove-eslint-env-comments
+        js-ast-grep:
+          js_file: scripts/remove-legacy-flags.ts
+          include:
+            - '**/*.ts'
+            - '**/*.tsx'
+            - '**/*.js'
+            - '**/*.jsx'
+            - '**/*.cjs'
+            - '**/*.mjs'
+            - '**/*.json'
+            - '**/*.yaml'
+            - '**/*.yml'
