@@ -19,16 +19,12 @@ ESLint v10 throws an error when `RuleTester` test case objects contain propertie
 ```js
 // Before
 ruleTester.run('my-rule', rule, {
-  valid: [
-    { code: 'var x = 1', errors: [], output: null },
-  ],
+  valid: [{ code: 'var x = 1', errors: [], output: null }],
 })
 
 // After
 ruleTester.run('my-rule', rule, {
-  valid: [
-    { code: 'var x = 1' },
-  ],
+  valid: [{ code: 'var x = 1' }],
 })
 ```
 
@@ -37,16 +33,12 @@ ruleTester.run('my-rule', rule, {
 ```js
 // Before
 ruleTester.run('my-rule', rule, {
-  invalid: [
-    { code: 'eval(x)', type: 'CallExpression', errors: [{ messageId: 'noEval' }] },
-  ],
+  invalid: [{ code: 'eval(x)', type: 'CallExpression', errors: [{ messageId: 'noEval' }] }],
 })
 
 // After
 ruleTester.run('my-rule', rule, {
-  invalid: [
-    { code: 'eval(x)', errors: [{ messageId: 'noEval' }] },
-  ],
+  invalid: [{ code: 'eval(x)', errors: [{ messageId: 'noEval' }] }],
 })
 ```
 
