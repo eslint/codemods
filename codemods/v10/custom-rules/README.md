@@ -4,9 +4,6 @@ Migrate custom ESLint rules from v9 to v10.
 
 ## Overview
 
-> [!CAUTION]
-> Run this codemod only in directories containing ESLint rule files. It may incorrectly transform other JavaScript files that happen to use identifiers with the same method names.
-
 ESLint v10 removes context methods and SourceCode methods that were deprecated in v9. This codemod rewrites all removed API calls to their v10 equivalents.
 
 ## What This Codemod Does
