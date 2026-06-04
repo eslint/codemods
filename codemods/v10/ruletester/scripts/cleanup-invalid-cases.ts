@@ -9,6 +9,18 @@ function getSelector(): RuleConfig<JS> {
         kind: 'property_identifier',
         regex: '^type$',
       },
+      not: {
+        inside: {
+          kind: 'array',
+          inside: {
+            kind: 'pair',
+            has: {
+              kind: 'property_identifier',
+              regex: '^errors$',
+            },
+          },
+        },
+      },
       inside: {
         kind: 'object',
         inside: {
