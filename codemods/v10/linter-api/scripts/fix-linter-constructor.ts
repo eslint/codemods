@@ -16,8 +16,9 @@ const LINTER_ESLINTRC_RE = /new\s+Linter\s*\(\s*\{\s*configType\s*:\s*(['"`])esl
 // loadESLint({ useFlatConfig: true/false }) → loadESLint()
 const LOAD_ESLINT_RE = /loadESLint\s*\(\s*\{\s*useFlatConfig\s*:\s*(?:true|false)\s*\}\s*\)/g
 
-// ─── ESLint flags array: remove removed flag values ──────────────────────────
+// ─── ESLint flags array: remove removed flag values from flags: [...] only ───
 const REMOVED_FLAGS = ['v10_config_lookup_from_file', 'unstable_config_lookup_from_file']
+const FLAGS_ARRAY_RE = /\bflags\s*:\s*\[([^\]]*)\]/g
 
 // ─── Deprecated Linter instance methods removed in v10 ──────────────────────
 const DEPRECATED_METHODS = ['defineParser', 'defineRule', 'defineRules', 'getRules']
@@ -54,15 +55,19 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
   // 4. loadESLint({ useFlatConfig: ... }) → loadESLint()
   result = result.replaceAll(LOAD_ESLINT_RE, 'loadESLint()')
 
-  // 5. Remove removed flag values from new ESLint({ flags: [...] })
-  for (const flag of REMOVED_FLAGS) {
-    result = result.replaceAll(new RegExp(`(['"\`])${flag}\\1\\s*,?|,?\\s*(['"\`])${flag}\\2`, 'g'), '')
-    result = result
-      .replaceAll(/\[\s*,\s*/g, '[')
-      .replaceAll(/,\s*\]/g, ']')
+  // 5. Remove removed flag values — scoped to flags: [...] only to avoid touching unrelated strings
+  result = result.replaceAll(FLAGS_ARRAY_RE, (_m: string, inner: string) => {
+    let arr = inner
+    for (const flag of REMOVED_FLAGS) {
+      arr = arr.replaceAll(new RegExp(`(['"\`])${flag}\\1\\s*,?|,?\\s*(['"\`])${flag}\\2`, 'g'), '')
+    }
+    arr = arr
+      .replace(/^\s*,\s*/, '')
+      .replace(/,\s*$/, '')
       .replaceAll(/,\s*,/g, ',')
-      .replaceAll(/\[\s+(['"`])/g, '[$1')
-  }
+      .trim()
+    return `flags: [${arr}]`
+  })
 
   // 6. Deprecated Linter instance methods → TODO comment
   for (const method of DEPRECATED_METHODS) {

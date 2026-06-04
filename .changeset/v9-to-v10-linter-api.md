@@ -2,4 +2,4 @@
 '@eslint/v9-to-v10-linter-api': minor
 ---
 
-Add new codemod to migrate removed Linter/ESLint constructor options and stricter rule config schema for ESLint v10. Handles configType removal, useFlatConfig removal, FlatESLint rename, LegacyESLint removal, deprecated Linter methods, func-names schema tightening, and no-invalid-regexp duplicate flag deduplication.
+Add new codemod to migrate removed Linter/ESLint constructor options and stricter rule config schema for ESLint v10. Handles configType removal from new Linter(), useFlatConfig removal from loadESLint(), deprecated flag value removal from new ESLint({ flags }), deprecated Linter instance methods, func-names schema tightening, no-invalid-regexp duplicate flag deduplication, and radix deprecated option removal.

@@ -4,11 +4,11 @@ Migrate removed `Linter`/`ESLint` constructor options and stricter rule config s
 
 ## Overview
 
-ESLint v10 removes the `configType` option, the `useFlatConfig` option on `loadESLint`, the `FlatESLint` and `LegacyESLint` class aliases, several `Linter` instance methods, and tightens the schema for two built-in rules.
+ESLint v10 removes the `configType` option, the `useFlatConfig` option on `loadESLint`, several `Linter` instance methods, and tightens the schema for three built-in rules.
 
 ## What This Codemod Does
 
-### Transform 1 — Remove `configType` from `new Linter()` / `new ESLint()`
+### Transform 1 — Remove `configType` from `new Linter()`
 
 `configType: 'flat'` is the only supported mode in v10 and no longer needs to be specified. `configType: 'eslintrc'` is removed with no equivalent — a TODO comment is inserted.
 
@@ -35,7 +35,7 @@ const ESLintClass = await loadESLint({ useFlatConfig: true })
 const ESLintClass = await loadESLint()
 ```
 
-### Transform 3 — Remove `v10_config_lookup_from_file` from `ESLint` flags
+### Transform 3 — Remove deprecated flag values from `new ESLint({ flags: [...] })`
 
 ```js
 // Before
@@ -45,31 +45,7 @@ const eslint = new ESLint({ flags: ['v10_config_lookup_from_file'] })
 const eslint = new ESLint({ flags: [] })
 ```
 
-### Transform 4 — `FlatESLint` → `ESLint` (class renamed)
-
-```js
-// Before
-import { FlatESLint } from 'eslint'
-const eslint = new FlatESLint({ fix: true })
-
-// After
-import { ESLint } from 'eslint'
-const eslint = new ESLint({ fix: true })
-```
-
-### Transform 5 — `LegacyESLint` → TODO (class removed)
-
-```js
-// Before
-import { LegacyESLint } from 'eslint'
-
-// After
-import {
-  LegacyESLint /* TODO: LegacyESLint removed in ESLint v10, no replacement — rewrite to use flat config */,
-} from 'eslint'
-```
-
-### Transform 6 — Deprecated `Linter` instance methods → TODO
+### Transform 4 — Deprecated `Linter` instance methods → TODO
 
 `defineParser()`, `defineRule()`, `defineRules()`, and `getRules()` are removed with no direct replacement. Register rules and parsers via the flat config instead.
 
@@ -86,7 +62,7 @@ linter.defineParser(
 linter.defineRule(/* TODO: defineRule() removed in ESLint v10, no replacement */ 'my-rule', myRule)
 ```
 
-### Transform 7 — `func-names` stricter schema (remove extra 4th element)
+### Transform 5 — `func-names` stricter schema (remove extra 4th element)
 
 ```js
 // Before
@@ -96,7 +72,7 @@ linter.defineRule(/* TODO: defineRule() removed in ESLint v10, no replacement */
 'func-names': ['error', 'always', {}]
 ```
 
-### Transform 8 — `no-invalid-regexp` deduplicate `allowConstructorFlags`
+### Transform 6 — `no-invalid-regexp` deduplicate `allowConstructorFlags`
 
 ```js
 // Before
@@ -106,7 +82,7 @@ linter.defineRule(/* TODO: defineRule() removed in ESLint v10, no replacement */
 'no-invalid-regexp': ['error', { allowConstructorFlags: ['u', 'y'] }]
 ```
 
-### Transform 9 — `radix` deprecated string options
+### Transform 7 — `radix` deprecated string options
 
 The `"always"` and `"as-needed"` string options of the `radix` rule are deprecated in ESLint v10. The rule now always enforces providing a radix argument. `"always"` is stripped (it is now the sole behavior). `"as-needed"` is flagged with a TODO because removing it changes the rule's behavior.
 
@@ -133,7 +109,6 @@ Search for `TODO` comments added by this codemod:
 | TODO comment                           | Action required                                                                             |
 | -------------------------------------- | ------------------------------------------------------------------------------------------- |
 | `configType "eslintrc" is removed`     | Rewrite integration to use flat config (`eslint.config.js`)                                 |
-| `LegacyESLint removed in ESLint v10`   | Rewrite integration to use the `ESLint` class with flat config                              |
 | `defineParser() removed in ESLint v10` | Register parsers in `eslint.config.js` `languageOptions.parser`                             |
 | `defineRule() removed in ESLint v10`   | Register rules in `eslint.config.js` `plugins`                                              |
 | `defineRules() removed in ESLint v10`  | Register rules in `eslint.config.js` `plugins`                                              |
@@ -142,7 +117,6 @@ Search for `TODO` comments added by this codemod:
 ## Limitations
 
 - `LintMessage.nodeType` access is not transformed — remove manually if you read `message.nodeType` in formatters or custom tooling.
-- `FlatESLint` and `LegacyESLint` occurrences inside string literals and comments are also renamed/flagged (acceptable trade-off of raw-text transform).
 - Fixer non-string argument validation is not automatable — check manually if you call `fixer.insertTextBefore(node, nonString)`.
 - `loadESLint({ useFlatConfig: true/false, ...otherOptions })` is **not** transformed when extra options are present alongside `useFlatConfig` — remove `useFlatConfig` manually in those cases.
 - `new Linter({ configType: 'eslintrc', ...otherOptions })` is **not** flagged with a TODO when additional options are present — add the TODO comment manually.

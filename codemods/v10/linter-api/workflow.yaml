@@ -19,7 +19,7 @@ nodes:
             - '**/*.cjs'
             - '**/*.mjs'
       - id: fix-rule-options
-        name: 'Fix stricter func-names and no-invalid-regexp rule config schema'
+        name: 'Fix stricter rule config schema (func-names, no-invalid-regexp, radix)'
         depends_on:
           - fix-linter-constructor
         js-ast-grep:
@@ -31,4 +31,3 @@ nodes:
             - '**/*.jsx'
             - '**/*.cjs'
             - '**/*.mjs'
-            - '**/*.json'
