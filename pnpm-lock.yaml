@@ -66,6 +66,18 @@ importers:
         specifier: 'catalog:'
         version: 5.9.2
 
+  codemods/v10/linter-api:
+    devDependencies:
+      '@codemod.com/jssg-types':
+        specifier: 'catalog:'
+        version: 1.6.1
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.19.19
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.2
+
   codemods/v10/ruletester:
     devDependencies:
       '@codemod.com/jssg-types':

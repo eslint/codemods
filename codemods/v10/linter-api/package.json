@@ -1,0 +1,17 @@
+{
+  "name": "@eslint/v9-to-v10-linter-api",
+  "version": "1.0.0",
+  "description": "Migrate removed Linter/ESLint constructor options and stricter rule config schema for ESLint v10",
+  "type": "module",
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "test": "pnpm run test:linter-constructor && pnpm run test:rule-options",
+    "test:linter-constructor": "codemod jssg test -l javascript ./scripts/fix-linter-constructor.ts --filter linter-constructor",
+    "test:rule-options": "codemod jssg test -l javascript ./scripts/fix-rule-options.ts --filter rule-options"
+  },
+  "devDependencies": {
+    "@codemod.com/jssg-types": "catalog:",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}
