@@ -1,5 +1,4 @@
 import { type SgRoot } from 'codemod:ast-grep'
-import type JS from 'codemod:ast-grep/langs/javascript'
 
 // Env vars removed in ESLint v10
 const REMOVED_ENV_VARS = ['ESLINT_USE_FLAT_CONFIG']
@@ -19,9 +18,9 @@ const FLAGS_WITH_VALUE = ['--env', '--rulesdir', '--ignore-path', '--resolve-plu
 // \x22 = "   \x27 = '   \x60 = `
 const Q = '\\x22\\x27\\x60'
 
-// A flag value token that stops at whitespace or any quote character,
-// preventing the regex from consuming string delimiters in JS source.
-const VALUE_TOKEN = `[^-\\s${Q}][^\\s${Q}]*`
+// A flag value token: either a quoted string (single/double/backtick) or an
+// unquoted word that stops before whitespace and string delimiters.
+const VALUE_TOKEN = `(?:\\x22[^\\x22]*\\x22|\\x27[^\\x27]*\\x27|\\x60[^\\x60]*\\x60|[^-\\s${Q}][^\\s${Q}]*)`
 
 function removeEnvVarAssignments(source: string): string {
   let result = source
@@ -59,6 +58,12 @@ function removeFlagValues(source: string): string {
   return result
 }
 
+function removeEmptyFlagsAssignment(source: string): string {
+  // After removeFlagValues strips all values, ESLINT_FLAGS= may be left with
+  // nothing to assign. Remove the now-empty assignment entirely.
+  return source.replaceAll(/(?:export\s+)?ESLINT_FLAGS=[ \t]*(?:&&\s*)?/g, '')
+}
+
 function removeCliFlags(source: string): string {
   let result = source
 
@@ -77,12 +82,13 @@ function removeCliFlags(source: string): string {
   return result
 }
 
-export default async function transform(root: SgRoot<JS>): Promise<string | null> {
+export default async function transform(root: SgRoot): Promise<string | null> {
   const source = root.root().text()
 
   let result = source
   result = removeEnvVarAssignments(result)
   result = removeFlagValues(result)
+  result = removeEmptyFlagsAssignment(result)
   result = removeCliFlags(result)
 
   return result === source ? null : result

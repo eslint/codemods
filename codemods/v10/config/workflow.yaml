@@ -18,11 +18,12 @@ nodes:
             - '**/*.jsx'
             - '**/*.cjs'
             - '**/*.mjs'
-      - id: remove-legacy-flags
-        name: 'Remove legacy env vars and CLI flags'
+      - id: remove-legacy-flags-js
+        name: 'Remove legacy env vars and CLI flags (JS/TS)'
         depends_on:
           - remove-eslint-env-comments
         js-ast-grep:
+          language: javascript
           js_file: scripts/remove-legacy-flags.ts
           include:
             - '**/*.ts'
@@ -31,6 +32,22 @@ nodes:
             - '**/*.jsx'
             - '**/*.cjs'
             - '**/*.mjs'
+      - id: remove-legacy-flags-json
+        name: 'Remove legacy env vars and CLI flags (JSON)'
+        depends_on:
+          - remove-legacy-flags-js
+        js-ast-grep:
+          language: json
+          js_file: scripts/remove-legacy-flags.ts
+          include:
             - '**/*.json'
+      - id: remove-legacy-flags-yaml
+        name: 'Remove legacy env vars and CLI flags (YAML)'
+        depends_on:
+          - remove-legacy-flags-json
+        js-ast-grep:
+          language: yaml
+          js_file: scripts/remove-legacy-flags.ts
+          include:
             - '**/*.yaml'
             - '**/*.yml'

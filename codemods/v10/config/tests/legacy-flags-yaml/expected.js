@@ -4,6 +4,6 @@ jobs:
   lint:
     steps:
       - run: npx eslint .
-      - run: ESLINT_FLAGS= npx eslint .
+      - run: npx eslint .
       - run: npx eslint .
 `
