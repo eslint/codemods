@@ -21,7 +21,8 @@ const legacy = new Linter({ configType: 'eslintrc' })
 // After
 const linter = new Linter()
 const linter2 = new Linter({ allowInlineConfig: true })
-const legacy = new Linter(/* TODO: configType "eslintrc" is removed in ESLint v10, flat config is now the only option */)
+const legacy =
+  new Linter(/* TODO: configType "eslintrc" is removed in ESLint v10, flat config is now the only option */)
 ```
 
 ### Transform 2 — Remove `useFlatConfig` from `loadESLint()`
@@ -63,7 +64,9 @@ const eslint = new ESLint({ fix: true })
 import { LegacyESLint } from 'eslint'
 
 // After
-import { LegacyESLint /* TODO: LegacyESLint removed in ESLint v10, no replacement — rewrite to use flat config */ } from 'eslint'
+import {
+  LegacyESLint /* TODO: LegacyESLint removed in ESLint v10, no replacement — rewrite to use flat config */,
+} from 'eslint'
 ```
 
 ### Transform 6 — Deprecated `Linter` instance methods → TODO
@@ -76,7 +79,10 @@ linter.defineParser('babel-eslint', require('babel-eslint'))
 linter.defineRule('my-rule', myRule)
 
 // After
-linter.defineParser(/* TODO: defineParser() removed in ESLint v10, no replacement */ 'babel-eslint', require('babel-eslint'))
+linter.defineParser(
+  /* TODO: defineParser() removed in ESLint v10, no replacement */ 'babel-eslint',
+  require('babel-eslint'),
+)
 linter.defineRule(/* TODO: defineRule() removed in ESLint v10, no replacement */ 'my-rule', myRule)
 ```
 
@@ -124,14 +130,14 @@ npx codemod @eslint/v9-to-v10-linter-api
 
 Search for `TODO` comments added by this codemod:
 
-| TODO comment | Action required |
-| ----------------------------------------------------------- | --------------------------------------------------------------- |
-| `configType "eslintrc" is removed` | Rewrite integration to use flat config (`eslint.config.js`) |
-| `LegacyESLint removed in ESLint v10` | Rewrite integration to use the `ESLint` class with flat config |
-| `defineParser() removed in ESLint v10` | Register parsers in `eslint.config.js` `languageOptions.parser` |
-| `defineRule() removed in ESLint v10` | Register rules in `eslint.config.js` `plugins` |
-| `defineRules() removed in ESLint v10` | Register rules in `eslint.config.js` `plugins` |
-| `getRules() removed in ESLint v10` | Use `ESLint.getRulesMetaForResults()` or `Linter.getRules()` was removed with no equivalent |
+| TODO comment                           | Action required                                                                             |
+| -------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `configType "eslintrc" is removed`     | Rewrite integration to use flat config (`eslint.config.js`)                                 |
+| `LegacyESLint removed in ESLint v10`   | Rewrite integration to use the `ESLint` class with flat config                              |
+| `defineParser() removed in ESLint v10` | Register parsers in `eslint.config.js` `languageOptions.parser`                             |
+| `defineRule() removed in ESLint v10`   | Register rules in `eslint.config.js` `plugins`                                              |
+| `defineRules() removed in ESLint v10`  | Register rules in `eslint.config.js` `plugins`                                              |
+| `getRules() removed in ESLint v10`     | Use `ESLint.getRulesMetaForResults()` or `Linter.getRules()` was removed with no equivalent |
 
 ## Limitations
 
