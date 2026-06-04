@@ -1,0 +1,17 @@
+{
+  "name": "@eslint/v9-to-v10-custom-rules",
+  "version": "1.1.0",
+  "description": "Migrate custom ESLint rules from v9 to v10 format",
+  "type": "module",
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "test": "pnpm run test:context && pnpm run test:sourcecode",
+    "test:context": "codemod jssg test -l javascript ./scripts/replace-context-methods.ts --filter context",
+    "test:sourcecode": "codemod jssg test -l javascript ./scripts/replace-sourcecode-methods.ts --filter sourcecode"
+  },
+  "devDependencies": {
+    "@codemod.com/jssg-types": "catalog:",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}
