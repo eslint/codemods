@@ -23,15 +23,15 @@ ESLint v10 removes context methods and SourceCode methods that were deprecated i
 // Before
 const file = context.getFilename()
 const phys = context.getPhysicalFilename()
-const cwd  = context.getCwd()
-const src  = context.getSourceCode()
+const cwd = context.getCwd()
+const src = context.getSourceCode()
 const opts = context.parserOptions
 
 // After
 const file = context.filename
 const phys = context.physicalFilename
-const cwd  = context.cwd
-const src  = context.sourceCode
+const cwd = context.cwd
+const src = context.sourceCode
 const opts = context.languageOptions.parserOptions
 ```
 
@@ -50,15 +50,15 @@ const file = context.filename
 ```js
 // Before
 const before = sourceCode.getTokenOrCommentBefore(node)
-const after  = sourceCode.getTokenOrCommentAfter(node, 1)
-const space  = sourceCode.isSpaceBetweenTokens(tokenA, tokenB)
-const doc    = sourceCode.getJSDocComment(node)
+const after = sourceCode.getTokenOrCommentAfter(node, 1)
+const space = sourceCode.isSpaceBetweenTokens(tokenA, tokenB)
+const doc = sourceCode.getJSDocComment(node)
 
 // After
 const before = sourceCode.getTokenBefore(node, { includeComments: true })
-const after  = sourceCode.getTokenAfter(node, { includeComments: true, skip: 1 })
-const space  = sourceCode.isSpaceBetween(tokenA, tokenB)
-const doc    = (null /* TODO: getJSDocComment removed in ESLint v10, no replacement */)
+const after = sourceCode.getTokenAfter(node, { includeComments: true, skip: 1 })
+const space = sourceCode.isSpaceBetween(tokenA, tokenB)
+const doc = null /* TODO: getJSDocComment removed in ESLint v10, no replacement */
 ```
 
 ## Usage
@@ -77,10 +77,10 @@ npx codemod workflow run -w codemods/v10/custom-rules/workflow.yaml
 
 After running this codemod, search your files for `TODO` comments and address each one:
 
-| TODO comment | Action required |
-|---|---|
-| `context.parserPath removed in ESLint v10, no replacement` | Remove the usage. If you were checking the parser, use `context.languageOptions.parser` instead (the value is the parser object, not a path string) |
-| `getJSDocComment removed in ESLint v10, no replacement` | Remove the usage. If you need JSDoc information, use a third-party library or implement the logic manually using `sourceCode.getCommentsBefore(node)` |
+| TODO comment                                               | Action required                                                                                                                                       |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `context.parserPath removed in ESLint v10, no replacement` | Remove the usage. If you were checking the parser, use `context.languageOptions.parser` instead (the value is the parser object, not a path string)   |
+| `getJSDocComment removed in ESLint v10, no replacement`    | Remove the usage. If you need JSDoc information, use a third-party library or implement the logic manually using `sourceCode.getCommentsBefore(node)` |
 
 ## Resources
 
