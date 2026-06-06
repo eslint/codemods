@@ -1,6 +1,6 @@
 # @eslint/v9-to-v10-config
 
-Remove `eslint-env` inline comments and legacy env vars and CLI flags for ESLint v10.
+Remove legacy env vars and CLI flags for ESLint v10.
 
 ## Overview
 
@@ -8,29 +8,7 @@ ESLint v10 removes several configuration mechanisms that were deprecated in v9.
 
 ## What This Codemod Does
 
-### Transform 1 — Remove `eslint-env` inline comments
-
-`eslint-env` comments are now a lint error in ESLint v10. This transform removes them entirely.
-
-```js
-// Before
-/* eslint-env browser */
-const el = document.getElementById('app')
-
-/* eslint-env node, browser */
-function read() {
-  return process.env.NODE_ENV
-}
-
-// After
-const el = document.getElementById('app')
-
-function read() {
-  return process.env.NODE_ENV
-}
-```
-
-### Transform 2 — Remove legacy env vars and CLI flags
+### Transform — Remove legacy env vars and CLI flags
 
 `ESLINT_USE_FLAT_CONFIG` and several `ESLINT_FLAGS` values are removed in v10. Legacy CLI flags are also removed.
 
@@ -46,6 +24,33 @@ function read() {
 | `--rulesdir`                                         | Removed    |
 | `--ignore-path`                                      | Removed    |
 | `--resolve-plugins-relative-to`                      | Removed    |
+
+## Manual step required — `eslint-env` inline comments
+
+ESLint v10 reports `/* eslint-env */` comments as lint errors. This codemod does **not** remove them automatically because these comments also declare globals (e.g. `/* eslint-env browser */` provides `window`, `document`, etc.). Removing them without migrating the globals would silently break rules like `no-unused-vars`.
+
+After running this codemod, fix `eslint-env` comments manually:
+
+1. Remove the `/* eslint-env ... */` comment from the source file.
+2. Add the corresponding globals to `eslint.config.js`:
+
+```js
+// eslint.config.js
+import globals from 'globals'
+
+export default [
+  {
+    languageOptions: {
+      globals: {
+        ...globals.browser, // replaces /* eslint-env browser */
+        ...globals.node, // replaces /* eslint-env node */
+      },
+    },
+  },
+]
+```
+
+See the [globals package](https://www.npmjs.com/package/globals) for the full list of available environments.
 
 ## Usage
 

@@ -2,4 +2,4 @@
 '@eslint/v9-to-v10-config': minor
 ---
 
-Add new codemod to remove eslint-env inline comments and legacy flags for ESLint v10. ESLint v10 throws a lint error on eslint-env comments and removes ESLINT_USE_FLAT_CONFIG, v10_config_lookup_from_file, and several CLI flags.
+Add new codemod to remove legacy env vars and CLI flags for ESLint v10. Removes ESLINT_USE_FLAT_CONFIG, v10_config_lookup_from_file, and removed CLI flags. Note: eslint-env inline comments are not removed automatically — see README for the required manual migration step.

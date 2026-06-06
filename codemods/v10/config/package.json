@@ -1,12 +1,11 @@
 {
   "name": "@eslint/v9-to-v10-config",
   "version": "1.0.0",
-  "description": "Remove eslint-env comments and legacy flags for ESLint v10",
+  "description": "Remove legacy env vars and CLI flags for ESLint v10",
   "type": "module",
   "scripts": {
     "check-types": "tsc --noEmit",
-    "test": "pnpm run test:eslint-env && pnpm run test:legacy-flags",
-    "test:eslint-env": "codemod jssg test -l javascript ./scripts/remove-eslint-env-comments.ts --filter eslint-env",
+    "test": "pnpm run test:legacy-flags",
     "test:legacy-flags": "codemod jssg test -l javascript ./scripts/remove-legacy-flags.ts --filter legacy-flags"
   },
   "devDependencies": {

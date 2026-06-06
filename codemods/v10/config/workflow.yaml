@@ -7,21 +7,8 @@ nodes:
     name: Apply ESLint v9 to v10 Config Migration
     type: automatic
     steps:
-      - id: remove-eslint-env-comments
-        name: 'Remove eslint-env inline comments'
-        js-ast-grep:
-          js_file: scripts/remove-eslint-env-comments.ts
-          include:
-            - '**/*.ts'
-            - '**/*.tsx'
-            - '**/*.js'
-            - '**/*.jsx'
-            - '**/*.cjs'
-            - '**/*.mjs'
       - id: remove-legacy-flags-js
         name: 'Remove legacy env vars and CLI flags (JS/TS)'
-        depends_on:
-          - remove-eslint-env-comments
         js-ast-grep:
           language: javascript
           js_file: scripts/remove-legacy-flags.ts
