@@ -43,3 +43,22 @@ nodes:
             - '**/*.d.ts'
             - '**/*.d.mts'
             - '**/*.d.cts'
+      - id: fix-lint-message
+        name: 'Remove LintMessage.nodeType property from object literals'
+        depends_on:
+          - fix-rule-options
+        js-ast-grep:
+          js_file: scripts/fix-lint-message.ts
+          include:
+            - '**/*.js'
+            - '**/*.mjs'
+            - '**/*.cjs'
+            - '**/*.jsx'
+            - '**/*.ts'
+            - '**/*.mts'
+            - '**/*.cts'
+            - '**/*.tsx'
+          exclude:
+            - '**/*.d.ts'
+            - '**/*.d.mts'
+            - '**/*.d.cts'

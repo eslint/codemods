@@ -96,6 +96,39 @@ The `"always"` and `"as-needed"` string options of the `radix` rule are deprecat
 'radix': ['error', /* TODO: radix "as-needed" option is deprecated in ESLint v10 — the rule now always enforces providing the radix argument */ 'as-needed']
 ```
 
+### Transform 8 — Remove `LintMessage.nodeType`
+
+`LintMessage.nodeType` was removed in ESLint v10. Two patterns are handled:
+
+**Object property pairs** — `nodeType: <value>` is removed from object literals (common in test assertions):
+
+```js
+// Before
+assert.deepEqual(messages[0], {
+  ruleId: 'no-var',
+  severity: 2,
+  message: 'Unexpected var, use let or const instead.',
+  nodeType: 'VariableDeclaration',
+})
+
+// After
+assert.deepEqual(messages[0], {
+  ruleId: 'no-var',
+  severity: 2,
+  message: 'Unexpected var, use let or const instead.',
+})
+```
+
+**Member expression accesses** — `.nodeType` in formatters and custom tooling is flagged with a TODO (the surrounding expression must be removed manually):
+
+```js
+// Before
+const type = message.nodeType
+
+// After
+const type = message.nodeType /* TODO: LintMessage.nodeType was removed in ESLint v10 — remove this usage */
+```
+
 ## Usage
 
 ```bash
@@ -113,10 +146,11 @@ Search for `TODO` comments added by this codemod:
 | `defineRule() removed in ESLint v10`   | Register rules in `eslint.config.js` `plugins`                                              |
 | `defineRules() removed in ESLint v10`  | Register rules in `eslint.config.js` `plugins`                                              |
 | `getRules() removed in ESLint v10`     | Use `ESLint.getRulesMetaForResults()` or `Linter.getRules()` was removed with no equivalent |
+| `LintMessage.nodeType was removed`     | Remove the surrounding expression that reads `message.nodeType`                             |
 
 ## Limitations
 
-- `LintMessage.nodeType` access is not transformed — remove manually if you read `message.nodeType` in formatters or custom tooling.
+- `message.nodeType` member expression accesses are flagged with a TODO but the surrounding expression must be removed manually — the codemod cannot determine what to replace the access with.
 - Fixer non-string argument validation is not automatable — check manually if you call `fixer.insertTextBefore(node, nonString)`.
 - `loadESLint({ useFlatConfig: true/false, ...otherOptions })` is **not** transformed when extra options are present alongside `useFlatConfig` — remove `useFlatConfig` manually in those cases.
 - `new Linter({ configType: 'eslintrc', ...otherOptions })` is **not** flagged with a TODO when additional options are present — add the TODO comment manually.

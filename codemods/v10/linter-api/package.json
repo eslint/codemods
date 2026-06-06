@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "check-types": "tsc --noEmit",
-    "test": "pnpm run test:linter-constructor && pnpm run test:rule-options",
+    "test": "pnpm run test:linter-constructor && pnpm run test:rule-options && pnpm run test:lint-message",
     "test:linter-constructor": "codemod jssg test -l javascript ./scripts/fix-linter-constructor.ts --filter linter-constructor",
-    "test:rule-options": "codemod jssg test -l javascript ./scripts/fix-rule-options.ts --filter rule-options"
+    "test:rule-options": "codemod jssg test -l javascript ./scripts/fix-rule-options.ts --filter rule-options",
+    "test:lint-message": "codemod jssg test -l javascript ./scripts/fix-lint-message.ts --filter lint-message"
   },
   "devDependencies": {
     "@codemod.com/jssg-types": "catalog:",
