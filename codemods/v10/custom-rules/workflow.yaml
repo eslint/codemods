@@ -12,11 +12,18 @@ nodes:
         js-ast-grep:
           js_file: scripts/replace-context-methods.ts
           include:
-            - '**/*.ts'
             - '**/*.js'
-            - '**/*.jsx'
-            - '**/*.cjs'
             - '**/*.mjs'
+            - '**/*.cjs'
+            - '**/*.jsx' # Unlikely to be used for custom rules, but just in case
+            - '**/*.ts'
+            - '**/*.mts'
+            - '**/*.cts'
+            - '**/*.tsx' # Unlikely to be used for custom rules, but just in case
+          exclude:
+            - '**/*.d.ts'
+            - '**/*.d.mts'
+            - '**/*.d.cts'
       - id: replace-sourcecode-methods
         name: 'Replace removed SourceCode methods'
         depends_on:
@@ -24,8 +31,15 @@ nodes:
         js-ast-grep:
           js_file: scripts/replace-sourcecode-methods.ts
           include:
-            - '**/*.ts'
             - '**/*.js'
-            - '**/*.jsx'
-            - '**/*.cjs'
             - '**/*.mjs'
+            - '**/*.cjs'
+            - '**/*.jsx' # Unlikely to be used for custom rules, but just in case
+            - '**/*.ts'
+            - '**/*.mts'
+            - '**/*.cts'
+            - '**/*.tsx' # Unlikely to be used for custom rules, but just in case
+          exclude:
+            - '**/*.d.ts'
+            - '**/*.d.mts'
+            - '**/*.d.cts'
