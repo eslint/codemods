@@ -8,9 +8,11 @@ function excludeLockfiles(files) {
 export default {
   /** @param {string[]} files */
   '*.{ts,tsx,js,jsx,mts,mjs}': (files) => {
-    const formattable = files.filter((f) => !f.includes('\/tests\/'))
+    const formattable = files.filter((f) => !f.includes('/tests/'))
     const cmds = []
-    if (formattable.length) {cmds.push(`oxfmt --write ${formattable.join(' ')}`)}
+    if (formattable.length) {
+      cmds.push(`oxfmt --write ${formattable.join(' ')}`)
+    }
     cmds.push(`oxlint --type-aware --type-check --fix ${files.join(' ')}`)
     return cmds
   },
