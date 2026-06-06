@@ -1,5 +1,11 @@
 # @eslint/v9-to-v10-custom-rules
 
+## 1.2.0
+
+### Minor Changes
+
+- eafb14f: Remove overly restrictive CAUTION callout from README. The codemod uses precise AST selectors and is safe to run on any codemod package directory.
+
 ## 1.1.0
 
 ### Minor Changes
