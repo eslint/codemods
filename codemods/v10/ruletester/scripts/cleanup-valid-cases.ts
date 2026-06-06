@@ -1,39 +1,37 @@
-import { type RuleConfig, type SgNode, type SgRoot } from 'codemod:ast-grep'
+import { type Edit, type RuleConfig, type SgNode, type SgRoot } from 'codemod:ast-grep'
 import type JS from 'codemod:ast-grep/langs/javascript'
 
 // Properties that v10 throws on when present in a valid test case
 const PROPS_TO_REMOVE = ['errors', 'output']
 
-function getSelector(): RuleConfig<JS> {
-  return {
-    rule: {
-      kind: 'pair',
-      has: {
-        kind: 'property_identifier',
-        regex: `^(${PROPS_TO_REMOVE.join('|')})$`,
-      },
+const selector = {
+  rule: {
+    kind: 'pair',
+    has: {
+      kind: 'property_identifier',
+      regex: `^(?:${PROPS_TO_REMOVE.join('|')})$`,
+    },
+    inside: {
+      kind: 'object',
       inside: {
-        kind: 'object',
+        kind: 'array',
         inside: {
-          kind: 'array',
+          kind: 'pair',
+          has: {
+            kind: 'property_identifier',
+            regex: '^valid$',
+          },
           inside: {
-            kind: 'pair',
-            has: {
-              kind: 'property_identifier',
-              regex: '^valid$',
-            },
+            kind: 'object',
             inside: {
-              kind: 'object',
+              kind: 'arguments',
               inside: {
-                kind: 'arguments',
-                inside: {
-                  kind: 'call_expression',
+                kind: 'call_expression',
+                has: {
+                  kind: 'member_expression',
                   has: {
-                    kind: 'member_expression',
-                    has: {
-                      kind: 'property_identifier',
-                      regex: '^run$',
-                    },
+                    kind: 'property_identifier',
+                    regex: '^run$',
                   },
                 },
               },
@@ -42,44 +40,53 @@ function getSelector(): RuleConfig<JS> {
         },
       },
     },
-  }
-}
+  },
+} as const satisfies RuleConfig<JS>
 
-function removePairRange(pair: SgNode<JS>, source: string): { start: number; end: number } {
-  const r = pair.range()
-  const start = r.start.index
-  const end = r.end.index
+function removePairEdit(pair: SgNode<JS>, source: string): Edit {
+  const range = pair.range()
+  const start = range.start.index
+  const end = range.end.index
 
   // Prefer removing the preceding comma so the trailing element keeps its comma
   const before = source.slice(0, start)
   const precedingComma = before.match(/,\s*$/)
+
   if (precedingComma) {
-    return { start: start - precedingComma[0].length, end }
+    return {
+      startPos: start - precedingComma[0].length,
+      endPos: end,
+      insertedText: '',
+    }
   }
 
   // First property — remove trailing comma instead
   const after = source.slice(end)
   const trailingComma = after.match(/^\s*,/)
+
   if (trailingComma) {
-    return { start, end: end + trailingComma[0].length }
+    return {
+      startPos: start,
+      endPos: end + trailingComma[0].length,
+      insertedText: '',
+    }
   }
 
-  return { start, end }
+  return {
+    startPos: start,
+    endPos: end,
+    insertedText: '',
+  }
 }
 
 export default async function transform(root: SgRoot<JS>): Promise<string | null> {
   const rootNode = root.root()
-  const pairs = rootNode.findAll(getSelector())
+  const pairs = rootNode.findAll(selector)
 
   if (pairs.length === 0) return null
 
   const source = rootNode.text()
-  const deletions = pairs.map((pair) => removePairRange(pair, source)).sort((a, b) => b.start - a.start)
+  const edits = pairs.map((pair) => removePairEdit(pair, source))
 
-  let result = source
-  for (const { start, end } of deletions) {
-    result = result.slice(0, start) + result.slice(end)
-  }
-
-  return result
+  return rootNode.commitEdits(edits)
 }
