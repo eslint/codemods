@@ -1,6 +1,6 @@
 # @eslint/v9-to-v10-ruletester
 
-Fix RuleTester test case structure for ESLint v10.
+Fix `RuleTester` test case structure for ESLint v10.
 
 ## Overview
 
