@@ -57,5 +57,5 @@ npx codemod workflow run -w codemods/v10/ruletester/workflow.yaml
 ## Resources
 
 - [ESLint v10 migration guide](https://eslint.org/docs/latest/use/migrate-to-10.0.0)
-- [Removal of `type` in invalid RuleTester cases](https://eslint.org/docs/latest/use/migrate-to-10.0.0#removal-of-type-property-in-errors-of-invalid-ruletester-cases)
-- [Prohibiting `errors`/`output` in valid RuleTester cases](https://eslint.org/docs/latest/use/migrate-to-10.0.0#prohibiting-errors-or-output-of-valid-ruletester-test-cases)
+- [Removal of `type` in invalid RuleTester cases](https://eslint.org/docs/latest/use/migrate-to-10.0.0#ruletester-type-removed)
+- [Prohibiting `errors`/`output` in valid RuleTester cases](https://eslint.org/docs/latest/use/migrate-to-10.0.0#stricter-rule-tester)

@@ -6,7 +6,14 @@ function excludeLockfiles(files) {
 }
 
 export default {
-  '*.{ts,tsx,js,jsx,mts,mjs}': ['oxfmt --write', 'oxlint --type-aware --type-check --fix'],
+  /** @param {string[]} files */
+  '*.{ts,tsx,js,jsx,mts,mjs}': (files) => {
+    const formattable = files.filter((f) => !f.includes('\/tests\/'))
+    const cmds = []
+    if (formattable.length) {cmds.push(`oxfmt --write ${formattable.join(' ')}`)}
+    cmds.push(`oxlint --type-aware --type-check --fix ${files.join(' ')}`)
+    return cmds
+  },
   /** @param {string[]} files */
   '*.{json,yaml,yml}': (files) => {
     const filtered = excludeLockfiles(files)
