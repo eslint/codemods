@@ -28,7 +28,7 @@ async function transform(root: SgRoot<YAML | JSONLang | JS>): Promise<string | n
   }
   if (fileExtension === 'yaml' || fileExtension === 'yml') {
     // Lazy load js-yaml to improve performance for users who don't have YAML config files.
-    const jsYaml = await import('js-yaml').then(module => module.default)
+    const jsYaml = await import('js-yaml').then((module) => module.default)
     const yamlObject = jsYaml.load(text)
     const jsonRoot = parse('json', JSON.stringify(yamlObject)) as unknown as SgRoot<JSONLang>
     return jsonTransform(jsonRoot as unknown as SgRoot<JSONLang>)
