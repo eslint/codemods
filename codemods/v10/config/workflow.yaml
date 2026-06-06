@@ -13,12 +13,18 @@ nodes:
           language: javascript
           js_file: scripts/remove-legacy-flags.ts
           include:
-            - '**/*.ts'
-            - '**/*.tsx'
             - '**/*.js'
-            - '**/*.jsx'
-            - '**/*.cjs'
             - '**/*.mjs'
+            - '**/*.cjs'
+            - '**/*.jsx' # Unlikely to be used for eslint config, but just in case
+            - '**/*.ts'
+            - '**/*.mts'
+            - '**/*.cts'
+            - '**/*.tsx' # Unlikely to be used for eslint config, but just in case
+          exclude:
+            - '**/*.d.ts'
+            - '**/*.d.mts'
+            - '**/*.d.cts'
       - id: remove-legacy-flags-json
         name: 'Remove legacy env vars and CLI flags (JSON)'
         depends_on:
