@@ -12,7 +12,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
   const release = acquireLock(stateKey)
   try {
     const beforeIgnoreFiles = getState<string[]>(stateKey) ?? []
-    let ignoreFiles = [...beforeIgnoreFiles, ...source.split('\n').filter((line) => line.trim() !== '')]
+    let ignoreFiles = [...beforeIgnoreFiles, ...source.split(/\r?\n/u).filter((line) => line.trim() !== '')]
     ignoreFiles = ignoreFiles
       .filter((file) => !file.startsWith('#'))
       .filter((file, index, self) => self.indexOf(file) === index)
