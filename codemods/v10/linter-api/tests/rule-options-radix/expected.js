@@ -6,7 +6,7 @@ export default [
       'radix': 'warn',
       'radix': 2,
       // Deprecated "as-needed" — behavior changed, flag with TODO
-      'radix': ['error', /* TODO: radix "as-needed" option is deprecated in ESLint v10 — the rule now always enforces providing the radix argument */ 'as-needed'],
+      'radix': ['error', /* TODO: "as-needed" is removed in ESLint v10 — remove the "as-needed" option or disable the rule */ 'as-needed'],
       // No string option — must not be touched
       'radix': 'error',
       'radix': ['error'],

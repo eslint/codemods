@@ -58,7 +58,7 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
   result = result.replaceAll(
     RADIX_AS_NEEDED_RE,
     (_: string, open: string, sep: string, q: string) =>
-      `${open}${sep}/* TODO: radix "as-needed" option is deprecated in ESLint v10 — the rule now always enforces providing the radix argument */ ${q}as-needed${q}`,
+      `${open}${sep}/* TODO: "as-needed" is removed in ESLint v10 — remove the "as-needed" option or disable the rule */ ${q}as-needed${q}`,
   )
 
   return result === source ? null : result
