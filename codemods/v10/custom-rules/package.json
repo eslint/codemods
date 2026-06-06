@@ -1,6 +1,6 @@
 {
   "name": "@eslint/v9-to-v10-custom-rules",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Migrate custom ESLint rules from v9 to v10 format",
   "type": "module",
   "scripts": {

@@ -1,5 +1,11 @@
 # @eslint/v9-to-v10-custom-rules
 
+## 1.2.1
+
+### Patch Changes
+
+- 1f73b58: fix: update v9-v10 custom-rules workflow globs to include TS extension
+
 ## 1.2.0
 
 ### Minor Changes
