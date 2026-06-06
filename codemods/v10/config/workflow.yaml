@@ -31,7 +31,7 @@ nodes:
           - remove-legacy-flags-js
         js-ast-grep:
           language: json
-          js_file: scripts/remove-legacy-flags.ts
+          js_file: scripts/remove-legacy-flags-json.ts
           include:
             - '**/*.json'
       - id: remove-legacy-flags-yaml
@@ -40,7 +40,7 @@ nodes:
           - remove-legacy-flags-json
         js-ast-grep:
           language: yaml
-          js_file: scripts/remove-legacy-flags.ts
+          js_file: scripts/remove-legacy-flags-yaml.ts
           include:
             - '**/*.yaml'
             - '**/*.yml'

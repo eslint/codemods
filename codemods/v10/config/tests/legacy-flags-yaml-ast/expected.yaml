@@ -1,0 +1,6 @@
+jobs:
+  lint:
+    steps:
+      - run: npx eslint .
+      - run: 'npx eslint .'
+      - run: "npx eslint ."

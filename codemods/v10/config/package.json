@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "check-types": "tsc --noEmit",
-    "test": "pnpm run test:legacy-flags",
-    "test:legacy-flags": "codemod jssg test -l javascript ./scripts/remove-legacy-flags.ts --filter legacy-flags"
+    "test": "pnpm run test:js && pnpm run test:json && pnpm run test:yaml",
+    "test:js": "codemod jssg test -l javascript ./scripts/remove-legacy-flags.ts --filter legacy-flags",
+    "test:json": "codemod jssg test -l json ./scripts/remove-legacy-flags-json.ts --filter legacy-flags-json",
+    "test:yaml": "codemod jssg test -l yaml ./scripts/remove-legacy-flags-yaml.ts --filter legacy-flags-yaml-ast"
   },
   "devDependencies": {
     "@codemod.com/jssg-types": "catalog:",
