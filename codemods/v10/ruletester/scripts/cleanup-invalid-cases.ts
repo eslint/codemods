@@ -9,18 +9,6 @@ function getSelector(): RuleConfig<JS> {
         kind: 'property_identifier',
         regex: '^type$',
       },
-      not: {
-        inside: {
-          kind: 'array',
-          inside: {
-            kind: 'pair',
-            has: {
-              kind: 'property_identifier',
-              regex: '^errors$',
-            },
-          },
-        },
-      },
       inside: {
         kind: 'object',
         inside: {
@@ -29,19 +17,32 @@ function getSelector(): RuleConfig<JS> {
             kind: 'pair',
             has: {
               kind: 'property_identifier',
-              regex: '^invalid$',
+              regex: '^errors$',
             },
             inside: {
               kind: 'object',
               inside: {
-                kind: 'arguments',
+                kind: 'array',
                 inside: {
-                  kind: 'call_expression',
+                  kind: 'pair',
                   has: {
-                    kind: 'member_expression',
-                    has: {
-                      kind: 'property_identifier',
-                      regex: '^run$',
+                    kind: 'property_identifier',
+                    regex: '^invalid$',
+                  },
+                  inside: {
+                    kind: 'object',
+                    inside: {
+                      kind: 'arguments',
+                      inside: {
+                        kind: 'call_expression',
+                        has: {
+                          kind: 'member_expression',
+                          has: {
+                            kind: 'property_identifier',
+                            regex: '^run$',
+                          },
+                        },
+                      },
                     },
                   },
                 },

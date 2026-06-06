@@ -1,16 +1,13 @@
+// type inside errors[] is removed; type in valid cases or unrelated objects is not touched
 ruleTester.run('my-rule', rule, {
+  valid: [
+    // type in valid cases must not be touched (different script handles valid cases)
+    { code: 'foo', options: [{ type: 'bar' }] },
+  ],
   invalid: [
-    // top-level type removed, type inside errors[i] must be preserved
-    { code: 'eval(x)', errors: [{ messageId: 'noEval', type: 'CallExpression' }] },
-    // type only inside errors[i] - must not be touched at all
-    { code: 'eval(y)', errors: [{ messageId: 'noEval', type: 'CallExpression' }] },
-    // multiple errors: type in first entry only
-    {
-      code: 'eval(z)',
-      errors: [
-        { messageId: 'noEval', type: 'CallExpression' },
-        { messageId: 'noEval' },
-      ],
-    },
+    // type inside errors[] must be removed
+    { code: 'eval(x)', errors: [{ messageId: 'noEval' }] },
+    // type in options must not be touched
+    { code: 'eval(y)', options: [{ type: 'something' }], errors: [{ messageId: 'noEval' }] },
   ],
 })
