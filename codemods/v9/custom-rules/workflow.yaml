@@ -12,11 +12,18 @@ nodes:
         js-ast-grep:
           js_file: scripts/new-rule-format.ts
           include:
-            - '**/*.ts'
             - '**/*.js'
-            - '**/*.jsx'
-            - '**/*.cjs'
             - '**/*.mjs'
+            - '**/*.cjs'
+            - '**/*.jsx' # Unlikely to be used for custom rules, but just in case
+            - '**/*.ts'
+            - '**/*.mts'
+            - '**/*.cts'
+            - '**/*.tsx' # Unlikely to be used for custom rules, but just in case
+          exclude:
+            - '**/*.d.ts'
+            - '**/*.d.mts'
+            - '**/*.d.cts'
       - id: replace-context-methods
         name: 'Replace context methods'
         depends_on:
@@ -24,11 +31,18 @@ nodes:
         js-ast-grep:
           js_file: scripts/replace-context-method.ts
           include:
-            - '**/*.ts'
             - '**/*.js'
-            - '**/*.jsx'
-            - '**/*.cjs'
             - '**/*.mjs'
+            - '**/*.cjs'
+            - '**/*.jsx' # Unlikely to be used for custom rules, but just in case
+            - '**/*.ts'
+            - '**/*.mts'
+            - '**/*.cts'
+            - '**/*.tsx' # Unlikely to be used for custom rules, but just in case
+          exclude:
+            - '**/*.d.ts'
+            - '**/*.d.mts'
+            - '**/*.d.cts'
       - id: replace-current-statement
         name: 'Replace current statement'
         depends_on:
@@ -37,8 +51,15 @@ nodes:
         js-ast-grep:
           js_file: scripts/replace-current-statement.ts
           include:
-            - '**/*.ts'
             - '**/*.js'
-            - '**/*.jsx'
-            - '**/*.cjs'
             - '**/*.mjs'
+            - '**/*.cjs'
+            - '**/*.jsx' # Unlikely to be used for custom rules, but just in case
+            - '**/*.ts'
+            - '**/*.mts'
+            - '**/*.cts'
+            - '**/*.tsx' # Unlikely to be used for custom rules, but just in case
+          exclude:
+            - '**/*.d.ts'
+            - '**/*.d.mts'
+            - '**/*.d.cts'
