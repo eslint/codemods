@@ -6,8 +6,9 @@ import type JS from 'codemod:ast-grep/langs/javascript'
 // Before: ["error", "always", {}, "as-needed"]
 // After:  ["error", "always", {}]
 // Pattern: severity , mode_string , options_object , extra_mode_string ]
+// Options object pattern handles one level of nesting: { generators: { mode: 'strict' } }
 const FUNC_NAMES_RE =
-  /(['"`]func-names['"`]\s*:\s*\[)(\s*(?:'[^']*'|"[^"]*"|`[^`]*`|\d+)\s*,\s*(?:'[^']*'|"[^"]*"|`[^`]*`)\s*,\s*\{[^}]*\})\s*,\s*(?:'[^']*'|"[^"]*"|`[^`]*`)\s*(\])/g
+  /(['"`]func-names['"`]\s*:\s*\[)(\s*(?:'[^']*'|"[^"]*"|`[^`]*`|\d+)\s*,\s*(?:'[^']*'|"[^"]*"|`[^`]*`)\s*,\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)?\})\s*,\s*(?:'[^']*'|"[^"]*"|`[^`]*`)\s*(\])/g
 
 // no-invalid-regexp: ESLint v10 rejects duplicate flags in allowConstructorFlags.
 // Before: { allowConstructorFlags: ["u", "y", "u"] }

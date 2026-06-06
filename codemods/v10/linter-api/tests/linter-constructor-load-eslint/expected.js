@@ -4,5 +4,9 @@ import { loadESLint } from 'eslint'
 const ESLintFlat = await loadESLint()
 const ESLintLegacy = await loadESLint()
 
+// useFlatConfig with additional options — remove only useFlatConfig, keep the rest
+const ESLintFlatLeading = await loadESLint({ cwd: '/path' })
+const ESLintFlatTrailing = await loadESLint({ cwd: '/path' })
+
 // No useFlatConfig — must not be touched
 const ESLint = await loadESLint()

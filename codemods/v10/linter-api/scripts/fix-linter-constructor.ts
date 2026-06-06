@@ -12,9 +12,20 @@ const LINTER_FLAT_TRAILING_RE = /new\s+Linter\s*\(\s*\{([^}]*?),\s*configType\s*
 // new Linter({ configType: 'eslintrc' }) → new Linter(/* TODO */)
 const LINTER_ESLINTRC_RE = /new\s+Linter\s*\(\s*\{\s*configType\s*:\s*(['"`])eslintrc\1\s*\}\s*\)/g
 
+// new Linter({ configType: 'eslintrc', ...rest }) → new Linter({ ...rest /* TODO */ })
+const LINTER_ESLINTRC_LEADING_RE =
+  /new\s+Linter\s*\(\s*\{([^}]*?)configType\s*:\s*(['"`])eslintrc\2\s*,([^}]*?)\}\s*\)/g
+const LINTER_ESLINTRC_TRAILING_RE = /new\s+Linter\s*\(\s*\{([^}]*?),\s*configType\s*:\s*(['"`])eslintrc\2\s*\}\s*\)/g
+
+const ESLINTRC_TODO = '/* TODO: configType "eslintrc" is removed in ESLint v10, flat config is now the only option */'
+
 // ─── loadESLint: useFlatConfig option removed ────────────────────────────────
 // loadESLint({ useFlatConfig: true/false }) → loadESLint()
 const LOAD_ESLINT_RE = /loadESLint\s*\(\s*\{\s*useFlatConfig\s*:\s*(?:true|false)\s*\}\s*\)/g
+
+// loadESLint({ useFlatConfig: true/false, ...rest }) → loadESLint({ ...rest })
+const LOAD_ESLINT_LEADING_RE = /loadESLint\s*\(\s*\{([^}]*?)useFlatConfig\s*:\s*(?:true|false)\s*,([^}]*?)\}\s*\)/g
+const LOAD_ESLINT_TRAILING_RE = /loadESLint\s*\(\s*\{([^}]*?),\s*useFlatConfig\s*:\s*(?:true|false)\s*\}\s*\)/g
 
 // ─── ESLint flags array: remove removed flag values from flags: [...] only ───
 const REMOVED_FLAGS = ['v10_config_lookup_from_file', 'unstable_config_lookup_from_file']
@@ -47,15 +58,36 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
   result = result.replaceAll(/new\s+Linter\s*\(\s*\{\s*\}\s*\)/g, 'new Linter()')
 
   // 3. new Linter({ configType: 'eslintrc' }) → new Linter(/* TODO */)
-  result = result.replaceAll(
-    LINTER_ESLINTRC_RE,
-    'new Linter(/* TODO: configType "eslintrc" is removed in ESLint v10, flat config is now the only option */)',
-  )
+  result = result.replaceAll(LINTER_ESLINTRC_RE, `new Linter(${ESLINTRC_TODO})`)
 
-  // 4. loadESLint({ useFlatConfig: ... }) → loadESLint()
+  // 4. new Linter({ configType: 'eslintrc', ...rest }) → new Linter({ ...rest /* TODO */ })
+  result = result.replaceAll(LINTER_ESLINTRC_LEADING_RE, (_m: string, before: string, _q: string, after: string) => {
+    const b = before.trim().replace(/,\s*$/, '')
+    const a = after.trim().replace(/^,\s*/, '')
+    const parts = [b, a].filter(Boolean).join(', ')
+    return parts ? `new Linter({ ${parts} ${ESLINTRC_TODO} })` : `new Linter(${ESLINTRC_TODO})`
+  })
+  result = result.replaceAll(LINTER_ESLINTRC_TRAILING_RE, (_m: string, before: string) => {
+    const rest = before.trim().replace(/,\s*$/, '')
+    return rest ? `new Linter({ ${rest} ${ESLINTRC_TODO} })` : `new Linter(${ESLINTRC_TODO})`
+  })
+
+  // 5. loadESLint({ useFlatConfig: ... }) → loadESLint()
   result = result.replaceAll(LOAD_ESLINT_RE, 'loadESLint()')
 
-  // 5. Remove removed flag values — scoped to flags: [...] only to avoid touching unrelated strings
+  // 6. loadESLint({ useFlatConfig: ..., ...rest }) → loadESLint({ ...rest })
+  result = result.replaceAll(LOAD_ESLINT_LEADING_RE, (_m: string, before: string, after: string) => {
+    const b = before.trim().replace(/,\s*$/, '')
+    const a = after.trim().replace(/^,\s*/, '')
+    const parts = [b, a].filter(Boolean).join(', ')
+    return parts ? `loadESLint({ ${parts} })` : 'loadESLint()'
+  })
+  result = result.replaceAll(LOAD_ESLINT_TRAILING_RE, (_m: string, before: string) => {
+    const rest = before.trim().replace(/,\s*$/, '')
+    return rest ? `loadESLint({ ${rest} })` : 'loadESLint()'
+  })
+
+  // 7. Remove removed flag values — scoped to flags: [...] only to avoid touching unrelated strings
   result = result.replaceAll(FLAGS_ARRAY_RE, (_m: string, inner: string) => {
     let arr = inner
     for (const flag of REMOVED_FLAGS) {
@@ -69,7 +101,7 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
     return `flags: [${arr}]`
   })
 
-  // 6. Deprecated Linter instance methods → TODO comment
+  // 8. Deprecated Linter instance methods → TODO comment
   for (const method of DEPRECATED_METHODS) {
     result = result.replaceAll(
       new RegExp(`\\.${method}\\s*\\(`, 'g'),

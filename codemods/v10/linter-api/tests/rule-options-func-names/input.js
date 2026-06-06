@@ -5,6 +5,10 @@ export default [
       'func-names': ['error', 'always', {}, 'as-needed'],
       'func-names': ['warn', 'as-needed', {}, 'always'],
       'func-names': [2, 'always', {}, 'never'],
+      // Non-empty options object (flat) — 4th element still removed
+      'func-names': ['error', 'always', { generators: 'as-needed' }, 'never'],
+      // Nested options object — 4th element still removed
+      'func-names': ['error', 'always', { generators: { mode: 'strict' } }, 'never'],
       // Only 3 elements — must not be touched
       'func-names': ['error', 'always', {}],
       // Only severity — must not be touched
