@@ -1,50 +1,66 @@
-import { type Edit, type SgRoot } from 'codemod:ast-grep'
+import { type Edit, type RuleConfig, type SgNode, type SgRoot } from 'codemod:ast-grep'
 import type YAMLLang from 'codemod:ast-grep/langs/yaml'
 
 import { applyAllTransforms } from './legacy-flag-transforms.ts'
+
+const runKeyPairSelector = {
+  rule: {
+    kind: 'block_mapping_pair',
+    has: {
+      kind: 'flow_node',
+      has: {
+        kind: 'plain_scalar',
+        regex: '^run$',
+      },
+    },
+  },
+} as const satisfies RuleConfig<YAMLLang>
+
+const valueScalarSelector = {
+  rule: {
+    any: [
+      { kind: 'plain_scalar' },
+      { kind: 'string_scalar' },
+      { kind: 'single_quote_scalar' },
+      { kind: 'double_quote_scalar' },
+      { kind: 'block_scalar' },
+    ],
+    not: {
+      regex: '^run$',
+    },
+  },
+} as const satisfies RuleConfig<YAMLLang>
+
+function transformScalar(node: SgNode<YAMLLang>): Edit | null {
+  const kind = node.kind()
+  const nodeText = node.text()
+
+  if (kind === 'double_quote_scalar') {
+    if (nodeText.length < 2) return null
+    const inner = nodeText.slice(1, -1)
+    const newInner = applyAllTransforms(inner)
+    return newInner !== inner ? node.replace(`"${newInner}"`) : null
+  }
+
+  if (kind === 'single_quote_scalar') {
+    if (nodeText.length < 2) return null
+    const inner = nodeText.slice(1, -1)
+    const newInner = applyAllTransforms(inner)
+    return newInner !== inner ? node.replace(`'${newInner}'`) : null
+  }
+
+  const newText = applyAllTransforms(nodeText)
+  return newText !== nodeText ? node.replace(newText) : null
+}
 
 export default async function transform(root: SgRoot<YAMLLang>): Promise<string | null> {
   const rootNode = root.root()
   const edits: Edit[] = []
 
-  // Double-quoted scalars: "value"
-  for (const node of rootNode.findAll({ rule: { kind: 'double_quote_scalar' } })) {
-    const nodeText = node.text()
-    if (nodeText.length < 2) continue
-    const inner = nodeText.slice(1, -1)
-    const newInner = applyAllTransforms(inner)
-    if (newInner !== inner) {
-      edits.push(node.replace(`"${newInner}"`))
-    }
-  }
-
-  // Single-quoted scalars: 'value'
-  for (const node of rootNode.findAll({ rule: { kind: 'single_quote_scalar' } })) {
-    const nodeText = node.text()
-    if (nodeText.length < 2) continue
-    const inner = nodeText.slice(1, -1)
-    const newInner = applyAllTransforms(inner)
-    if (newInner !== inner) {
-      edits.push(node.replace(`'${newInner}'`))
-    }
-  }
-
-  // Unquoted string scalars (leaf node inside plain_scalar)
-  for (const node of rootNode.findAll({ rule: { kind: 'string_scalar' } })) {
-    const nodeText = node.text()
-    const newText = applyAllTransforms(nodeText)
-    if (newText !== nodeText) {
-      edits.push(node.replace(newText))
-    }
-  }
-
-  // Block scalars (| or > style multi-line strings)
-  // The | or > header is preserved because our regexes don't match it.
-  for (const node of rootNode.findAll({ rule: { kind: 'block_scalar' } })) {
-    const nodeText = node.text()
-    const newText = applyAllTransforms(nodeText)
-    if (newText !== nodeText) {
-      edits.push(node.replace(newText))
+  for (const pair of rootNode.findAll(runKeyPairSelector)) {
+    for (const scalar of pair.findAll(valueScalarSelector)) {
+      const edit = transformScalar(scalar)
+      if (edit !== null) edits.push(edit)
     }
   }
 

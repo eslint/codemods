@@ -1,0 +1,7 @@
+{
+  "description": "Run with ESLINT_USE_FLAT_CONFIG=true for legacy mode",
+  "keywords": ["--no-eslintrc", "eslint"],
+  "scripts": {
+    "lint": "eslint ."
+  }
+}
