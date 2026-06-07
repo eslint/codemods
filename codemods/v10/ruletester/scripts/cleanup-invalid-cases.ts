@@ -72,7 +72,7 @@ function removePairEdit(pair: SgNode<JS>, source: string): Edit {
 
   // First property — remove trailing comma instead
   const after = source.slice(end)
-  const trailingComma = after.match(/^\s*,/)
+  const trailingComma = after.match(/^\s*,\s*/)
 
   if (trailingComma) {
     return {
