@@ -23,15 +23,13 @@ function removePairEdit(pair: SgNode<JS>, source: string): Edit {
     }
   }
 
-  // First property — remove trailing comma and the leading newline+indent to avoid a blank line
+  // First property — remove trailing comma (and any whitespace after it)
   const after = source.slice(end)
-  const trailingComma = after.match(/^\s*,/)
+  const trailingComma = after.match(/^\s*,\s*/)
 
   if (trailingComma) {
-    const leadingNewlineAndIndent = before.match(/\n[ \t]*$/)
-    const adjustedStart = leadingNewlineAndIndent ? start - leadingNewlineAndIndent[0].length : start
     return {
-      startPos: adjustedStart,
+      startPos: start,
       endPos: end + trailingComma[0].length,
       insertedText: '',
     }
@@ -75,14 +73,14 @@ function isInLintMessageContext(pair: SgNode<JS>): boolean {
     argNode = cursor
     cursor = cursor.parent()
   }
-  if (cursor?.kind() !== 'arguments') return false
+  if (!cursor?.is('arguments')) return false
 
   for (const sibling of cursor.children()) {
     if (!sibling.isNamed() || sibling.id() === argNode.id()) continue
 
     // Check 2: try definition() to trace the sibling back to verify/verifyAndFix
     for (const id of [sibling, ...sibling.findAll({ rule: { kind: 'identifier' } })]) {
-      if (id.kind() !== 'identifier') continue
+      if (!id.is('identifier')) continue
       // Guard: definition() requires a semantic provider — not always available
       if (typeof id.definition !== 'function') break
 
@@ -90,33 +88,27 @@ function isInLintMessageContext(pair: SgNode<JS>): boolean {
       if (def?.kind !== 'local') continue
 
       const declarator = def.node.parent()
-      if (declarator?.kind() !== 'variable_declarator') continue
+      if (!declarator?.is('variable_declarator')) continue
 
-      if (
-        declarator.find({
-          rule: {
-            kind: 'call_expression',
-            has: {
-              field: 'function',
-              has: { kind: 'property_identifier', regex: '^verify(AndFix)?$' },
-            },
+      const verifyCall = declarator.find({
+        rule: {
+          kind: 'call_expression',
+          has: {
+            field: 'function',
+            has: { kind: 'property_identifier', regex: '^verify(AndFix)?$' },
           },
-        })
-      )
-        return true
+        },
+      })
+      if (verifyCall !== null) return true
     }
 
     // Check 3: fallback — sibling is or contains a subscript_expression (messages[N])
     // Combined with the file-level eslint import guard this is a strong enough signal
-    if (sibling.kind() === 'subscript_expression' || sibling.find({ rule: { kind: 'subscript_expression' } }))
-      return true
+    if (sibling.is('subscript_expression') || sibling.find({ rule: { kind: 'subscript_expression' } })) return true
   }
 
   return false
 }
-
-// .nodeType member access on any object — flag with TODO for manual removal
-const NODETYPE_MEMBER_RE = /\.nodeType\b/g
 
 export default async function transform(root: SgRoot<JS>): Promise<string | null> {
   const rootNode = root.root()
@@ -124,11 +116,29 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
 
   // Guard: only process files that import from eslint to avoid touching unrelated
   // objects that happen to have a nodeType property
-  const hasEslintImport =
-    /from\s+['"]eslint['"]/m.test(source) ||
-    /require\s*\(\s*['"]eslint['"]\s*\)/m.test(source) ||
-    /import\s*\(\s*['"]eslint['"]\s*\)/m.test(source)
-  if (!hasEslintImport) return null
+  const eslintImports = rootNode.findAll({
+    rule: {
+      any: [
+        // ESM: import { Linter } from 'eslint'
+        { kind: 'import_statement', has: { regex: '^[\'"]eslint[\'"]$' } },
+        // CJS: require('eslint')
+        {
+          all: [
+            { kind: 'call_expression', has: { field: 'function', regex: '^require$' } },
+            { has: { regex: '^[\'"]eslint[\'"]$' } },
+          ],
+        },
+        // Dynamic: import('eslint') — parsed as call_expression with import keyword as function
+        {
+          all: [
+            { kind: 'call_expression', has: { field: 'function', kind: 'import' } },
+            { has: { regex: '^[\'"]eslint[\'"]$' } },
+          ],
+        },
+      ],
+    },
+  })
+  if (!eslintImports.length) return null
 
   const allPairs = rootNode.findAll({
     rule: {
@@ -140,15 +150,18 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
     },
   })
 
-  // Keep only pairs whose parent object can be identified as a LintMessage
-  const pairs = allPairs.filter(isInLintMessageContext)
+  // 1. Remove nodeType: <value> object property pairs from identified LintMessage objects
+  const edits: Edit[] = []
+  for (const pair of allPairs) {
+    if (!isInLintMessageContext(pair)) continue
+    edits.push(removePairEdit(pair, source))
+  }
 
-  // 1. Remove nodeType: <value> object property pairs
-  let result = pairs.length > 0 ? rootNode.commitEdits(pairs.map((pair) => removePairEdit(pair, source))) : source
+  let result = edits.length > 0 ? rootNode.commitEdits(edits) : source
 
   // 2. Flag remaining .nodeType member accesses with a TODO
   result = result.replaceAll(
-    NODETYPE_MEMBER_RE,
+    /\.nodeType\b/g,
     '.nodeType /* TODO: LintMessage.nodeType was removed in ESLint v10 — remove this usage */',
   )
 
