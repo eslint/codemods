@@ -1,4 +1,4 @@
-import { fileURLToPath } from "node:url";
+import { fileURLToPath } from "url";
 import path from "node:path";
 import { defineConfig } from "@eslint/config-helpers";
 
