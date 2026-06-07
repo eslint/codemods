@@ -1,66 +1,99 @@
-import { type SgRoot } from 'codemod:ast-grep'
+import type { Edit, SgNode, SgRoot } from 'codemod:ast-grep'
 import type JS from 'codemod:ast-grep/langs/javascript'
 
-// func-names: ESLint v10 no longer accepts a 4th array element (the trailing mode string).
-// The valid schema is [severity, mode?, options?] — a 4th element is rejected.
-// Before: ["error", "always", {}, "as-needed"]
-// After:  ["error", "always", {}]
-// Pattern: severity , mode_string , options_object , extra_mode_string ]
-// Options object pattern handles one level of nesting: { generators: { mode: 'strict' } }
-const FUNC_NAMES_RE =
-  /(['"`]func-names['"`]\s*:\s*\[)(\s*(?:'[^']*'|"[^"]*"|`[^`]*`|\d+)\s*,\s*(?:'[^']*'|"[^"]*"|`[^`]*`)\s*,\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)?\})\s*,\s*(?:'[^']*'|"[^"]*"|`[^`]*`)\s*(\])/g
+const RADIX_AS_NEEDED_TODO =
+  '/* TODO: "as-needed" is removed in ESLint v10 — remove the "as-needed" option or disable the rule */'
 
-// no-invalid-regexp: ESLint v10 rejects duplicate flags in allowConstructorFlags.
-// Before: { allowConstructorFlags: ["u", "y", "u"] }
-// After:  { allowConstructorFlags: ["u", "y"] }
-const ALLOW_CONSTRUCTOR_FLAGS_RE = /allowConstructorFlags\s*:\s*\[([^\]]+)\]/g
-
-// radix: string options "always" and "as-needed" are deprecated in v10.
-// "always" is the only effective behavior now, so it can be stripped.
-// Before: 'radix': ['error', 'always']
-// After:  'radix': 'error'
-const RADIX_ALWAYS_RE = /(['"`]radix['"`]\s*:\s*)\[(\s*(?:'[^']*'|"[^"]*"|`[^`]*`|\d+)\s*),\s*(['"`])always\3\s*\]/g
-
-// "as-needed" changed behavior — flag with TODO.
-// Before: 'radix': ['error', 'as-needed']
-// After:  'radix': ['error', /* TODO */ 'as-needed']
-const RADIX_AS_NEEDED_RE = /(['"`]radix['"`]\s*:\s*\[\s*(?:'[^']*'|"[^"]*"|`[^`]*`|\d+)\s*)(,\s*)(['"`])as-needed\3/g
-
-function deduplicateFlags(match: string, inner: string): string {
-  const flags = inner.match(/['"`][^'"`]*['"`]/g) ?? []
-  const seen = new Set<string>()
-  const unique = flags.filter((f) => {
-    const key = f.replaceAll(/['"` ]/g, '')
-    if (seen.has(key)) return false
-    seen.add(key)
-    return true
-  })
-  if (unique.length === flags.length) return match
-  return `allowConstructorFlags: [${unique.join(', ')}]`
+// Named (non-punctuation) children of a node
+function namedChildren(node: SgNode<JS>): SgNode<JS>[] {
+  return node.children().filter((c) => c.isNamed())
 }
 
 export default async function transform(root: SgRoot<JS>): Promise<string | null> {
-  const source = root.root().text()
-  let result = source
+  const rootNode = root.root()
+  const edits: Edit[] = []
 
-  // 1. Remove extra 4th element from func-names array config
-  result = result.replaceAll(FUNC_NAMES_RE, (_match, open, body, close) => `${open}${body}${close}`)
+  // ── 1. func-names: Remove extra 4th string element ──────────────────────────
+  // ESLint v10 no longer accepts [severity, mode, options, extraMode]; strip extraMode.
+  for (const pair of rootNode.findAll({
+    rule: { kind: 'pair', has: { field: 'key', regex: 'func-names' } },
+  })) {
+    const arrayNode = pair.find({ rule: { kind: 'array' } })
+    if (!arrayNode) continue
 
-  // 2. Deduplicate allowConstructorFlags in no-invalid-regexp
-  result = result.replaceAll(ALLOW_CONSTRUCTOR_FLAGS_RE, deduplicateFlags)
+    const elems = namedChildren(arrayNode)
+    // Must have at least 4 elements, and the 3rd (index 2) must be the options object
+    if (elems.length < 4 || elems[2]?.kind() !== 'object') continue
 
-  // 3. radix "always": strip the redundant option (default behavior in v10)
-  result = result.replaceAll(
-    RADIX_ALWAYS_RE,
-    (_: string, prefix: string, severity: string) => `${prefix}${severity.trim()}`,
-  )
+    // Remove the trailing string element from the local array text to avoid
+    // navigating tree-sitter sibling commas
+    const arrayText = arrayNode.text()
+    const trailingStringRe = /,\s*(?:'[^']*'|"[^"]*"|`[^`]*`)\s*\]$/
+    const match = arrayText.match(trailingStringRe)
+    if (!match) continue
 
-  // 4. radix "as-needed": flag with TODO — the option is deprecated and behavior changed
-  result = result.replaceAll(
-    RADIX_AS_NEEDED_RE,
-    (_: string, open: string, sep: string, q: string) =>
-      `${open}${sep}/* TODO: "as-needed" is removed in ESLint v10 — remove the "as-needed" option or disable the rule */ ${q}as-needed${q}`,
-  )
+    const { start, end } = arrayNode.range()
+    edits.push({
+      startPos: start.index,
+      endPos: end.index,
+      insertedText: `${arrayText.slice(0, arrayText.length - match[0].length)}]`,
+    })
+  }
 
-  return result === source ? null : result
+  // ── 2. no-invalid-regexp: Deduplicate allowConstructorFlags values ────────────
+  // ESLint v10 rejects duplicate flags; keep only the first occurrence of each.
+  for (const pair of rootNode.findAll({
+    rule: { kind: 'pair', has: { field: 'key', regex: 'allowConstructorFlags' } },
+  })) {
+    const arrayNode = pair.find({ rule: { kind: 'array' } })
+    if (!arrayNode) continue
+
+    const stringElems = namedChildren(arrayNode).filter((e) => e.kind() === 'string')
+    const seen = new Set<string>()
+    const uniqueElems: SgNode<JS>[] = []
+    for (const elem of stringElems) {
+      const flag = elem.text().replaceAll(/['"` ]/g, '')
+      if (!seen.has(flag)) {
+        seen.add(flag)
+        uniqueElems.push(elem)
+      }
+    }
+
+    if (uniqueElems.length < stringElems.length) {
+      const { start, end } = arrayNode.range()
+      edits.push({
+        startPos: start.index,
+        endPos: end.index,
+        insertedText: `[${uniqueElems.map((e) => e.text()).join(', ')}]`,
+      })
+    }
+  }
+
+  // ── 3. radix: Handle deprecated 'always' and 'as-needed' options ─────────────
+  for (const pair of rootNode.findAll({
+    rule: { kind: 'pair', has: { field: 'key', regex: 'radix' } },
+  })) {
+    const arrayNode = pair.find({ rule: { kind: 'array' } })
+    if (!arrayNode) continue
+
+    const elems = namedChildren(arrayNode)
+    const severity = elems[0]
+    const option = elems[1]
+    if (!severity || option?.kind() !== 'string') continue
+
+    const optionVal = option.text().replaceAll(/['"` ]/g, '')
+
+    if (optionVal === 'always') {
+      // ['error', 'always'] → 'error'  (strip redundant option; 'always' is the only v10 behavior)
+      const { start, end } = arrayNode.range()
+      edits.push({ startPos: start.index, endPos: end.index, insertedText: severity.text() })
+    } else if (optionVal === 'as-needed') {
+      // ['error', 'as-needed'] → ['error', /* TODO */ 'as-needed']
+      const insertPos = option.range().start.index
+      edits.push({ startPos: insertPos, endPos: insertPos, insertedText: `${RADIX_AS_NEEDED_TODO} ` })
+    }
+  }
+
+  if (edits.length === 0) return null
+  return rootNode.commitEdits(edits)
 }
