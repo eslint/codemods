@@ -204,11 +204,11 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
 
   if (needsDirname) {
     // Add imports for url and path modules (at the beginning)
-    if (!imports.some((imp) => imp.includes('from "url"'))) {
-      imports.unshift('import { fileURLToPath } from "url";')
+    if (!imports.some((imp) => /\bfrom\s+(?<quote>["'])(?:node:)?url\k<quote>/.test(imp))) {
+      imports.unshift('import { fileURLToPath } from "node:url";')
     }
-    if (!imports.some((imp) => imp.includes('from "path"'))) {
-      imports.unshift('import path from "path";')
+    if (!imports.some((imp) => /\bfrom\s+(?<quote>["'])(?:node:)?path\k<quote>/.test(imp))) {
+      imports.unshift('import path from "node:path";')
     }
   }
 
