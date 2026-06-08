@@ -6,15 +6,15 @@ const RADIX_AS_NEEDED_TODO =
 
 const funcNamesPairSelector = {
   rule: { kind: 'pair', has: { field: 'key', regex: 'func-names' } },
-} as const satisfies RuleConfig<JS>
+} as RuleConfig<JS>
 
 const allowConstructorFlagsPairSelector = {
   rule: { kind: 'pair', has: { field: 'key', regex: 'allowConstructorFlags' } },
-} as const satisfies RuleConfig<JS>
+} as RuleConfig<JS>
 
 const radixPairSelector = {
   rule: { kind: 'pair', has: { field: 'key', regex: 'radix' } },
-} as const satisfies RuleConfig<JS>
+} as RuleConfig<JS>
 
 // Named (non-punctuation) children of a node
 function namedChildren(node: SgNode<JS>): SgNode<JS>[] {

@@ -16,5 +16,3 @@ keywords: ['transformation', 'migration', 'eslint', 'v9', 'v10']
 registry:
   access: 'public'
   visibility: 'public'
-
-capabilities: []

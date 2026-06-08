@@ -1,9 +1,27 @@
-import type { Edit, SgNode, SgRoot } from 'codemod:ast-grep'
+import type { Edit, RuleConfig, SgNode, SgRoot } from 'codemod:ast-grep'
 import type JS from 'codemod:ast-grep/langs/javascript'
 
 const ESLINTRC_TODO = '/* TODO: configType "eslintrc" is removed in ESLint v10, flat config is now the only option */'
 const REMOVED_FLAGS = new Set(['v10_config_lookup_from_file', 'unstable_config_lookup_from_file'])
 const DEPRECATED_METHODS = ['defineParser', 'defineRule', 'defineRules', 'getRules']
+
+const linterNewExprSelector = {
+  rule: {
+    kind: 'new_expression',
+    has: { field: 'constructor', regex: '^Linter$' },
+  },
+} as RuleConfig<JS>
+
+const loadESLintCallSelector = {
+  rule: {
+    kind: 'call_expression',
+    has: { field: 'function', regex: '^loadESLint$' },
+  },
+} as RuleConfig<JS>
+
+const flagsPairSelector = {
+  rule: { kind: 'pair', has: { field: 'key', regex: '^flags$' } },
+} as RuleConfig<JS>
 
 function namedChildren(node: SgNode<JS>): SgNode<JS>[] {
   return node.children().filter((c) => c.isNamed())
@@ -19,12 +37,7 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
   const edits: Edit[] = []
 
   // ── 1–4. new Linter({ configType: 'flat'|'eslintrc' }) ───────────────────────
-  for (const newExpr of rootNode.findAll({
-    rule: {
-      kind: 'new_expression',
-      has: { field: 'constructor', regex: '^Linter$' },
-    },
-  })) {
+  for (const newExpr of rootNode.findAll(linterNewExprSelector)) {
     const argsNode = newExpr.find({ rule: { kind: 'arguments' } })
     if (!argsNode) continue
     const argObj = argsNode.find({ rule: { kind: 'object' } })
@@ -58,12 +71,7 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
   }
 
   // ── 5–6. loadESLint({ useFlatConfig: true|false }) ───────────────────────────
-  for (const callExpr of rootNode.findAll({
-    rule: {
-      kind: 'call_expression',
-      has: { field: 'function', regex: '^loadESLint$' },
-    },
-  })) {
+  for (const callExpr of rootNode.findAll(loadESLintCallSelector)) {
     const argsNode = callExpr.find({ rule: { kind: 'arguments' } })
     if (!argsNode) continue
     const argObj = argsNode.find({ rule: { kind: 'object' } })
@@ -86,9 +94,7 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
   }
 
   // ── 7. flags: [...] — remove removed flag values ─────────────────────────────
-  for (const pair of rootNode.findAll({
-    rule: { kind: 'pair', has: { field: 'key', regex: '^flags$' } },
-  })) {
+  for (const pair of rootNode.findAll(flagsPairSelector)) {
     const arrayNode = pair.find({ rule: { kind: 'array' } })
     if (!arrayNode) continue
 
@@ -125,5 +131,6 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
   }
 
   if (!edits.length) return null
+
   return rootNode.commitEdits(edits)
 }

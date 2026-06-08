@@ -12,88 +12,67 @@ ESLint v10 removes the `configType` option, the `useFlatConfig` option on `loadE
 
 `configType: 'flat'` is the only supported mode in v10 and no longer needs to be specified. `configType: 'eslintrc'` is removed with no equivalent — a TODO comment is inserted.
 
-```js
-// Before
-const linter = new Linter({ configType: 'flat' })
-const linter2 = new Linter({ configType: 'flat', allowInlineConfig: true })
-const legacy = new Linter({ configType: 'eslintrc' })
-
-// After
-const linter = new Linter()
-const linter2 = new Linter({ allowInlineConfig: true })
-const legacy =
-  new Linter(/* TODO: configType "eslintrc" is removed in ESLint v10, flat config is now the only option */)
+```diff
+-const linter = new Linter({ configType: 'flat' })
+-const linter2 = new Linter({ configType: 'flat', allowInlineConfig: true })
+-const legacy = new Linter({ configType: 'eslintrc' })
++const linter = new Linter()
++const linter2 = new Linter({ allowInlineConfig: true })
++const legacy =
++  new Linter(/* TODO: configType "eslintrc" is removed in ESLint v10, flat config is now the only option */)
 ```
 
 ### Transform 2 — Remove `useFlatConfig` from `loadESLint()`
 
-```js
-// Before
-const ESLintClass = await loadESLint({ useFlatConfig: true })
-
-// After
-const ESLintClass = await loadESLint()
+```diff
+-const ESLintClass = await loadESLint({ useFlatConfig: true })
++const ESLintClass = await loadESLint()
 ```
 
 ### Transform 3 — Remove deprecated flag values from `new ESLint({ flags: [...] })`
 
-```js
-// Before
-const eslint = new ESLint({ flags: ['v10_config_lookup_from_file'] })
-
-// After
-const eslint = new ESLint({ flags: [] })
+```diff
+-const eslint = new ESLint({ flags: ['v10_config_lookup_from_file'] })
++const eslint = new ESLint({ flags: [] })
 ```
 
 ### Transform 4 — Deprecated `Linter` instance methods → TODO
 
 `defineParser()`, `defineRule()`, `defineRules()`, and `getRules()` are removed with no direct replacement. Register rules and parsers via the flat config instead.
 
-```js
-// Before
-linter.defineParser('babel-eslint', require('babel-eslint'))
-linter.defineRule('my-rule', myRule)
-
-// After
-linter.defineParser(
-  /* TODO: defineParser() removed in ESLint v10, no replacement */ 'babel-eslint',
-  require('babel-eslint'),
-)
-linter.defineRule(/* TODO: defineRule() removed in ESLint v10, no replacement */ 'my-rule', myRule)
+```diff
+-linter.defineParser('babel-eslint', require('babel-eslint'))
+-linter.defineRule('my-rule', myRule)
++linter.defineParser(
++  /* TODO: defineParser() removed in ESLint v10, no replacement */ 'babel-eslint',
++  require('babel-eslint'),
++)
++linter.defineRule(/* TODO: defineRule() removed in ESLint v10, no replacement */ 'my-rule', myRule)
 ```
 
 ### Transform 5 — `func-names` stricter schema (remove extra 4th element)
 
-```js
-// Before
-'func-names': ['error', 'always', {}, 'as-needed']
-
-// After
-'func-names': ['error', 'always', {}]
+```diff
+-'func-names': ['error', 'always', {}, 'as-needed']
++'func-names': ['error', 'always', {}]
 ```
 
 ### Transform 6 — `no-invalid-regexp` deduplicate `allowConstructorFlags`
 
-```js
-// Before
-'no-invalid-regexp': ['error', { allowConstructorFlags: ['u', 'y', 'u'] }]
-
-// After
-'no-invalid-regexp': ['error', { allowConstructorFlags: ['u', 'y'] }]
+```diff
+-'no-invalid-regexp': ['error', { allowConstructorFlags: ['u', 'y', 'u'] }]
++'no-invalid-regexp': ['error', { allowConstructorFlags: ['u', 'y'] }]
 ```
 
 ### Transform 7 — `radix` deprecated string options
 
 The `"always"` and `"as-needed"` string options of the `radix` rule are deprecated in ESLint v10. The rule now always enforces providing a radix argument. `"always"` is stripped (it is now the sole behavior). `"as-needed"` is flagged with a TODO because removing it changes the rule's behavior.
 
-```js
-// Before
-'radix': ['error', 'always']
-'radix': ['error', 'as-needed']
-
-// After
-'radix': 'error'
-'radix': ['error', /* TODO: radix "as-needed" option is deprecated in ESLint v10 — the rule now always enforces providing the radix argument */ 'as-needed']
+```diff
+-'radix': ['error', 'always']
+-'radix': ['error', 'as-needed']
++'radix': 'error'
++'radix': ['error', /* TODO: radix "as-needed" option is deprecated in ESLint v10 — the rule now always enforces providing the radix argument */ 'as-needed']
 ```
 
 ### Transform 8 — Remove `LintMessage.nodeType`
@@ -102,31 +81,20 @@ The `"always"` and `"as-needed"` string options of the `radix` rule are deprecat
 
 **Object property pairs** — `nodeType: <value>` is removed from object literals (common in test assertions):
 
-```js
-// Before
-assert.deepEqual(messages[0], {
-  ruleId: 'no-var',
-  severity: 2,
-  message: 'Unexpected var, use let or const instead.',
-  nodeType: 'VariableDeclaration',
-})
-
-// After
-assert.deepEqual(messages[0], {
-  ruleId: 'no-var',
-  severity: 2,
-  message: 'Unexpected var, use let or const instead.',
-})
+```diff
+ assert.deepEqual(messages[0], {
+   ruleId: 'no-var',
+   severity: 2,
+   message: 'Unexpected var, use let or const instead.',
+-  nodeType: 'VariableDeclaration',
+ })
 ```
 
 **Member expression accesses** — `.nodeType` in formatters and custom tooling is flagged with a TODO (the surrounding expression must be removed manually):
 
-```js
-// Before
-const type = message.nodeType
-
-// After
-const type = message.nodeType /* TODO: LintMessage.nodeType was removed in ESLint v10 — remove this usage */
+```diff
+-const type = message.nodeType
++const type = message.nodeType /* TODO: LintMessage.nodeType was removed in ESLint v10 — remove this usage */
 ```
 
 ## Usage
