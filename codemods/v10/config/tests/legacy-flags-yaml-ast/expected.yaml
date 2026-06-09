@@ -1,0 +1,12 @@
+jobs:
+  lint:
+    steps:
+      - run: npx eslint .
+      - run: 'npx eslint .'
+      - run: "npx eslint ."
+      - run: |
+          npx eslint .
+          npx tsc --noEmit
+      - name: ESLINT_USE_FLAT_CONFIG=true
+        description: "Run with --no-eslintrc"
+        run: npx eslint .
