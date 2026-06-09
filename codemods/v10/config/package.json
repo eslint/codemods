@@ -1,6 +1,6 @@
 {
   "name": "@eslint/v9-to-v10-config",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Remove legacy env vars and CLI flags for ESLint v10",
   "type": "module",
   "scripts": {
