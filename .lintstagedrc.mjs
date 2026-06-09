@@ -1,5 +1,4 @@
 const LOCKFILE_SUFFIXES = ['pnpm-lock.yaml', 'package-lock.json', 'npm-shrinkwrap.json']
-const TEST_DIR_RE = /[/\\]tests[/\\]/
 
 /** @param {string[]} files */
 function excludeLockfiles(files) {
