@@ -1,0 +1,18 @@
+{
+  "name": "@eslint/v9-to-v10-config",
+  "version": "1.0.0",
+  "description": "Remove legacy env vars and CLI flags for ESLint v10",
+  "type": "module",
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "test": "pnpm run test:js && pnpm run test:json && pnpm run test:yaml",
+    "test:js": "codemod jssg test -l javascript ./scripts/remove-legacy-flags.ts --filter legacy-flags",
+    "test:json": "codemod jssg test -l json ./scripts/remove-legacy-flags-json.ts --filter legacy-flags-json",
+    "test:yaml": "codemod jssg test -l yaml ./scripts/remove-legacy-flags-yaml.ts --filter legacy-flags-yaml-ast"
+  },
+  "devDependencies": {
+    "@codemod.com/jssg-types": "catalog:",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}

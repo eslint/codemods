@@ -12,7 +12,7 @@ export default {
   /** @param {string[]} files */
   '*.{json,yaml,yml}': (files) => {
     const filtered = excludeLockfiles(files)
-    return filtered.length ? [`oxfmt --write ${filtered.join(' ')}`] : []
+    return filtered.length ? [`oxfmt --write --no-error-on-unmatched-pattern ${filtered.join(' ')}`] : []
   },
   'codemods/**/scripts/**/*.ts': ["bash -c 'pnpm run test'"],
 }
