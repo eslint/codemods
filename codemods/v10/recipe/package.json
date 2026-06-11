@@ -1,6 +1,6 @@
 {
   "name": "@eslint/v9-to-v10",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "test": "codemod workflow validate --workflow workflow.yaml",
