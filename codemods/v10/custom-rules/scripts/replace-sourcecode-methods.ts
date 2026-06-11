@@ -25,7 +25,10 @@ function getSelector(): RuleConfig<JS> {
 }
 
 function getCallArgs(call: SgNode<JS>): string[] {
-  const argsNode = call.find({ rule: { kind: 'arguments' } })
+  // Use children() not find() to avoid picking up the arguments of a nested
+  // call in the callee part. For `a(x).method(y, z)`, find() would return
+  // the inner `arguments` `(x)` instead of the outer `(y, z)`.
+  const argsNode = call.children().find((c: SgNode<JS>) => c.kind() === 'arguments') ?? null
   if (!argsNode) return []
   return argsNode
     .children()
