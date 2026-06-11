@@ -1,7 +1,7 @@
 schema_version: '1.0'
 
 name: '@eslint/v9-to-v10-ruletester'
-version: '1.1.0'
+version: '1.2.0'
 description: 'Fix RuleTester test case structure for ESLint v10'
 author: 'Rohit Khadatkar <khadatkarrohit@gmail.com>'
 license: 'MIT'
