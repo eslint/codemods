@@ -19,7 +19,7 @@
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.12",
-    "codemod": "^1.11.0",
+    "codemod": "^1.12.3",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.4",
     "markdown-link-check": "^3.13.6",
