@@ -143,9 +143,9 @@ nodes:
           js_file: scripts/transform-packagejson-config.ts
           include:
             - '**/*package.json'
-      - id: code-formating
+      - id: code-formatting
         if: params.codeFormattingCommandEnabled == true
         depends_on:
           - scan-packagejson-files
-        name: 'Code formating'
+        name: 'Code formatting'
         run: ${{ params.codeFormattingCommand }}
