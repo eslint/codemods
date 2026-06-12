@@ -1,0 +1,25 @@
+schema_version: "1.0"
+
+name: "ci-test"
+version: "0.1.0"
+description: "Transform legacy code patterns"
+author: "Author <author@example.com>"
+license: "MIT"
+
+
+targets:
+  # Keep this aligned with the files matched in workflow.yaml.
+  languages: ["typescript"]
+
+keywords: ["transformation", "migration"]
+
+registry:
+  access: "private"
+  visibility: "private"
+
+capabilities: []
+
+workflows:
+  - name: main
+    default: true
+    path: workflow.yaml
