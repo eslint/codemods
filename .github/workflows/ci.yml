@@ -5,10 +5,14 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
-  test:
-    name: Test
+  ci:
+    name: CI
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -16,11 +20,15 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm check-types
+      - run: pnpm run format:check
+
+      - run: pnpm run lint
+
+      - run: pnpm run check-types
 
       - run: pnpm test

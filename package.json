@@ -19,6 +19,8 @@
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.12",
+    "@codemod.com/jssg-types": "catalog:",
+    "@types/node": "catalog:",
     "codemod": "^1.12.3",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.4",
