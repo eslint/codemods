@@ -14,7 +14,7 @@
     "ci": "pnpm run test && pnpm run check-types",
     "docs:links": "markdown-link-check README.md CONTRIBUTING.md",
     "changeset": "changeset",
-    "version-packages": "changeset version && bash scripts/sync-codemod-versions.sh",
+    "version-packages": "changeset version",
     "prepare": "husky"
   },
   "devDependencies": {
