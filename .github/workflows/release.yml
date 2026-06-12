@@ -5,7 +5,7 @@ on:
     branches:
       - main
 
-concurrency: release
+concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 permissions:
   id-token: write
@@ -16,90 +16,31 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     outputs:
-      changed_dirs: ${{ steps.tag.outputs.changed_dirs || '[]' }}
+      published: ${{ steps.changesets.outputs.published }}
+      changed_dirs: ${{ steps.tag.outputs.changed_dirs }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          fetch-tags: true
 
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10.19.0
 
       - uses: actions/setup-node@v4
         with:
-          node-version-file: '.nvmrc'
+          node-version: 20
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Check for pending changesets
-        id: check
-        run: |
-          changeset_files=$(find .changeset -name '*.md' ! -name 'README.md' 2>/dev/null || true)
-          if [ -z "$changeset_files" ]; then
-            echo "No pending changesets found. Skipping release."
-            echo "has_changesets=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "Pending changesets found:"
-            echo "$changeset_files"
-            echo "has_changesets=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Version packages
-        if: steps.check.outputs.has_changesets == 'true'
-        run: pnpm run version-packages
-
-      - name: Check for version changes
-        if: steps.check.outputs.has_changesets == 'true'
-        id: diff
-        run: |
-          if git diff --quiet; then
-            echo "No version changes produced. Skipping commit."
-            echo "has_changes=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_changes=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Commit version bumps
-        if: steps.diff.outputs.has_changes == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "Version Packages"
-
-      - name: Open Version Packages pull request
-        if: steps.diff.outputs.has_changes == 'true'
+      - name: Create Release PR or Publish
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          version: pnpm version-packages
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          BRANCH="changeset-release/version-packages"
-
-          git push origin HEAD:"refs/heads/${BRANCH}" --force
-
-          if gh pr list --base main --head "${BRANCH}" --state open --json number -q '.[0].number' | grep -q .; then
-            echo "Updated existing Version Packages pull request on branch ${BRANCH}"
-          else
-            gh pr create \
-              --base main \
-              --head "${BRANCH}" \
-              --title "Version Packages" \
-              --body "$(cat <<'EOF'
-          This PR was opened automatically by the Release workflow.
-
-          It applies pending changesets: version bumps in `package.json`, synced `codemod.yaml` versions, and changelog updates.
-
-          **After this PR is merged**, the Release workflow will create git tags and publish the affected codemods to the registry.
-          EOF
-          )"
-          fi
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Tag released versions
-        if: steps.check.outputs.has_changesets != 'true'
+        if: steps.changesets.outputs.hasChangesets == 'false'
         id: tag
         run: bash scripts/tag-and-publish.sh
 
@@ -108,23 +49,17 @@ jobs:
     needs: release
     if: needs.release.outputs.changed_dirs != '[]' && needs.release.outputs.changed_dirs != ''
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     strategy:
-      fail-fast: false
       matrix:
         dir: ${{ fromJson(needs.release.outputs.changed_dirs) }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: main
 
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10.19.0
 
       - uses: actions/setup-node@v4
         with:
-          node-version-file: '.nvmrc'
+          node-version: 20
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
