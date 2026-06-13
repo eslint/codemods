@@ -1,139 +1,90 @@
-name: Publish Codemod (Manual)
+name: Publish
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
-      tag:
-        description: 'Tag to publish (format: codemod-name@v1.0.0 or @scopename/codemodname@v1.0.0)'
+      codemod_name:
+        description: 'Codemod name (directory name under codemods/)'
         required: true
         type: string
 
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
 permissions:
   id-token: write
-  contents: read
+  contents: write
 
 jobs:
-  publish:
-    name: Validate and Publish Codemod
+  tag:
+    name: Tag released versions
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    outputs:
+      changed_dirs: ${{ steps.tag.outputs.changed_dirs }}
     steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@v2
-        with:
-          egress-policy: audit
-
       - uses: actions/checkout@v4
-
-      - name: Parse tag and extract metadata
-        id: parse-tag
-        env:
-          TAG: ${{ github.event.inputs.tag }}
-        run: |
-          # Supports: @scopename/codemodname@v1.0.0 or codemodname@v1.0.0
-          if [[ ! "$TAG" =~ ^(@[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+|[a-zA-Z0-9_-]+)@v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "❌ Invalid tag format: $TAG"
-            echo "Expected formats:"
-            echo "  - @scopename/codemodname@v1.0.0 (scoped packages)"
-            echo "  - codemodname@v1.0.0 (non-scoped packages)"
-            exit 1
-          fi
-
-          CODEMOD_NAME="${TAG%@v*}"
-          VERSION="v${TAG#*@v}"
-
-          echo "codemod-name=$CODEMOD_NAME" >> $GITHUB_OUTPUT
-          echo "version=$VERSION"           >> $GITHUB_OUTPUT
-          echo "✓ Parsed tag — Codemod: $CODEMOD_NAME, Version: $VERSION"
-
-      - name: Find codemod directory
-        id: find-codemod
-        env:
-          CODEMOD_NAME: ${{ steps.parse-tag.outputs.codemod-name }}
-          VERSION: ${{ steps.parse-tag.outputs.version }}
-        run: |
-          echo "🔍 Searching for codemod '$CODEMOD_NAME' in all codemod.yaml files..."
-
-          CODEMOD_FILES=$(find codemods -name "codemod.yaml" -type f 2>/dev/null || true)
-
-          if [[ -z "$CODEMOD_FILES" ]]; then
-            echo "❌ No codemod.yaml files found in codemods directory"
-            exit 1
-          fi
-
-          FOUND_PATH=""
-
-          while IFS= read -r yaml_file; do
-            [[ ! -f "$yaml_file" ]] && continue
-
-            if command -v yq >/dev/null 2>&1; then
-              YAML_NAME=$(yq eval '.name'    "$yaml_file" 2>/dev/null || echo "")
-              YAML_VERSION=$(yq eval '.version' "$yaml_file" 2>/dev/null || echo "")
-            else
-              YAML_NAME=$(grep -E '^[[:space:]]*name[[:space:]]*:' "$yaml_file" | head -1 \
-                | sed 's/^[[:space:]]*name[[:space:]]*:[[:space:]]*//' | sed "s/[[:space:]]*$//;s/^[\"']//;s/[\"']$//" || echo "")
-              YAML_VERSION=$(grep -E '^[[:space:]]*version[[:space:]]*:' "$yaml_file" | head -1 \
-                | sed 's/^[[:space:]]*version[[:space:]]*:[[:space:]]*//' | sed "s/[[:space:]]*$//;s/^[\"']//;s/[\"']$//" || echo "")
-            fi
-
-            if [[ "$YAML_NAME" == "$CODEMOD_NAME" && "v$YAML_VERSION" == "$VERSION" ]]; then
-              FOUND_PATH=$(dirname "$yaml_file")
-              echo "✅ Found codemod at: $FOUND_PATH"
-              break
-            fi
-          done <<< "$CODEMOD_FILES"
-
-          if [[ -z "$FOUND_PATH" ]]; then
-            echo "❌ Codemod '$CODEMOD_NAME' not found at version $VERSION"
-            echo ""
-            echo "Available codemods:"
-            while IFS= read -r yaml_file; do
-              [[ ! -f "$yaml_file" ]] && continue
-              if command -v yq >/dev/null 2>&1; then
-                NAME=$(yq eval '.name' "$yaml_file" 2>/dev/null || echo "unknown")
-              else
-                NAME=$(grep -E '^[[:space:]]*name[[:space:]]*:' "$yaml_file" | head -1 \
-                  | sed 's/^[[:space:]]*name[[:space:]]*:[[:space:]]*//' | sed "s/[[:space:]]*$//;s/^[\"']//;s/[\"']$//" || echo "unknown")
-              fi
-              echo "  - $NAME (in $yaml_file)"
-            done <<< "$CODEMOD_FILES"
-            exit 1
-          fi
-
-          echo "codemod-path=$FOUND_PATH" >> $GITHUB_OUTPUT
+        with:
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10.19.0
 
       - uses: actions/setup-node@v4
         with:
-          node-version-file: '.nvmrc'
+          node-version: 22
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Run codemod tests
-        working-directory: ${{ steps.find-codemod.outputs.codemod-path }}
-        run: pnpm test
+      - name: Detect pending changesets
+        id: pending
+        run: |
+          count="$(find .changeset -maxdepth 1 -type f -name '*.md' ! -name 'README.md' | wc -l | tr -d ' ')"
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+
+      - name: Tag released versions
+        if: steps.pending.outputs.count == '0'
+        id: tag
+        run: bash scripts/tag-and-publish.sh
+
+  publish:
+    name: Publish ${{ matrix.dir }}
+    needs: tag
+    if: >-
+      github.event_name == 'push' &&
+      needs.tag.outputs.changed_dirs != '' &&
+      needs.tag.outputs.changed_dirs != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dir: ${{ fromJson(needs.tag.outputs.changed_dirs) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
 
       - name: Publish codemod
         uses: codemod/publish-action@v1
         with:
-          path: ${{ steps.find-codemod.outputs.codemod-path }}
+          path: ${{ matrix.dir }}
 
-      - name: Release summary
-        env:
-          TAG: ${{ github.event.inputs.tag }}
-          CODEMOD_PATH: ${{ steps.find-codemod.outputs.codemod-path }}
-          ACTOR: ${{ github.triggering_actor }}
-        run: |
-          cat >> $GITHUB_STEP_SUMMARY << EOF
-          # 🚀 Codemod Publication Summary
+  publish-manual:
+    name: Publish codemod (manual)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-          **Tag:** \`$TAG\`
-          **Path:** \`$CODEMOD_PATH\`
-          **Triggered by:** $ACTOR
-
-          ✅ Codemod has been successfully published to the registry!
-          EOF
+      - name: Publish codemod
+        uses: codemod/publish-action@v1
+        with:
+          path: codemods/${{ inputs.codemod_name }}

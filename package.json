@@ -14,12 +14,12 @@
     "ci": "pnpm run test && pnpm run check-types",
     "docs:links": "markdown-link-check README.md CONTRIBUTING.md",
     "changeset": "changeset",
-    "version-packages": "changeset version && bash scripts/sync-codemod-versions.sh",
+    "version-packages": "changeset version",
     "prepare": "husky"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.12",
-    "codemod": "^1.11.0",
+    "codemod": "^1.12.3",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.4",
     "markdown-link-check": "^3.13.6",
@@ -29,7 +29,7 @@
     "typescript": "^5.8.3"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "packageManager": "pnpm@10.19.0"
 }

@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/codemod/codemod/refs/heads/main/schemas/workflow.json
+
+version: '1'
+
+nodes:
+  - id: apply-transforms
+    name: Apply ESLint v9 to v10 Config Migration
+    type: automatic
+    steps:
+      - id: remove-legacy-flags-js
+        name: 'Remove legacy env vars and CLI flags (JS/TS)'
+        js-ast-grep:
+          language: javascript
+          js_file: scripts/remove-legacy-flags.ts
+          include:
+            - '**/*.js'
+            - '**/*.mjs'
+            - '**/*.cjs'
+            - '**/*.jsx' # Unlikely to be used for eslint config, but just in case
+            - '**/*.ts'
+            - '**/*.mts'
+            - '**/*.cts'
+            - '**/*.tsx' # Unlikely to be used for eslint config, but just in case
+          exclude:
+            - '**/*.d.ts'
+            - '**/*.d.mts'
+            - '**/*.d.cts'
+      - id: remove-legacy-flags-json
+        name: 'Remove legacy env vars and CLI flags (JSON)'
+        depends_on:
+          - remove-legacy-flags-js
+        js-ast-grep:
+          language: json
+          js_file: scripts/remove-legacy-flags-json.ts
+          include:
+            - '**/*.json'
+      - id: remove-legacy-flags-yaml
+        name: 'Remove legacy env vars and CLI flags (YAML)'
+        depends_on:
+          - remove-legacy-flags-json
+        js-ast-grep:
+          language: yaml
+          js_file: scripts/remove-legacy-flags-yaml.ts
+          include:
+            - '**/*.yaml'
+            - '**/*.yml'

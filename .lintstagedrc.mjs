@@ -6,11 +6,13 @@ function excludeLockfiles(files) {
 }
 
 export default {
-  '*.{ts,tsx,js,jsx,mts,mjs}': ['oxfmt --write', 'oxlint --type-aware --type-check --fix'],
+  '*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,md}': 'oxfmt --write --no-error-on-unmatched-pattern',
+  '*.{js,mjs,cjs,jsx}': 'oxlint --fix --no-error-on-unmatched-pattern',
+  '*.{ts,mts,cts,tsx}': 'oxlint --type-aware --type-check --fix --no-error-on-unmatched-pattern',
   /** @param {string[]} files */
   '*.{json,yaml,yml}': (files) => {
     const filtered = excludeLockfiles(files)
-    return filtered.length ? [`oxfmt --write ${filtered.join(' ')}`] : []
+    return filtered.length ? [`oxfmt --write --no-error-on-unmatched-pattern ${filtered.join(' ')}`] : []
   },
   'codemods/**/scripts/**/*.ts': ["bash -c 'pnpm run test'"],
 }

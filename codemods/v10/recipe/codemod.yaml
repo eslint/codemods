@@ -1,0 +1,18 @@
+schema_version: '1.0'
+
+name: '@eslint/v9-to-v10'
+version: '1.1.0'
+description: 'Migrate ESLint projects from v9 to v10 — runs all four v9-to-v10 codemods in a single pass'
+author: 'Rohit Khadatkar <khadatkarrohit@gmail.com>'
+license: 'MIT'
+workflow: 'workflow.yaml'
+repository: 'https://github.com/eslint/codemods'
+
+targets:
+  languages: ['typescript', 'javascript']
+
+keywords: ['transformation', 'migration', 'eslint', 'v9', 'v10', 'recipe']
+
+registry:
+  access: 'public'
+  visibility: 'public'

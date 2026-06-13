@@ -5,3 +5,7 @@ tmp/
 # System files
 .DS_Store
 **/.DS_Store
+
+# IDE files
+.vscode/
+*.code-workspace

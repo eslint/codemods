@@ -101,16 +101,14 @@ Follow the prompts:
 
 Commit the new Markdown file under `.changeset/` with your PR.
 
-`pnpm run version-packages` (run by automation on `main`, not usually by hand) runs `changeset version` and then [`scripts/sync-codemod-versions.sh`](./scripts/sync-codemod-versions.sh) so **`codemod.yaml` `version` stays aligned with `package.json`**. Do not edit `version` in `codemod.yaml` by hand — automation owns that field.
+`pnpm run version-packages` (run by automation on `main`, not usually by hand) runs `changeset version`, which bumps `version` in each affected `package.json`. Do not edit `version` in `package.json` by hand — automation owns that field.
 
 ## Release workflow
 
 Releases are fully automated via `.github/workflows/release.yml` on every push to `main`:
 
 1. Merge a PR that includes one or more changesets into `main`.
-2. The `release` job detects the pending changesets, runs `pnpm run version-packages` which:
-   - bumps `version` in each affected `package.json` via `changeset version`
-   - syncs the new version into the matching `codemod.yaml` via `scripts/sync-codemod-versions.sh`
+2. The `release` job detects the pending changesets and runs `pnpm run version-packages` (`changeset version`), which bumps `version` in each affected `package.json`.
 3. The bot opens (or updates) a **Version Packages** pull request on branch `changeset-release/version-packages` — it does not push directly to `main`.
 4. Merge that PR (EasyCLA and other required checks apply like any other PR).
 5. On the next push to `main`, `scripts/tag-and-publish.sh` creates a `<name>@v<version>` git tag for every bumped package and pushes the tags.
@@ -118,7 +116,7 @@ Releases are fully automated via `.github/workflows/release.yml` on every push t
 
 For emergencies (re-publish a specific codemod without a full release cycle), use the **Publish Codemod (Manual)** workflow (`.github/workflows/publish.yml`) and supply the tag, e.g. `@eslint/v8-to-v9-config@v1.2.0`.
 
-Do not hand-edit `version` in `package.json` or `codemod.yaml` to simulate a release — automation owns bumps.
+Do not hand-edit `version` in `package.json` to simulate a release — automation owns bumps.
 
 ## Adding a new codemod
 
@@ -134,7 +132,7 @@ New packages live under `codemods/`, for example:
 codemods/v9/<slug>/
   scripts/codemod.ts   # JSSG transform
   tests/               # input / expected fixtures
-  codemod.yaml         # manifest (version synced from package.json on release)
+  codemod.yaml         # manifest
   workflow.yaml
   package.json
   tsconfig.json

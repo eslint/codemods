@@ -1,0 +1,45 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/codemod/codemod/refs/heads/main/schemas/workflow.json
+
+version: '1'
+
+nodes:
+  - id: apply-transforms
+    name: Apply ESLint v9 to v10 RuleTester Migration
+    type: automatic
+    steps:
+      - id: cleanup-valid-cases
+        name: 'Remove invalid properties from valid test cases'
+        js-ast-grep:
+          js_file: scripts/cleanup-valid-cases.ts
+          include:
+            - '**/*.js'
+            - '**/*.mjs'
+            - '**/*.cjs'
+            - '**/*.jsx' # Unlikely to be used for rule tester, but just in case
+            - '**/*.ts'
+            - '**/*.mts'
+            - '**/*.cts'
+            - '**/*.tsx' # Unlikely to be used for rule tester, but just in case
+          exclude:
+            - '**/*.d.ts'
+            - '**/*.d.cts'
+            - '**/*.d.mts'
+      - id: cleanup-invalid-cases
+        name: 'Remove type property from invalid test cases'
+        depends_on:
+          - cleanup-valid-cases
+        js-ast-grep:
+          js_file: scripts/cleanup-invalid-cases.ts
+          include:
+            - '**/*.js'
+            - '**/*.mjs'
+            - '**/*.cjs'
+            - '**/*.jsx' # Unlikely to be used for rule tester, but just in case
+            - '**/*.ts'
+            - '**/*.mts'
+            - '**/*.cts'
+            - '**/*.tsx' # Unlikely to be used for rule tester, but just in case
+          exclude:
+            - '**/*.d.ts'
+            - '**/*.d.cts'
+            - '**/*.d.mts'

@@ -1,0 +1,18 @@
+schema_version: '1.0'
+
+name: '@eslint/v9-to-v10-linter-api'
+version: '1.1.0'
+description: 'Migrate removed Linter/ESLint constructor options and stricter rule config schema for ESLint v10'
+author: 'Rohit Khadatkar <khadatkarrohit@gmail.com>'
+license: 'MIT'
+workflow: 'workflow.yaml'
+repository: 'https://github.com/eslint/codemods'
+
+targets:
+  languages: ['typescript', 'javascript']
+
+keywords: ['transformation', 'migration', 'eslint', 'v9', 'v10']
+
+registry:
+  access: 'public'
+  visibility: 'public'

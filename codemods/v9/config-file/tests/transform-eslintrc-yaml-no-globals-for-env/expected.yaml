@@ -42,10 +42,10 @@ export default defineConfig([
         ...globals.es6,
         ...globals["node/base"]
       },
+      parser: typescriptParser,
       parserOptions: {
         ecmaVersion: 2018
-      },
-      parser: typescriptParser
+      }
     },
     rules: {
       "semi": ["error"],
@@ -63,8 +63,6 @@ export default defineConfig([
       "@typescript-eslint": fixupPluginRules(TypescriptEslint)
     },
     languageOptions: {
-      globals: {},
-      parserOptions: {},
       parser: typescriptParser
     },
     rules: {

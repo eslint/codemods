@@ -1,0 +1,64 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/codemod/codemod/refs/heads/main/schemas/workflow.json
+
+version: '1'
+
+nodes:
+  - id: apply-transforms
+    name: Apply ESLint v9 to v10 Linter API Migration
+    type: automatic
+    steps:
+      - id: fix-linter-constructor
+        name: 'Fix removed Linter/ESLint constructor options'
+        js-ast-grep:
+          js_file: scripts/fix-linter-constructor.ts
+          include:
+            - '**/*.js'
+            - '**/*.mjs'
+            - '**/*.cjs'
+            - '**/*.jsx'
+            - '**/*.ts'
+            - '**/*.mts'
+            - '**/*.cts'
+            - '**/*.tsx'
+          exclude:
+            - '**/*.d.ts'
+            - '**/*.d.mts'
+            - '**/*.d.cts'
+      - id: fix-rule-options
+        name: 'Fix stricter rule config schema (func-names, no-invalid-regexp, radix)'
+        depends_on:
+          - fix-linter-constructor
+        js-ast-grep:
+          js_file: scripts/fix-rule-options.ts
+          include:
+            - '**/*.js'
+            - '**/*.mjs'
+            - '**/*.cjs'
+            - '**/*.jsx'
+            - '**/*.ts'
+            - '**/*.mts'
+            - '**/*.cts'
+            - '**/*.tsx'
+          exclude:
+            - '**/*.d.ts'
+            - '**/*.d.mts'
+            - '**/*.d.cts'
+      - id: fix-lint-message
+        name: 'Remove LintMessage.nodeType property from object literals'
+        depends_on:
+          - fix-rule-options
+        js-ast-grep:
+          js_file: scripts/fix-lint-message.ts
+          include:
+            - '**/*.js'
+            - '**/*.mjs'
+            - '**/*.cjs'
+            - '**/*.jsx'
+            - '**/*.ts'
+            - '**/*.mts'
+            - '**/*.cts'
+            - '**/*.tsx'
+          exclude:
+            - '**/*.d.ts'
+            - '**/*.d.mts'
+            - '**/*.d.cts'

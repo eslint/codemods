@@ -1,0 +1,9 @@
+{
+  "name": "@eslint/v9-to-v10",
+  "version": "1.1.0",
+  "type": "module",
+  "scripts": {
+    "test": "codemod workflow validate --workflow workflow.yaml",
+    "check-types": "echo 'No TypeScript to check (recipe — delegates to individual codemods)'"
+  }
+}

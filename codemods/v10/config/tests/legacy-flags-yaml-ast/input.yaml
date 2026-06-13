@@ -1,0 +1,12 @@
+jobs:
+  lint:
+    steps:
+      - run: ESLINT_USE_FLAT_CONFIG=true npx eslint .
+      - run: 'ESLINT_FLAGS=v10_config_lookup_from_file npx eslint .'
+      - run: "npx eslint . --no-eslintrc --env browser"
+      - run: |
+          ESLINT_USE_FLAT_CONFIG=true npx eslint .
+          npx tsc --noEmit
+      - name: ESLINT_USE_FLAT_CONFIG=true
+        description: "Run with --no-eslintrc"
+        run: npx eslint .

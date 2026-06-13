@@ -70,6 +70,26 @@ function getParserOptionsSelector(): RuleConfig<JS> {
   }
 }
 
+function getTernaryFallbackSelector(): RuleConfig<JS> {
+  // Matches: context.getFilename ? context.getFilename() : context.filename
+  // (ternary form of the backward-compat fallback pattern)
+  return {
+    rule: {
+      kind: 'ternary_expression',
+      has: {
+        kind: 'call_expression',
+        has: {
+          kind: 'member_expression',
+          has: {
+            kind: 'property_identifier',
+            regex: DEPRECATED_METHODS_REGEX,
+          },
+        },
+      },
+    },
+  }
+}
+
 function getParserPathSelector(): RuleConfig<JS> {
   return {
     rule: {
@@ -124,6 +144,30 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
     fallbackEdits.push(expr.replace(left.text()))
   }
 
+  // ── Pass 1b: collapse ternary fallback patterns ───────────────────────
+  // context.getFilename ? context.getFilename() : context.filename → context.filename
+  // The ternary tests for the old method's existence then calls it;
+  // the else-branch is the new v10 property. Collapse to the else-branch.
+  for (const expr of rootNode.findAll(getTernaryFallbackSelector())) {
+    const namedChildren = expr.children().filter((c: SgNode<JS>) => c.isNamed())
+    if (namedChildren.length !== 3) continue
+
+    const [condition, consequence, alternative] = namedChildren as [SgNode<JS>, SgNode<JS>, SgNode<JS>]
+
+    // condition must be a simple member_expression for the deprecated method (no call)
+    if (condition.kind() !== 'member_expression') continue
+    const condProp = condition.children().find((c: SgNode<JS>) => c.kind() === 'property_identifier')
+    if (!condProp || !(condProp.text() in METHOD_TO_PROP)) continue
+
+    // consequence must be the call to that same method
+    if (consequence.kind() !== 'call_expression') continue
+    const consText = consequence.text()
+    if (!consText.includes(`.${condProp.text()}(`)) continue
+
+    // collapse entire ternary to the alternative (the new v10 prop)
+    fallbackEdits.push(expr.replace(alternative.text()))
+  }
+
   let text = rootNode.text()
   if (fallbackEdits.length > 0) {
     text = rootNode.commitEdits(fallbackEdits)
@@ -135,6 +179,8 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
 
   // ── Pass 2: method call → property access ─────────────────────────────
   // context.getFilename() → context.filename
+  // Guard: only replace on the ESLint rule context (named 'context' by convention).
+  // This avoids false positives on wrapper objects like `eslintUtil.getSourceCode()`.
   for (const call of updatedRoot.findAll(getMethodCallSelector())) {
     const memberExpr = call.find({ rule: { kind: 'member_expression' } })
     if (!memberExpr) continue
@@ -142,12 +188,16 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
     const prop = METHOD_TO_PROP[method]
     if (!prop) continue
     const src = getSourceObject(memberExpr)
+    if (src !== 'context' && !src.endsWith('.context')) continue
     mainEdits.push(call.replace(`${src}.${prop}`))
   }
 
   // ── Pass 3: context.parserOptions → context.languageOptions.parserOptions
+  // Guard: only replace on `context` — avoids false positives on config/test objects
+  // like `legacyConfig.parserOptions` or `test.parserOptions`.
   for (const memberExpr of updatedRoot.findAll(getParserOptionsSelector())) {
     const src = getSourceObject(memberExpr)
+    if (src !== 'context' && !src.endsWith('.context')) continue
     mainEdits.push(memberExpr.replace(`${src}.languageOptions.parserOptions`))
   }
 
