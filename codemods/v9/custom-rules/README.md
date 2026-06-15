@@ -19,7 +19,7 @@ This codemod transforms your custom ESLint rules to be compatible with ESLint v9
 This codemod performs a comprehensive migration of custom ESLint rules from v8 to v9. It handles the following breaking changes from the [official ESLint v9 migration guide](https://eslint.org/docs/latest/use/migrate-to-9.0.0):
 
 - ✅ **Removed multiple `context` methods** - migrates to `sourceCode` equivalents
-- ✅ **Removed `sourceCode.getComments()`** - converts to combination of `getCommentsBefore/Inside/After`
+- ✅ **Removed `context.getComments()`** - converts to combination of `getCommentsBefore/Inside/After`
 - ✅ **Removed `CodePath#currentSegments`** - adds code path tracking logic
 - ✅ **Function-style rules are no longer supported** - converts to object format with `meta` and `create`
 
@@ -60,8 +60,8 @@ export default {
 - **Migrates** deprecated methods:
   - `getSource` → `getText`
   - `getSourceLines` → `getLines`
-  - `getComments` → combination of `getCommentsBefore/Inside/After`
-  - `getAncestors`, `getScope`, `markVariableAsUsed` with TODO comments for new parameters
+  - `getComments` → `[...getCommentsBefore(), ...getCommentsInside(), ...getCommentsAfter()]`
+  - `getAncestors`, `getScope`, `markVariableAsUsed` — auto-migrated with inferred `node` parameters (verify manually)
 - **Handles** `currentSegments` API changes by adding necessary code path tracking
 - **Detects** fixable rules and adds `fixable: "code"` to meta
 
@@ -82,13 +82,11 @@ npx codemod workflow run -w workflow.yaml
 
 After running this codemod, you need to:
 
-1. **Review TODO comments** - Search for `TODO` in your migrated files and address each one:
+1. **Review TODO comments** - If your rule uses `context.options`, the codemod may leave a schema placeholder:
 
-   | **TODO Comment**                                          | **Action Required**                                                  |
-   | --------------------------------------------------------- | -------------------------------------------------------------------- |
-   | `// TODO: Define schema - this rule uses context.options` | Define a proper JSON schema for your rule's options                  |
-   | `/* TODO: new node param */`                              | Add the `node` parameter to `getAncestors(node)` or `getScope(node)` |
-   | `/* TODO: new name, node params */`                       | Update `markVariableAsUsed(name, node)` with correct parameters      |
+   | **TODO Comment**                                          | **Action Required**                                 |
+   | --------------------------------------------------------- | --------------------------------------------------- |
+   | `// TODO: Define schema - this rule uses context.options` | Define a proper JSON schema for your rule's options |
 
 2. **Fix schema for rules using options** - If your rule uses `context.options`, you must define the schema:
 
@@ -105,17 +103,26 @@ After running this codemod, you need to:
    ]
    ```
 
-3. **Update deprecated context methods** - The codemod replaces these automatically, but you need to verify the `node` parameter:
+3. **Verify scope-related migrations** - The codemod automatically migrates `getScope`, `getAncestors`, and `markVariableAsUsed` with inferred `node` parameters. It does **not** leave TODO comments for these. Review the output to confirm the inferred `node` is correct, especially in nested helpers or non-standard visitor signatures. Parameterless visitors such as `Program() {}` get `(node)` injected automatically.
 
-   | **Removed on `context`**             | **Replacement on `SourceCode`**                   |
-   | ------------------------------------ | ------------------------------------------------- |
-   | `context.getAncestors()`             | `sourceCode.getAncestors(node)`                   |
-   | `context.getScope()`                 | `sourceCode.getScope(node)`                       |
-   | `context.markVariableAsUsed(name)`   | `sourceCode.markVariableAsUsed(name, node)`       |
-   | `context.getDeclaredVariables(node)` | `sourceCode.getDeclaredVariables(node)`           |
-   | `context.getSource(node)`            | `sourceCode.getText(node)`                        |
-   | `context.getSourceLines()`           | `sourceCode.getLines()`                           |
-   | `context.getAllComments()`           | `sourceCode.getCommentsBefore/Inside/After(node)` |
+   For `getAncestors`, the codemod also adds a v8 compatibility fallback:
+
+   ```javascript
+   contextSourceCode.getAncestors ? contextSourceCode.getAncestors(node) : context.getAncestors()
+   ```
+
+   Other deprecated `context` methods are replaced automatically as well:
+
+   | **Removed on `context`**             | **Replacement on `SourceCode`**                                                                            |
+   | ------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+   | `context.getAncestors()`             | `sourceCode.getAncestors(node)`                                                                            |
+   | `context.getScope()`                 | `sourceCode.getScope(node)`                                                                                |
+   | `context.markVariableAsUsed(name)`   | `sourceCode.markVariableAsUsed(name, node)`                                                                |
+   | `context.getDeclaredVariables(node)` | `sourceCode.getDeclaredVariables(node)`                                                                    |
+   | `context.getSource(node)`            | `sourceCode.getText(node)`                                                                                 |
+   | `context.getSourceLines()`           | `sourceCode.getLines()`                                                                                    |
+   | `context.getAllComments()`           | `sourceCode.getAllComments()`                                                                              |
+   | `context.getComments()`              | `[...sourceCode.getCommentsBefore(), ...sourceCode.getCommentsInside(), ...sourceCode.getCommentsAfter()]` |
 
 4. **Test your custom rules**:
 
