@@ -1,5 +1,11 @@
 # @eslint/v8-to-v9-custom-rules
 
+## 1.0.12
+
+### Patch Changes
+
+- f8f36f5: docs: update README for custom ESLint rules codemod migration to v9
+
 ## 1.0.11
 
 ### Patch Changes
