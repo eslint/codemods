@@ -24,7 +24,6 @@ rules:
     - error
     - vars: all
       args: after-used
-      caughtErrors: all
   no-sequences:
     - error
     - allowInParentheses: false

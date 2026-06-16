@@ -34,7 +34,7 @@ export default defineConfig([
     rules: {
       "no-console": ["warn",{"allow":["warn","error"]}],
       "no-sequences": ["error", {"allowInParentheses": false}],
-      "no-unused-vars": ["error", {"caughtErrors":"\"all\"","vars":"\"all\"","args":"\"after-used\""}],
+      "no-unused-vars": ["error", {"caughtErrors":"none","vars":"\"all\"","args":"\"after-used\""}],
       "no-useless-computed-key": ["error", {enforceForClassMembers: true}],
       "camelcase": ["error", {"properties":"\"always\"","ignoreDestructuring":false}],
       "no-constant-binary-expression": 'off',
