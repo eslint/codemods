@@ -5,6 +5,12 @@
   },
   "scripts": {
     "lint": "eslint --fix",
-    "report": "eslint -f compact src"
+    "report-checkstyle": "eslint -f checkstyle .",
+    "report-compact": "eslint -f compact src",
+    "report-jslint-xml": "eslint --format jslint-xml lib",
+    "report-junit": "eslint -f junit .",
+    "report-tap": "eslint -f tap .",
+    "report-unix": "eslint -f unix .",
+    "report-visualstudio": "eslint -f visualstudio ."
   }
 }

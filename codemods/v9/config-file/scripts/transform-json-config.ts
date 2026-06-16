@@ -5,6 +5,7 @@ import type { SgNode } from 'codemod:ast-grep'
 import type JSONLang from 'codemod:ast-grep/langs/json'
 import { getState } from 'codemod:workflow'
 
+import { findLastJsonRulePair } from '../utils/find-last-rule-pair.ts'
 import makeNewConfig from '../utils/make-new-config.ts'
 import type { LanguageOptions, SectorData } from '../utils/make-new-config.ts'
 import makePluginImport from '../utils/make-plugin-import.ts'
@@ -296,25 +297,7 @@ async function transform(root: SgRoot<JSONLang>): Promise<string | null> {
     // end jsDocs section
     // start no-constructor-return and no-sequences section
     let noConstructorReturn = ''
-    const noConstructorReturnRule = sector.find({
-      rule: {
-        kind: 'pair',
-        has: {
-          kind: 'string',
-          pattern: '"no-constructor-return"',
-        },
-        inside: {
-          kind: 'object',
-          inside: {
-            kind: 'pair',
-            has: {
-              kind: 'string',
-              pattern: '$IDENTIFIER',
-            },
-          },
-        },
-      },
-    })
+    const noConstructorReturnRule = findLastJsonRulePair(sector, 'no-constructor-return')
     if (noConstructorReturnRule) {
       const isArrayRule = noConstructorReturnRule.findAll({
         rule: {
@@ -360,25 +343,7 @@ async function transform(root: SgRoot<JSONLang>): Promise<string | null> {
       allowInParenthesesExists: false,
       allowInParentheses: false,
     }
-    const noSequencesRule = sector.find({
-      rule: {
-        kind: 'pair',
-        has: {
-          kind: 'string',
-          pattern: '"no-sequences"',
-        },
-        inside: {
-          kind: 'object',
-          inside: {
-            kind: 'pair',
-            has: {
-              kind: 'string',
-              pattern: '$IDENTIFIER',
-            },
-          },
-        },
-      },
-    })
+    const noSequencesRule = findLastJsonRulePair(sector, 'no-sequences')
     if (noSequencesRule) {
       const isArrayRule = noSequencesRule.findAll({
         rule: {
@@ -637,25 +602,7 @@ async function transform(root: SgRoot<JSONLang>): Promise<string | null> {
         caughtErrors: 'none',
       } as Record<string, string | number | boolean>,
     }
-    const noUnusedVarsRule = sector.find({
-      rule: {
-        kind: 'pair',
-        has: {
-          kind: 'string',
-          pattern: '"no-unused-vars"',
-        },
-        inside: {
-          kind: 'object',
-          inside: {
-            kind: 'pair',
-            has: {
-              kind: 'string',
-              pattern: '$IDENTIFIER',
-            },
-          },
-        },
-      },
-    })
+    const noUnusedVarsRule = findLastJsonRulePair(sector, 'no-unused-vars')
     if (noUnusedVarsRule) {
       const isArrayRule = noUnusedVarsRule.findAll({
         rule: {
@@ -750,25 +697,7 @@ async function transform(root: SgRoot<JSONLang>): Promise<string | null> {
         enforceForClassMembers: false,
       } as Record<string, string | number | boolean>,
     }
-    const noUselessComputedVarsRule = sector.find({
-      rule: {
-        kind: 'pair',
-        has: {
-          kind: 'string',
-          pattern: '"no-useless-computed-key"',
-        },
-        inside: {
-          kind: 'object',
-          inside: {
-            kind: 'pair',
-            has: {
-              kind: 'string',
-              pattern: '$IDENTIFIER',
-            },
-          },
-        },
-      },
-    })
+    const noUselessComputedVarsRule = findLastJsonRulePair(sector, 'no-useless-computed-key')
     if (noUselessComputedVarsRule) {
       const isArrayRule = noUselessComputedVarsRule.findAll({
         rule: {
@@ -841,25 +770,7 @@ async function transform(root: SgRoot<JSONLang>): Promise<string | null> {
       type: 'nothing',
       options: {} as Record<string, string | number | boolean>,
     }
-    const camelcaseRule = sector.find({
-      rule: {
-        kind: 'pair',
-        has: {
-          kind: 'string',
-          pattern: '"camelcase"',
-        },
-        inside: {
-          kind: 'object',
-          inside: {
-            kind: 'pair',
-            has: {
-              kind: 'string',
-              pattern: '$IDENTIFIER',
-            },
-          },
-        },
-      },
-    })
+    const camelcaseRule = findLastJsonRulePair(sector, 'camelcase')
     if (camelcaseRule) {
       const isArrayRule = camelcaseRule.findAll({
         rule: {

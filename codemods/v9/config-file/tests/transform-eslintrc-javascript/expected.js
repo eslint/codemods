@@ -108,7 +108,7 @@ export default defineConfig([
       "object-curly-spacing": ["error", "always"],
       "max-len": ["warn", { code: 120, ignoreUrls: true, ignoreStrings: true }],
       "no-constructor-return": ["error"],
-      "no-sequences": ["error", {"allowInParentheses": false}],
+      "no-sequences": ["error"],
       "no-unused-vars": ["error", {"caughtErrors":"\"all\"","vars":"\"all\"","args":"\"after-used\"","ignoreRestSiblings":true,"caughtErrorsIgnorePattern":"\"^_\""}],
       "no-useless-computed-key": ["error", {enforceForClassMembers: false}],
       camelcase: ["error", {"properties":"\"always\"","ignoreDestructuring":false,"ignoreImports":false,"ignoreGlobals":false,"allow":"[\"^UNSAFE_\", \"^DEPRECATED_\", \"api_key\", \"user_id\"]"}],

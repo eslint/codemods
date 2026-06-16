@@ -119,10 +119,7 @@ module.exports = {
 
     "no-useless-computed-key": "error",
     "no-useless-computed-key": [
-      "error",
-      {
-        enforceForClassMembers: true,
-      },
+      "error"
     ],
 
     camelcase: [

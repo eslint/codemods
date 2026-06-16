@@ -5,6 +5,7 @@ import type { SgNode } from 'codemod:ast-grep'
 import type JS from 'codemod:ast-grep/langs/javascript'
 import { getState } from 'codemod:workflow'
 
+import { findLastJsRulePair } from '../utils/find-last-rule-pair.ts'
 import makeNewConfig from '../utils/make-new-config.ts'
 import type { LanguageOptions, SectorData } from '../utils/make-new-config.ts'
 import makePluginImport from '../utils/make-plugin-import.ts'
@@ -795,32 +796,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
     // end jsDocs section
     // start no-constructor-return and no-sequences section
     let noConstructorReturn = ''
-    const noConstructorReturnRule = sector.find({
-      rule: {
-        kind: 'pair',
-        has: {
-          kind: 'string',
-          any: [
-            {
-              pattern: "'no-constructor-return'",
-            },
-            {
-              pattern: '"no-constructor-return"',
-            },
-          ],
-        },
-        inside: {
-          kind: 'object',
-          inside: {
-            kind: 'pair',
-            has: {
-              kind: 'property_identifier',
-              pattern: '$IDENTIFIER',
-            },
-          },
-        },
-      },
-    })
+    const noConstructorReturnRule = findLastJsRulePair(sector, 'no-constructor-return')
     if (noConstructorReturnRule) {
       const isArrayRule = noConstructorReturnRule.findAll({
         rule: {
@@ -862,32 +838,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
       allowInParenthesesExists: false,
       allowInParentheses: false,
     }
-    const noSequencesRule = sector.find({
-      rule: {
-        kind: 'pair',
-        has: {
-          kind: 'string',
-          any: [
-            {
-              pattern: "'no-sequences'",
-            },
-            {
-              pattern: '"no-sequences"',
-            },
-          ],
-        },
-        inside: {
-          kind: 'object',
-          inside: {
-            kind: 'pair',
-            has: {
-              kind: 'property_identifier',
-              pattern: '$IDENTIFIER',
-            },
-          },
-        },
-      },
-    })
+    const noSequencesRule = findLastJsRulePair(sector, 'no-sequences')
     if (noSequencesRule) {
       const isArrayRule = noSequencesRule.findAll({
         rule: {
@@ -1139,32 +1090,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
         caughtErrors: 'none',
       } as Record<string, string | number | boolean>,
     }
-    const noUnusedVarsRule = sector.find({
-      rule: {
-        kind: 'pair',
-        has: {
-          kind: 'string',
-          any: [
-            {
-              pattern: "'no-unused-vars'",
-            },
-            {
-              pattern: '"no-unused-vars"',
-            },
-          ],
-        },
-        inside: {
-          kind: 'object',
-          inside: {
-            kind: 'pair',
-            has: {
-              kind: 'property_identifier',
-              pattern: '$IDENTIFIER',
-            },
-          },
-        },
-      },
-    })
+    const noUnusedVarsRule = findLastJsRulePair(sector, 'no-unused-vars')
     if (noUnusedVarsRule) {
       const isArrayRule = noUnusedVarsRule.findAll({
         rule: {
@@ -1247,32 +1173,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
         enforceForClassMembers: false,
       } as Record<string, string | number | boolean>,
     }
-    const noUselessComputedVarsRule = sector.find({
-      rule: {
-        kind: 'pair',
-        has: {
-          kind: 'string',
-          any: [
-            {
-              pattern: "'no-useless-computed-key'",
-            },
-            {
-              pattern: '"no-useless-computed-key"',
-            },
-          ],
-        },
-        inside: {
-          kind: 'object',
-          inside: {
-            kind: 'pair',
-            has: {
-              kind: 'property_identifier',
-              pattern: '$IDENTIFIER',
-            },
-          },
-        },
-      },
-    })
+    const noUselessComputedVarsRule = findLastJsRulePair(sector, 'no-useless-computed-key')
     if (noUselessComputedVarsRule) {
       const isArrayRule = noUselessComputedVarsRule.findAll({
         rule: {
@@ -1338,40 +1239,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
       type: 'nothing',
       options: {} as Record<string, string | boolean | number>,
     }
-    const camelcaseRule = sector.find({
-      rule: {
-        kind: 'pair',
-        has: {
-          any: [
-            {
-              kind: 'string',
-              any: [
-                {
-                  pattern: "'camelcase'",
-                },
-                {
-                  pattern: '"camelcase"',
-                },
-              ],
-            },
-            {
-              kind: 'property_identifier',
-              regex: 'camelcase',
-            },
-          ],
-        },
-        inside: {
-          kind: 'object',
-          inside: {
-            kind: 'pair',
-            has: {
-              kind: 'property_identifier',
-              pattern: '$IDENTIFIER',
-            },
-          },
-        },
-      },
-    })
+    const camelcaseRule = findLastJsRulePair(sector, 'camelcase', { unquotedKey: true })
     if (camelcaseRule) {
       const isArrayRule = camelcaseRule.findAll({
         rule: {
