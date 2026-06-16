@@ -1,5 +1,6 @@
 import { getState } from 'codemod:workflow'
 
+import { preserveV8RecommendedRuleOverrides } from './eslint-recommended-rules.ts'
 import makePluginImport from './make-plugin-import.ts'
 
 type LanguageOptionsKnownValue = string | number | boolean | Record<string, string | number | boolean>
@@ -285,6 +286,7 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
     // Preserved extends - all extends are kept exactly as they were (as strings)
     const preservedExtends = sector.extends || []
     const todoComments = sector.extendsTodoComments ?? []
+    const mergedRules = preserveV8RecommendedRuleOverrides(sector.rules, preservedExtends)
 
     // Check if we have any content for the sector object
     const hasFiles = !!sector.files && sector.files !== '[]'
@@ -307,7 +309,7 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
       delete cleanedLangOpts.parserOptions
     }
     const hasLanguageOptions = Object.keys(cleanedLangOpts).length > 0
-    const hasRules = Object.keys(sector.rules).length > 0
+    const hasRules = Object.keys(mergedRules).length > 0
     const hasPlugins = sector.plugins && sector.plugins.length > 0
     const hasExtends = preservedExtends.length > 0
     const hasLinterOptions = !!sector.linterOptions && Object.keys(sector.linterOptions).length > 0
@@ -440,7 +442,7 @@ const makeNewConfig = (sectors: SectorData[], imports: string[], directory: stri
 
       if (hasRules) {
         parts.push('    rules: {')
-        const rulesEntries = Object.entries(sector.rules)
+        const rulesEntries = Object.entries(mergedRules)
         rulesEntries.forEach(([key, value], index) => {
           const comma = index < rulesEntries.length - 1 ? ',' : ''
           // Handle spread operators in rules (keys starting with ...)

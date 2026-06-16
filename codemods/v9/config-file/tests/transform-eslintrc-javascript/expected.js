@@ -128,7 +128,11 @@ export default defineConfig([
             group: ["../*"],
             message: "Do not use parent relative imports.",
           },
-        ],}]
+        ],}],
+      "no-constant-binary-expression": 'off',
+      "no-empty-static-block": 'off',
+      "no-new-native-nonconstructor": 'off',
+      "no-unused-private-class-members": 'off'
     },
   },
   {

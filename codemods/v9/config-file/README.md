@@ -82,14 +82,20 @@ Converts `.eslintrc.js`, `.eslintrc.json`, `.eslintrc.yaml`, `.eslintrc.yml`, op
 
 Updates rules with breaking schema changes in ESLint v9:
 
-| Rule                      | Migration                                                           |
-| ------------------------- | ------------------------------------------------------------------- |
-| `no-unused-vars`          | Adds `caughtErrors: 'none'` (v9 changed default to `'all'`)         |
-| `no-useless-computed-key` | Adds `enforceForClassMembers: false` (v9 changed default to `true`) |
-| `no-sequences`            | Migrates `allowInParentheses` to new format                         |
-| `no-constructor-return`   | Ensures proper array format                                         |
-| `camelcase`               | Validates `allow` option (must be array of strings)                 |
-| `no-restricted-imports`   | Restructures paths configuration                                    |
+| Rule                      | Migration                                                                               |
+| ------------------------- | --------------------------------------------------------------------------------------- |
+| `no-unused-vars`          | Adds `caughtErrors: 'none'` (v9 changed default to `'all'`)                             |
+| `no-unused-vars`          | Copies `varsIgnorePattern` to `caughtErrorsIgnorePattern` when catch errors are checked |
+| `no-implicit-coercion`    | Adds `allow: ['-', '- -']` for v8-compatible number coercions                           |
+| `no-inner-declarations`   | Adds `blockScopedFunctions: 'disallow'` to preserve v8 reporting                        |
+| `no-useless-computed-key` | Adds `enforceForClassMembers: false` (v9 changed default to `true`)                     |
+| `no-sequences`            | Migrates `allowInParentheses` to new format                                             |
+| `no-constructor-return`   | Ensures proper array format                                                             |
+| `camelcase`               | Validates `allow` option (must be array of strings)                                     |
+| `no-restricted-imports`   | Restructures paths configuration                                                        |
+| `no-invalid-regexp`       | Expands `allowConstructorFlags` with opposite-case variants                             |
+
+When a config extends **`eslint:recommended`**, the codemod also turns off the four rules newly enabled in v9’s preset (`no-constant-binary-expression`, `no-empty-static-block`, `no-new-native-nonconstructor`, `no-unused-private-class-members`) to preserve v8 lint behavior unless you already configure them explicitly.
 
 ### Step 3: JSDoc Rules Migration
 
@@ -107,10 +113,24 @@ npm install --save-dev eslint-plugin-jsdoc
 
 Fixes ESLint comment syntax that became invalid in v9:
 
-- **Duplicate `/* eslint */` comments**: Removes duplicate rule comments for the same rule
+- **Duplicate `/* eslint */` comments**: Keeps the **first** configuration for each rule and removes later duplicates (ESLint v9 applies the first comment and reports duplicates)
 - **Malformed `/* exported */` comments**: Fixes to proper format
 
-### Step 5: Extends & Plugin Migration
+### Step 5: Package.json & Flat Config Tooling
+
+Updates ESLint-related npm scripts in `package.json`:
+
+- **Removed CLI formatters**: Rewrites `-f compact` (and other removed core formatters) to `eslint-formatter-*` package names in npm scripts
+- **Empty CLI patterns**: Appends `.` to bare `eslint` / `eslint --fix` scripts so flat config lints the current directory
+- **String preset arrays**: Converts `export default ["eslint:recommended"]` in existing `eslint.config.*` files to `@eslint/js` (`js.configs.recommended`)
+
+Install external formatter packages when your scripts reference them:
+
+```bash
+npm install --save-dev eslint-formatter-compact
+```
+
+### Step 6: Extends & Plugin Migration
 
 **All extends and plugins are preserved exactly as they were** - no additions or removals.
 
@@ -191,7 +211,7 @@ The codemod follows ESLint v9 conventions for plugin package names and import id
 
 The import identifiers are automatically generated to be valid JavaScript identifiers, converting package names to camelCase format.
 
-### Step 6: Global ignores (`ignorePatterns`, ignore-list files)
+### Step 7: Global ignores (`ignorePatterns`, ignore-list files)
 
 In flat config, global path ignores are expressed with `globalIgnores` from `@eslint/config-helpers` (the codemod emits a leading `globalIgnores([...])` object when needed).
 

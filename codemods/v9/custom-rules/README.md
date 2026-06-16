@@ -22,6 +22,9 @@ This codemod performs a comprehensive migration of custom ESLint rules from v8 t
 - ✅ **Removed `context.getComments()`** - converts to combination of `getCommentsBefore/Inside/After`
 - ✅ **Removed `CodePath#currentSegments`** - adds code path tracking logic
 - ✅ **Function-style rules are no longer supported** - converts to object format with `meta` and `create`
+- ✅ **Removed `sourceCode.getComments()`** - converts to `getCommentsBefore/Inside/After` combinations
+- ✅ **`FlatRuleTester` → `RuleTester`** - renames imports/usages and moves `parserOptions` to `languageOptions` in tests
+- ✅ **`FlatESLint` → `ESLint`** and **`Linter#verify` flat config** - updates integration API usage
 
 ### Detailed Transformations:
 

@@ -63,3 +63,60 @@ nodes:
             - '**/*.d.ts'
             - '**/*.d.mts'
             - '**/*.d.cts'
+      - id: replace-sourcecode-getcomments
+        name: 'Replace sourceCode.getComments()'
+        depends_on:
+          - replace-context-methods
+        js-ast-grep:
+          js_file: scripts/replace-sourcecode-getcomments.ts
+          include:
+            - '**/*.js'
+            - '**/*.mjs'
+            - '**/*.cjs'
+            - '**/*.jsx'
+            - '**/*.ts'
+            - '**/*.mts'
+            - '**/*.cts'
+            - '**/*.tsx'
+          exclude:
+            - '**/*.d.ts'
+            - '**/*.d.mts'
+            - '**/*.d.cts'
+      - id: migrate-rule-tester
+        name: 'Migrate RuleTester usage for ESLint v9'
+        depends_on:
+          - replace-current-statement
+        js-ast-grep:
+          js_file: scripts/migrate-rule-tester.ts
+          include:
+            - '**/*.js'
+            - '**/*.mjs'
+            - '**/*.cjs'
+            - '**/*.jsx'
+            - '**/*.ts'
+            - '**/*.mts'
+            - '**/*.cts'
+            - '**/*.tsx'
+          exclude:
+            - '**/*.d.ts'
+            - '**/*.d.mts'
+            - '**/*.d.cts'
+      - id: migrate-integration-api
+        name: 'Migrate ESLint integration APIs for v9'
+        depends_on:
+          - migrate-rule-tester
+        js-ast-grep:
+          js_file: scripts/migrate-integration-api.ts
+          include:
+            - '**/*.js'
+            - '**/*.mjs'
+            - '**/*.cjs'
+            - '**/*.jsx'
+            - '**/*.ts'
+            - '**/*.mts'
+            - '**/*.cts'
+            - '**/*.tsx'
+          exclude:
+            - '**/*.d.ts'
+            - '**/*.d.mts'
+            - '**/*.d.cts'

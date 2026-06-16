@@ -48,7 +48,11 @@ export default defineConfig([
       "no-sequences": ["error", {"allowInParentheses": false}],
       "no-unused-vars": ["error", {"caughtErrors":"\"all\"","vars":"\"all\"","args":"\"after-used\""}],
       "no-useless-computed-key": ["error", {enforceForClassMembers: true}],
-      "camelcase": ["error", {"properties":"\"always\"","ignoreDestructuring":false}]
+      "camelcase": ["error", {"properties":"\"always\"","ignoreDestructuring":false}],
+      "no-constant-binary-expression": 'off',
+      "no-empty-static-block": 'off',
+      "no-new-native-nonconstructor": 'off',
+      "no-unused-private-class-members": 'off'
     },
   },
   {
@@ -59,6 +63,12 @@ export default defineConfig([
     plugins: {
       ember: fixupPluginRules(Ember),
       node: fixupPluginRules(Node)
+    },
+    rules: {
+      "no-constant-binary-expression": 'off',
+      "no-empty-static-block": 'off',
+      "no-new-native-nonconstructor": 'off',
+      "no-unused-private-class-members": 'off'
     },
   },
   {

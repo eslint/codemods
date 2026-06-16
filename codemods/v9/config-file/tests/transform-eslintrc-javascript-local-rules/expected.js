@@ -25,7 +25,11 @@ export default defineConfig([
     },
     rules: {
       "no-console": "warn",
-      eqeqeq: "error"
+      eqeqeq: "error",
+      "no-constant-binary-expression": 'off',
+      "no-empty-static-block": 'off',
+      "no-new-native-nonconstructor": 'off',
+      "no-unused-private-class-members": 'off'
     },
   }
 ]);

@@ -1,0 +1,6 @@
+module.exports = {
+  rules: {
+    "no-invalid-regexp": ["error", { allowConstructorFlags: ["a", "B", "x", "X"] }],
+    "no-console": "error",
+  },
+};

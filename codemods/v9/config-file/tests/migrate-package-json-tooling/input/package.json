@@ -1,0 +1,10 @@
+{
+  "name": "example",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "scripts": {
+    "lint": "eslint --fix",
+    "report": "eslint -f compact src"
+  }
+}

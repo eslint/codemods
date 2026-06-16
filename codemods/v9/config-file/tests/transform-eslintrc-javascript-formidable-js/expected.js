@@ -108,7 +108,11 @@ export default defineConfig([
       "import/extensions": 'off',
       "import/exports-last": 'off',
       "import/no-unused-modules": 'off',
-      "import/no-useless-path-segments": ['error', { noUselessIndex: false }]
+      "import/no-useless-path-segments": ['error', { noUselessIndex: false }],
+      "no-constant-binary-expression": 'off',
+      "no-empty-static-block": 'off',
+      "no-new-native-nonconstructor": 'off',
+      "no-unused-private-class-members": 'off'
     },
   }
 ]);

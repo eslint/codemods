@@ -143,9 +143,29 @@ nodes:
           js_file: scripts/transform-packagejson-config.ts
           include:
             - '**/*package.json'
+      - id: migrate-package-json-tooling
+        name: 'Migrate package.json tooling for ESLint v9'
+        depends_on:
+          - scan-packagejson-files
+        js-ast-grep:
+          language: json
+          js_file: scripts/migrate-package-json-tooling.ts
+          include:
+            - '**/*package.json'
+      - id: transform-flat-config-strings
+        name: 'Migrate eslint.config string presets to @eslint/js'
+        depends_on:
+          - migrate-package-json-tooling
+        js-ast-grep:
+          js_file: scripts/transform-flat-config-strings.ts
+          include:
+            - '**/eslint.config.js'
+            - '**/eslint.config.mjs'
+            - '**/eslint.config.cjs'
       - id: code-formatting
         if: params.codeFormattingCommandEnabled == true
         depends_on:
-          - scan-packagejson-files
+          - migrate-package-json-tooling
+          - transform-flat-config-strings
         name: 'Code formatting'
         run: ${{ params.codeFormattingCommand }}

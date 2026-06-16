@@ -8,6 +8,11 @@ import { getState } from 'codemod:workflow'
 import makeNewConfig from '../utils/make-new-config.ts'
 import type { LanguageOptions, SectorData } from '../utils/make-new-config.ts'
 import makePluginImport from '../utils/make-plugin-import.ts'
+import {
+  migrateNoImplicitCoercionRuleValue,
+  migrateNoInnerDeclarationsRuleValue,
+  migrateNoInvalidRegexpRuleValue,
+} from '../utils/migrate-no-invalid-regexp.ts'
 
 async function transform(root: SgRoot<JSONLang>): Promise<string | null> {
   const rootNode = root.root()
@@ -723,6 +728,13 @@ async function transform(root: SgRoot<JSONLang>): Promise<string | null> {
       }
     }
     if (noUnusedVars.type !== 'nothing') {
+      if (
+        noUnusedVars.options.varsIgnorePattern &&
+        !noUnusedVars.options.caughtErrorsIgnorePattern &&
+        !String(noUnusedVars.options.caughtErrors).includes('none')
+      ) {
+        noUnusedVars.options.caughtErrorsIgnorePattern = noUnusedVars.options.varsIgnorePattern
+      }
       delete sectorData.rules['"no-unused-vars"']
       if (Object.keys(noUnusedVars.options).length) {
         sectorData.rules['"no-unused-vars"'] = `["${noUnusedVars.type}", ${JSON.stringify(noUnusedVars.options)}]`
@@ -1394,6 +1406,20 @@ async function transform(root: SgRoot<JSONLang>): Promise<string | null> {
       sectorData.ignorePatterns = ignorePatternsRule.map((rule) => rule.text().trim())
     }
     // end execution "ignorePatterns": {ignorePatterns: ["test", "m"]}
+
+    if (sectorData.rules['"no-invalid-regexp"']) {
+      sectorData.rules['"no-invalid-regexp"'] = migrateNoInvalidRegexpRuleValue(sectorData.rules['"no-invalid-regexp"'])
+    }
+    if (sectorData.rules['"no-implicit-coercion"']) {
+      sectorData.rules['"no-implicit-coercion"'] = migrateNoImplicitCoercionRuleValue(
+        sectorData.rules['"no-implicit-coercion"'],
+      )
+    }
+    if (sectorData.rules['"no-inner-declarations"']) {
+      sectorData.rules['"no-inner-declarations"'] = migrateNoInnerDeclarationsRuleValue(
+        sectorData.rules['"no-inner-declarations"'],
+      )
+    }
 
     sectors.push(sectorData)
   }

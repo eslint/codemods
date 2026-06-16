@@ -2,9 +2,12 @@ import type { SgRoot } from 'codemod:ast-grep'
 import { parse } from 'codemod:ast-grep'
 import type JS from 'codemod:ast-grep/langs/javascript'
 
+import migrateIntegrationApi from './migrate-integration-api.ts'
+import migrateRuleTester from './migrate-rule-tester.ts'
 import newRuleFormat from './new-rule-format.ts'
 import replaceContextMethod from './replace-context-method.ts'
 import replaceCurrentStatement from './replace-current-statement.ts'
+import replaceSourceCodeGetComments from './replace-sourcecode-getcomments.ts'
 
 export default async function transform(root: SgRoot<JS>): Promise<string | null> {
   const rootNode = root.root()
@@ -12,5 +15,8 @@ export default async function transform(root: SgRoot<JS>): Promise<string | null
   text = (await newRuleFormat(root)) ?? text
   text = (await replaceContextMethod(parse('javascript', text))) ?? text
   text = (await replaceCurrentStatement(parse('javascript', text))) ?? text
+  text = (await replaceSourceCodeGetComments(parse('javascript', text))) ?? text
+  text = (await migrateRuleTester(parse('javascript', text))) ?? text
+  text = (await migrateIntegrationApi(parse('javascript', text))) ?? text
   return text
 }

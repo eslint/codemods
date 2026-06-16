@@ -5,12 +5,14 @@
   "type": "module",
   "scripts": {
     "check-types": "tsc --noEmit",
-    "test": "pnpm run test:fix-exported && pnpm run test:remove-comments && pnpm run test:file-jsdoc && pnpm run test:transform-eslintrc && pnpm run test:transform-packagejson",
+    "test": "pnpm run test:fix-exported && pnpm run test:remove-comments && pnpm run test:file-jsdoc && pnpm run test:transform-eslintrc && pnpm run test:transform-packagejson && pnpm run test:migrate-package-json-tooling && pnpm run test:transform-flat-config-strings",
     "test:fix-exported": "codemod jssg test -l javascript ./scripts/fix-exported-comment.ts --filter fix-exported-comment",
     "test:remove-comments": "codemod jssg test -l javascript ./scripts/remove-unnecessary-eslint-comments.ts --filter remove-eslint-comments",
     "test:file-jsdoc": "codemod jssg test -l javascript ./scripts/file-jsdoc.ts --filter file-jsdoc",
     "test:transform-eslintrc": "codemod jssg test -l javascript ./scripts/transform-eslintrc-config.ts --filter transform-eslintrc && codemod jssg test -l json ./scripts/transform-eslintrc-config.ts --filter transform-eslintrc && codemod jssg test -l yaml ./scripts/transform-eslintrc-config.ts --filter transform-eslintrc",
-    "test:transform-packagejson": "codemod jssg test -l json ./scripts/transform-packagejson-config.ts --filter transform-packagejson --allow-fs"
+    "test:transform-packagejson": "codemod jssg test -l json ./scripts/transform-packagejson-config.ts --filter transform-packagejson --allow-fs",
+    "test:migrate-package-json-tooling": "codemod jssg test -l json ./scripts/migrate-package-json-tooling.ts --filter migrate-package-json-tooling",
+    "test:transform-flat-config-strings": "codemod jssg test -l javascript ./scripts/transform-flat-config-strings.ts --filter transform-flat-config-strings"
   },
   "dependencies": {
     "@types/js-yaml": "catalog:",
