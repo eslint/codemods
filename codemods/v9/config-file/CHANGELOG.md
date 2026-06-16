@@ -1,5 +1,13 @@
 # @eslint/v8-to-v9-config
 
+## 1.9.41
+
+### Patch Changes
+
+- 3d23ea7: Fix v9 rule migrations when duplicate rule keys appear in eslintrc `rules` objects.
+  - Use the last duplicate entry for `no-constructor-return`, `no-sequences`, `no-unused-vars`, `no-useless-computed-key`, and `camelcase` migrations, matching JavaScript object literal semantics
+  - Expand `package.json` formatter migration tests to cover all seven removed built-in formatters
+
 ## 1.9.40
 
 ### Patch Changes
