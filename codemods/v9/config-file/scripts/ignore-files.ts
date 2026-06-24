@@ -32,7 +32,7 @@ async function transform(root: SgRoot<JS>): Promise<string | null> {
   const fileName = root.filename()
   const fileDirectory = path.dirname(fileName)
   const relativePath = fileDirectory !== currentWorkingDirectory ? '../' : ''
-  root.rename(`${relativePath}deleted-eslintignore-backup.txt`)
+  root.rename(path.join(relativePath, 'deleted-eslintignore-backup.txt'))
 
   return null
 }
