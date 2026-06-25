@@ -1,5 +1,11 @@
 # @eslint/v8-to-v9-config
 
+## 1.9.42
+
+### Patch Changes
+
+- e3648e5: Use platform-native paths when renaming processed ignore files to `deleted-eslintignore-backup.txt`.
+
 ## 1.9.41
 
 ### Patch Changes
