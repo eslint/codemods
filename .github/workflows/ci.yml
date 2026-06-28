@@ -43,7 +43,7 @@ jobs:
               | grep '^codemods/' \
               | cut -d/ -f1-3 \
               | sort -u \
-              | sed 's|^|--filter ./|'
+              | sed 's|^|--filter ./| || true'
           )
 
           if [ -z "$filters" ]; then
