@@ -1,5 +1,11 @@
 # @eslint/v8-to-v9-config
 
+## 1.9.43
+
+### Patch Changes
+
+- 53b1e73: enhance ESLint script migration in package.json tooling
+
 ## 1.9.42
 
 ### Patch Changes
