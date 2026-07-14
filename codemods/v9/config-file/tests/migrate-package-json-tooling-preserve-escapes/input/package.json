@@ -1,0 +1,8 @@
+{
+  "name": "example",
+  "description": "uses eslint for linting",
+  "scripts": {
+    "lint:win": "eslint -f unix src\\lib\\index.js",
+    "lint": "eslint --fix"
+  }
+}

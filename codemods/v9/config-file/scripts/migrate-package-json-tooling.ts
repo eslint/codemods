@@ -1,4 +1,4 @@
-import type { SgRoot } from 'codemod:ast-grep'
+import type { Edit, SgRoot } from 'codemod:ast-grep'
 import type JSONLang from 'codemod:ast-grep/langs/json'
 
 const REMOVED_FORMATTERS: Record<string, string> = {
@@ -10,8 +10,6 @@ const REMOVED_FORMATTERS: Record<string, string> = {
   unix: 'eslint-formatter-unix',
   visualstudio: 'eslint-formatter-visualstudio',
 }
-
-const SCRIPT_PAIR_PATTERN = /"([^"]+)"\s*:\s*"([^"]*)"/g
 
 const migrateEslintScript = (script: string): string => {
   let next = script
@@ -36,21 +34,77 @@ const migrateEslintScript = (script: string): string => {
   return next
 }
 
-export default async function transform(root: SgRoot<JSONLang>): Promise<string | null> {
-  let source = root.root().text()
-  let changed = false
+const parseJsonString = (quoted: string): string | null => {
+  try {
+    return JSON.parse(quoted) as string
+  } catch {
+    return null
+  }
+}
 
-  source = source.replaceAll(SCRIPT_PAIR_PATTERN, (match, key: string, script: string) => {
-    if (key === 'eslintConfig' || !/\beslint(?:\s|$|--|-f\b)/.test(script)) {
-      return match
-    }
-    const migrated = migrateEslintScript(script)
-    if (migrated === script) {
-      return match
-    }
-    changed = true
-    return `"${key}": ${JSON.stringify(migrated)}`
+export default async function transform(root: SgRoot<JSONLang>): Promise<string | null> {
+  const rootNode = root.root()
+  const rootObject = rootNode.find({ rule: { kind: 'object' } })
+
+  if (!rootObject) {
+    return null
+  }
+
+  const scriptsPair = rootObject.find({
+    rule: {
+      kind: 'pair',
+      has: {
+        kind: 'string',
+        nthChild: 1,
+        has: {
+          kind: 'string_content',
+          regex: '^scripts$',
+        },
+      },
+    },
   })
 
-  return changed ? source : null
+  if (!scriptsPair) {
+    return null
+  }
+
+  const scriptsObject = scriptsPair.find({ rule: { kind: 'object' } })
+  if (!scriptsObject) {
+    return null
+  }
+
+  const edits: Edit[] = []
+
+  for (const scriptPair of scriptsObject.findAll({ rule: { kind: 'pair' } })) {
+    const strings = scriptPair.findAll({ rule: { kind: 'string' } })
+    if (strings.length < 2) {
+      continue
+    }
+
+    const keyString = strings[0]
+    const valueString = strings[1]
+    if (!keyString || !valueString) {
+      continue
+    }
+
+    const key = keyString.find({ rule: { kind: 'string_content' } })?.text()
+    const script = parseJsonString(valueString.text())
+
+    if (key === 'eslintConfig' || script === null || !/\beslint(?:\s|$|--|-f\b)/.test(script)) {
+      continue
+    }
+
+    const migrated = migrateEslintScript(script)
+    if (migrated === script) {
+      continue
+    }
+
+    edits.push(valueString.replace(JSON.stringify(migrated)))
+  }
+
+  if (edits.length === 0) {
+    return null
+  }
+
+  return rootNode.commitEdits(edits)
 }
