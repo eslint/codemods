@@ -8,4 +8,4 @@ catalog:
   '@types/js-yaml': '^4.0.9'
   '@types/node': '^22.15.0'
   'js-yaml': '^4.1.0'
-  'typescript': '^5.8.3'
+  'typescript': '^5.9.3'
