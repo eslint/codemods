@@ -38,6 +38,8 @@ nodes:
           include:
             - '**/.gitignore'
             - '**/.eslintignore'
+          exclude:
+            - '**/node_modules/**'
       - id: fix-exported-comments
         name: 'Fix exported comments'
         js-ast-grep:
@@ -45,6 +47,8 @@ nodes:
           include:
             - '**/*.ts'
             - '**/*.js'
+          exclude:
+            - '**/node_modules/**'
       - id: remove-unnecessary-eslint-comments
         name: 'Remove unnecessary eslint comments'
         js-ast-grep:
@@ -52,6 +56,8 @@ nodes:
           include:
             - '**/*.ts'
             - '**/*.js'
+          exclude:
+            - '**/node_modules/**'
       - id: scan-file-jsdoc
         name: 'Scan file-jsdoc.ts'
         depends_on:
@@ -61,6 +67,8 @@ nodes:
           include:
             - '**/*.ts'
             - '**/*.js'
+          exclude:
+            - '**/node_modules/**'
       - id: scan-js-eslintrc-files
         name: 'Scan .eslintrc.js, .eslintrc.mjs, .eslintrc.cjs'
         depends_on:
@@ -74,6 +82,8 @@ nodes:
             - '**/*.eslintrc.js'
             - '**/*.eslintrc.mjs'
             - '**/*.eslintrc.cjs'
+          exclude:
+            - '**/node_modules/**'
       - id: scan-json-eslintrc-files
         name: 'Scan .eslintrc.json'
         depends_on:
@@ -84,6 +94,8 @@ nodes:
           js_file: scripts/transform-eslintrc-config.ts
           include:
             - '**/*.eslintrc.json'
+          exclude:
+            - '**/node_modules/**'
       - id: scan-yaml-eslintrc-files
         name: 'Scan .eslintrc.yaml and .eslintrc.yml'
         depends_on:
@@ -95,6 +107,8 @@ nodes:
           include:
             - '**/*.eslintrc.yaml'
             - '**/*.eslintrc.yml'
+          exclude:
+            - '**/node_modules/**'
       - id: scan-custom-eslint-config-javascript
         if: 'params.eslintConfigCustomName != "null" && params.eslintConfigLanguage == "javascript"'
         name: 'Scan ESLint config file with custom name (JavaScript)'
@@ -107,6 +121,8 @@ nodes:
           semantic_analysis: file
           include:
             - '**/*${{ params.eslintConfigCustomName }}'
+          exclude:
+            - '**/node_modules/**'
       - id: scan-custom-eslint-config-json
         if: 'params.eslintConfigCustomName != "null" && params.eslintConfigLanguage == "json"'
         name: 'Scan ESLint config file with custom name (JSON)'
@@ -118,6 +134,8 @@ nodes:
           js_file: scripts/transform-eslintrc-config.ts
           include:
             - '**/*${{ params.eslintConfigCustomName }}'
+          exclude:
+            - '**/node_modules/**'
       - id: scan-custom-eslint-config-yaml
         if: 'params.eslintConfigCustomName != "null" && params.eslintConfigLanguage == "yaml"'
         name: 'Scan ESLint config file with custom name (YAML)'
@@ -129,6 +147,8 @@ nodes:
           js_file: scripts/transform-eslintrc-config.ts
           include:
             - '**/*${{ params.eslintConfigCustomName }}'
+          exclude:
+            - '**/node_modules/**'
       - id: scan-packagejson-files
         name: 'Scan package.json'
         depends_on:
@@ -143,6 +163,8 @@ nodes:
           js_file: scripts/transform-packagejson-config.ts
           include:
             - '**/*package.json'
+          exclude:
+            - '**/node_modules/**'
       - id: migrate-package-json-tooling
         name: 'Migrate package.json tooling for ESLint v9'
         depends_on:
@@ -152,6 +174,8 @@ nodes:
           js_file: scripts/migrate-package-json-tooling.ts
           include:
             - '**/*package.json'
+          exclude:
+            - '**/node_modules/**'
       - id: transform-flat-config-strings
         name: 'Migrate eslint.config string presets to @eslint/js'
         depends_on:
@@ -162,6 +186,8 @@ nodes:
             - '**/eslint.config.js'
             - '**/eslint.config.mjs'
             - '**/eslint.config.cjs'
+          exclude:
+            - '**/node_modules/**'
       - id: code-formatting
         if: params.codeFormattingCommandEnabled == true
         depends_on:

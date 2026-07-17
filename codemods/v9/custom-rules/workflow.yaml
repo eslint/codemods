@@ -21,6 +21,7 @@ nodes:
             - '**/*.cts'
             - '**/*.tsx' # Unlikely to be used for custom rules, but just in case
           exclude:
+            - '**/node_modules/**'
             - '**/*.d.ts'
             - '**/*.d.mts'
             - '**/*.d.cts'
@@ -40,6 +41,7 @@ nodes:
             - '**/*.cts'
             - '**/*.tsx' # Unlikely to be used for custom rules, but just in case
           exclude:
+            - '**/node_modules/**'
             - '**/*.d.ts'
             - '**/*.d.mts'
             - '**/*.d.cts'
@@ -60,6 +62,7 @@ nodes:
             - '**/*.cts'
             - '**/*.tsx' # Unlikely to be used for custom rules, but just in case
           exclude:
+            - '**/node_modules/**'
             - '**/*.d.ts'
             - '**/*.d.mts'
             - '**/*.d.cts'
@@ -79,6 +82,7 @@ nodes:
             - '**/*.cts'
             - '**/*.tsx'
           exclude:
+            - '**/node_modules/**'
             - '**/*.d.ts'
             - '**/*.d.mts'
             - '**/*.d.cts'
@@ -98,6 +102,7 @@ nodes:
             - '**/*.cts'
             - '**/*.tsx'
           exclude:
+            - '**/node_modules/**'
             - '**/*.d.ts'
             - '**/*.d.mts'
             - '**/*.d.cts'
@@ -117,6 +122,7 @@ nodes:
             - '**/*.cts'
             - '**/*.tsx'
           exclude:
+            - '**/node_modules/**'
             - '**/*.d.ts'
             - '**/*.d.mts'
             - '**/*.d.cts'
