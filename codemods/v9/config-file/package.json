@@ -1,6 +1,6 @@
 {
   "name": "@eslint/v8-to-v9-config",
-  "version": "1.9.43",
+  "version": "1.9.44",
   "description": "Migrate eslint v8 to v9",
   "type": "module",
   "scripts": {
