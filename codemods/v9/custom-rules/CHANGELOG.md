@@ -1,5 +1,11 @@
 # @eslint/v8-to-v9-custom-rules
 
+## 1.0.14
+
+### Patch Changes
+
+- 53c368b: exclude `node_modules` from workflow file scans
+
 ## 1.0.13
 
 ### Patch Changes
