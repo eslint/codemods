@@ -9,3 +9,6 @@ tmp/
 # IDE files
 .vscode/
 *.code-workspace
+
+# Automatically generated files by GitHub Actions workflow
+/.shared-workflows
