@@ -22,6 +22,7 @@ nodes:
             - '**/*.cts'
             - '**/*.tsx' # Unlikely to be used for eslint config, but just in case
           exclude:
+            - '**/node_modules/**'
             - '**/*.d.ts'
             - '**/*.d.mts'
             - '**/*.d.cts'
@@ -34,6 +35,8 @@ nodes:
           js_file: scripts/remove-legacy-flags-json.ts
           include:
             - '**/*.json'
+          exclude:
+            - '**/node_modules/**'
       - id: remove-legacy-flags-yaml
         name: 'Remove legacy env vars and CLI flags (YAML)'
         depends_on:
@@ -44,3 +47,5 @@ nodes:
           include:
             - '**/*.yaml'
             - '**/*.yml'
+          exclude:
+            - '**/node_modules/**'
