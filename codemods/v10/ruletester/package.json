@@ -1,6 +1,6 @@
 {
   "name": "@eslint/v9-to-v10-ruletester",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Fix RuleTester test case structure for ESLint v10",
   "type": "module",
   "scripts": {

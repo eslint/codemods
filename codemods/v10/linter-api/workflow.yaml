@@ -21,6 +21,7 @@ nodes:
             - '**/*.cts'
             - '**/*.tsx'
           exclude:
+            - '**/node_modules/**'
             - '**/*.d.ts'
             - '**/*.d.mts'
             - '**/*.d.cts'
@@ -40,6 +41,7 @@ nodes:
             - '**/*.cts'
             - '**/*.tsx'
           exclude:
+            - '**/node_modules/**'
             - '**/*.d.ts'
             - '**/*.d.mts'
             - '**/*.d.cts'
@@ -59,6 +61,7 @@ nodes:
             - '**/*.cts'
             - '**/*.tsx'
           exclude:
+            - '**/node_modules/**'
             - '**/*.d.ts'
             - '**/*.d.mts'
             - '**/*.d.cts'

@@ -21,6 +21,7 @@ nodes:
             - '**/*.cts'
             - '**/*.tsx' # Unlikely to be used for rule tester, but just in case
           exclude:
+            - '**/node_modules/**'
             - '**/*.d.ts'
             - '**/*.d.cts'
             - '**/*.d.mts'
@@ -40,6 +41,7 @@ nodes:
             - '**/*.cts'
             - '**/*.tsx' # Unlikely to be used for rule tester, but just in case
           exclude:
+            - '**/node_modules/**'
             - '**/*.d.ts'
             - '**/*.d.cts'
             - '**/*.d.mts'
