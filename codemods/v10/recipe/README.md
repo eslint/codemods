@@ -12,12 +12,12 @@ npx codemod @eslint/v9-to-v10
 
 This recipe combines the following four codemods into one workflow:
 
-| Codemod                                                       | What it handles                                                                                                                       |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| [`@eslint/v9-to-v10-config`](../config/README.md)             | Remove legacy env vars (`ESLINT_USE_FLAT_CONFIG`) and deprecated CLI flags from shell scripts, `package.json` scripts, and CI/CD YAML |
-| [`@eslint/v9-to-v10-custom-rules`](../custom-rules/README.md) | Migrate deprecated `context` methods and `SourceCode` methods in custom rule implementations                                          |
-| [`@eslint/v9-to-v10-ruletester`](../ruletester/README.md)     | Remove properties from `RuleTester` test cases that ESLint v10 now rejects                                                            |
-| [`@eslint/v9-to-v10-linter-api`](../linter-api/README.md)     | Fix removed `Linter`/`ESLint` constructor options, deprecated instance methods, and stricter built-in rule schemas                    |
+| Codemod                                                                                             | What it handles                                                                                                                       |
+| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| [`@eslint/v9-to-v10-config`](https://app.codemod.com/registry/@eslint/v9-to-v10-config)             | Remove legacy env vars (`ESLINT_USE_FLAT_CONFIG`) and deprecated CLI flags from shell scripts, `package.json` scripts, and CI/CD YAML |
+| [`@eslint/v9-to-v10-custom-rules`](https://app.codemod.com/registry/@eslint/v9-to-v10-custom-rules) | Migrate deprecated `context` methods and `SourceCode` methods in custom rule implementations                                          |
+| [`@eslint/v9-to-v10-ruletester`](https://app.codemod.com/registry/@eslint/v9-to-v10-ruletester)     | Remove properties from `RuleTester` test cases that ESLint v10 now rejects                                                            |
+| [`@eslint/v9-to-v10-linter-api`](https://app.codemod.com/registry/@eslint/v9-to-v10-linter-api)     | Fix removed `Linter`/`ESLint` constructor options, deprecated instance methods, and stricter built-in rule schemas                    |
 
 ### Steps (in order)
 
