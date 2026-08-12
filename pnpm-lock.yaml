@@ -7,8 +7,8 @@ settings:
 catalogs:
   default:
     '@codemod.com/jssg-types':
-      specifier: ^1.6.2
-      version: 1.6.2
+      specifier: ^1.6.3
+      version: 1.6.3
     '@types/js-yaml':
       specifier: ^4.0.9
       version: 4.0.9
@@ -31,7 +31,7 @@ importers:
         version: 2.31.0(@types/node@22.20.1)
       '@codemod.com/jssg-types':
         specifier: 'catalog:'
-        version: 1.6.2
+        version: 1.6.3
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.1
@@ -64,7 +64,7 @@ importers:
     devDependencies:
       '@codemod.com/jssg-types':
         specifier: 'catalog:'
-        version: 1.6.2
+        version: 1.6.3
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.1
@@ -76,7 +76,7 @@ importers:
     devDependencies:
       '@codemod.com/jssg-types':
         specifier: 'catalog:'
-        version: 1.6.2
+        version: 1.6.3
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.1
@@ -88,7 +88,7 @@ importers:
     devDependencies:
       '@codemod.com/jssg-types':
         specifier: 'catalog:'
-        version: 1.6.2
+        version: 1.6.3
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.1
@@ -102,7 +102,7 @@ importers:
     devDependencies:
       '@codemod.com/jssg-types':
         specifier: 'catalog:'
-        version: 1.6.2
+        version: 1.6.3
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.1
@@ -121,7 +121,7 @@ importers:
     devDependencies:
       '@codemod.com/jssg-types':
         specifier: 'catalog:'
-        version: 1.6.2
+        version: 1.6.3
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.1
@@ -133,7 +133,7 @@ importers:
     devDependencies:
       '@codemod.com/jssg-types':
         specifier: 'catalog:'
-        version: 1.6.2
+        version: 1.6.3
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.1
@@ -234,8 +234,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@codemod.com/jssg-types@1.6.2':
-    resolution: {integrity: sha512-YnKYEwyD+wi0/ahDpsSxxutVBkOON46SrZjj7Z8w2CAAGhuMmighTM6g/MNk1GGjVUj1dULWVof5ArKLSYvnzg==}
+  '@codemod.com/jssg-types@1.6.3':
+    resolution: {integrity: sha512-b5829ixO5TdGL5xg5YcL9YfiLC3WwFZU+8Zx78NpsHlJ1iySbqfA0g0psqNXv8ss/r7hdpy2KiBXm3GE6bN5bQ==}
 
   '@inquirer/external-editor@1.0.3':
     resolution: {integrity: sha512-RWbSrDiYmO4LbejWY7ttpxczuwQyZLBUyygsA9Nsv95hpzUWwnNTVQmAq3xuh7vNwCp07UTmE5i11XAEExx4RA==}
@@ -1422,7 +1422,7 @@ snapshots:
   '@codemod.com/cli-win32-x64-msvc@1.12.3':
     optional: true
 
-  '@codemod.com/jssg-types@1.6.2': {}
+  '@codemod.com/jssg-types@1.6.3': {}
 
   '@inquirer/external-editor@1.0.3(@types/node@22.20.1)':
     dependencies:
